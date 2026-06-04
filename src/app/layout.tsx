@@ -8,6 +8,7 @@ import { CartDrawer } from "@/components/cart/CartDrawer";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { SearchModal } from "@/components/layout/SearchModal";
+import { Analytics } from "@vercel/analytics/next";
 import dynamic from "next/dynamic";
 import "./globals.css";
 
@@ -66,6 +67,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <SearchModal />
               {process.env.NEXT_PUBLIC_ENABLE_AI_CHAT !== "false" && <AIChatWidget />}
             </AuthProvider>
+            <Analytics />
             <Toaster
               position="bottom-right"
               toastOptions={{
