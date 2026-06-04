@@ -1,0 +1,34 @@
+# ═══════════════════════════════════════════════════════════
+# 🤖 NexMart — n8n Automation Trigger Workflow
+# يرسل webhooks لـ n8n عند أحداث مهمة
+# ═══════════════════════════════════════════════════════════
+
+name: 🤖 n8n Automation Triggers
+
+on:
+  workflow_dispatch:
+    inputs:
+      event_type:
+        description: 'Event to trigger'
+        required: true
+        type: choice
+        options:
+          - new_deployment
+          - daily_report
+          - low_stock_check
+
+jobs:
+  trigger-n8n:
+    name: 📡 Trigger n8n Webhook
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📡 Send to n8n
+        run: |
+          curl -X POST "${{ secrets.N8N_WEBHOOK_URL }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "event": "${{ github.event.inputs.event_type }}",
+              "project": "nexmart-ma",
+              "timestamp": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'",
+              "actor": "${{ github.actor }}"
+            }'

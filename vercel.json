@@ -1,0 +1,57 @@
+{
+  "framework": "nextjs",
+  "buildCommand": "npm run build",
+  "installCommand": "npm install --legacy-peer-deps",
+  "env": {
+    "NODE_ENV": "production"
+  },
+  "functions": {
+    "src/app/api/ai/chat/route.ts": {
+      "maxDuration": 30
+    },
+    "src/app/api/ai/search/route.ts": {
+      "maxDuration": 15
+    },
+    "src/app/api/payments/webhook/route.ts": {
+      "maxDuration": 10
+    },
+    "src/app/api/cron/daily-report/route.ts": {
+      "maxDuration": 30
+    },
+    "src/app/api/cron/low-stock-check/route.ts": {
+      "maxDuration": 30
+    },
+    "src/app/api/notifications/telegram/route.ts": {
+      "maxDuration": 30
+    }
+  },
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        },
+        {
+          "key": "Access-Control-Allow-Methods",
+          "value": "GET,POST,PUT,DELETE,OPTIONS"
+        },
+        {
+          "key": "Access-Control-Allow-Headers",
+          "value": "Content-Type, Authorization"
+        }
+      ]
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron/daily-report",
+      "schedule": "0 7 * * *"
+    },
+    {
+      "path": "/api/cron/low-stock-check",
+      "schedule": "0 8 * * *"
+    }
+  ]
+}

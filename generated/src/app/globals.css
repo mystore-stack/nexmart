@@ -1,0 +1,254 @@
+/* src/app/globals.css - NexMart Maroc Premium */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap');
+
+@layer base {
+  :root {
+    /* NexMart Moroccan palette */
+    --background: 40 20% 98%;
+    --foreground: 30 15% 8%;
+    --card: 0 0% 100%;
+    --card-foreground: 30 15% 8%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 30 15% 8%;
+    --primary: 30 15% 8%;
+    --primary-foreground: 40 20% 98%;
+    --secondary: 35 20% 94%;
+    --secondary-foreground: 30 15% 8%;
+    --muted: 35 20% 94%;
+    --muted-foreground: 30 10% 50%;
+    --accent: 30 72% 50%;       /* Moroccan gold */
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 35 15% 88%;
+    --input: 35 15% 88%;
+    --ring: 30 72% 50%;
+    --radius: 0.875rem;
+    --surface: 40 20% 97%;
+    --surface-2: 35 20% 93%;
+
+    /* Moroccan brand colors */
+    --brand: 30 72% 50%;         /* #C8893A - Moroccan gold */
+    --brand-rgb: 200, 137, 58;
+    --brand-dark: 20 65% 38%;    /* #8B4513 - Deep mahogany */
+    --brand-light: 38 90% 92%;
+
+    /* Moroccan accent colors */
+    --morocco-red: 5 68% 45%;    /* Traditional terracotta */
+    --morocco-blue: 215 60% 40%; /* Chefchaouen blue */
+    --morocco-green: 150 45% 35%;/* Atlas green */
+
+    --toast-bg: #1a1209;
+    --toast-fg: #f5ede0;
+  }
+
+  .dark {
+    --background: 24 10% 5%;
+    --foreground: 38 25% 95%;
+    --card: 24 10% 8%;
+    --card-foreground: 38 25% 95%;
+    --popover: 24 10% 8%;
+    --popover-foreground: 38 25% 95%;
+    --primary: 38 25% 95%;
+    --primary-foreground: 24 10% 5%;
+    --secondary: 24 10% 13%;
+    --secondary-foreground: 38 25% 95%;
+    --muted: 24 10% 13%;
+    --muted-foreground: 30 8% 58%;
+    --accent: 30 72% 52%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 62% 42%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 24 10% 16%;
+    --input: 24 10% 16%;
+    --ring: 30 72% 52%;
+    --surface: 24 10% 8%;
+    --surface-2: 24 10% 12%;
+
+    --toast-bg: #2a1e0a;
+    --toast-fg: #f5ede0;
+  }
+}
+
+@layer base {
+  * { @apply border-border; }
+  
+  html {
+    scroll-behavior: smooth;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    font-feature-settings: "rlig" 1, "calt" 1, "ss01" 1;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1, h2, h3, .font-display {
+    font-family: 'Cormorant Garamond', 'Plus Jakarta Sans', serif;
+  }
+
+  /* Moroccan geometric scrollbar */
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { @apply bg-transparent; }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--brand) / 0.4);
+    border-radius: 99px;
+  }
+  ::-webkit-scrollbar-thumb:hover { background: hsl(var(--brand) / 0.7); }
+
+  ::selection {
+    background: hsl(var(--brand) / 0.2);
+    color: hsl(var(--foreground));
+  }
+}
+
+@layer components {
+  /* ── Moroccan pattern overlay ─────────────────────────── */
+  .moroccan-pattern {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='100'%3E%3Cpath d='M28 66L0 50V16L28 0l28 16v34L28 66zm0-4L4 49V18L28 4l24 14v31L28 62z' fill='%23C8893A' fill-opacity='0.06'/%3E%3C/svg%3E");
+  }
+
+  /* ── Card styles ──────────────────────────────────────── */
+  .card-luxury {
+    @apply bg-card border border-border rounded-2xl;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05), 0 4px 16px rgba(0,0,0,0.04);
+    transition: box-shadow 0.3s ease, transform 0.3s ease;
+  }
+  .card-luxury:hover {
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08), 0 12px 40px rgba(0,0,0,0.06);
+  }
+
+  /* ── Product card hover ───────────────────────────────── */
+  .product-card {
+    @apply card-luxury overflow-hidden;
+  }
+  .product-card:hover {
+    @apply -translate-y-1;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.1), 0 20px 50px rgba(0,0,0,0.07);
+  }
+
+  /* ── Buttons ──────────────────────────────────────────── */
+  .btn-brand {
+    @apply bg-accent text-accent-foreground font-bold rounded-xl transition-all duration-200;
+    @apply hover:brightness-110 hover:shadow-lg active:scale-[0.98];
+  }
+  .btn-outline {
+    @apply border border-border bg-card font-semibold rounded-xl transition-all duration-200;
+    @apply hover:border-accent hover:text-accent active:scale-[0.98];
+  }
+
+  /* ── Moroccan badge ───────────────────────────────────── */
+  .badge-ma {
+    @apply text-[10px] font-black tracking-wide px-2 py-0.5 rounded-full;
+  }
+
+  /* ── Price display ────────────────────────────────────── */
+  .price-main {
+    @apply text-2xl font-black;
+    color: hsl(var(--brand));
+    font-variant-numeric: tabular-nums;
+  }
+  .price-compare {
+    @apply text-sm line-through;
+    color: hsl(var(--muted-foreground));
+  }
+
+  /* ── Section layouts ──────────────────────────────────── */
+  .section { @apply py-12 md:py-16 lg:py-20; }
+  .container-main { @apply mx-auto max-w-7xl px-4 sm:px-6 lg:px-8; }
+
+  /* ── Tag style ────────────────────────────────────────── */
+  .tag {
+    @apply inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full;
+    @apply bg-secondary text-secondary-foreground;
+  }
+
+  /* ── Input luxury ─────────────────────────────────────── */
+  .input-luxury {
+    @apply w-full bg-surface border border-border rounded-xl px-4 py-3 text-sm;
+    @apply outline-none transition-all duration-200 placeholder:text-muted-foreground;
+    @apply focus:border-accent focus:ring-2 focus:ring-accent/10;
+  }
+
+  /* ── Shimmer loading ──────────────────────────────────── */
+  .shimmer {
+    background: linear-gradient(90deg,
+      hsl(var(--surface)) 0%,
+      hsl(var(--surface-2)) 40%,
+      hsl(var(--surface)) 80%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 1.8s ease-in-out infinite;
+  }
+
+  /* ── Star rating ──────────────────────────────────────── */
+  .stars { @apply flex items-center gap-0.5; }
+  .star-filled { color: #F59E0B; }
+  .star-empty { color: hsl(var(--border)); }
+}
+
+@layer utilities {
+  /* Text utilities */
+  .text-balance { text-wrap: balance; }
+  .gradient-brand {
+    @apply bg-gradient-to-r from-amber-600 to-orange-700 bg-clip-text text-transparent;
+  }
+
+  /* No scrollbar */
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+  /* Moroccan gold glow */
+  .glow-brand { box-shadow: 0 0 20px hsl(var(--brand) / 0.35); }
+
+  /* Safe areas for mobile */
+  .safe-top { padding-top: env(safe-area-inset-top); }
+  .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+}
+
+/* ── Keyframes ──────────────────────────────────────────────── */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes page-enter {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.page-enter { animation: page-enter 0.35s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.slide-up { animation: slide-up 0.4s ease forwards; }
+
+@keyframes count-pulse {
+  0%, 100% { transform: scale(1); }
+  50%       { transform: scale(1.06); }
+}
+.count-pulse { animation: count-pulse 1s ease-in-out infinite; }
+
+/* ── Product image zoom ─────────────────────────────────────── */
+.img-zoom { overflow: hidden; }
+.img-zoom img {
+  transition: transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  will-change: transform;
+}
+.img-zoom:hover img { transform: scale(1.07); }
+
+/* ── Hero gradient ──────────────────────────────────────────── */
+.hero-moroccan {
+  background:
+    radial-gradient(ellipse at 20% 50%, rgba(200, 137, 58, 0.15) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 20%, rgba(139, 69, 19, 0.1) 0%, transparent 50%),
+    linear-gradient(135deg, hsl(24 30% 6%) 0%, hsl(20 20% 10%) 100%);
+}

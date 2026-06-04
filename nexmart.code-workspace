@@ -1,0 +1,52 @@
+{
+  "folders": [
+    {
+      "name": "NexMart",
+      "path": "."
+    }
+  ],
+  "settings": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true,
+    "editor.tabSize": 2,
+    "workbench.colorTheme": "Default Dark+",
+    "workbench.iconTheme": "material-icon-theme",
+    "explorer.fileNesting.enabled": true,
+    "explorer.fileNesting.patterns": {
+      "*.ts": "${capture}.js, ${capture}.d.ts",
+      "*.tsx": "${capture}.js",
+      "package.json": "package-lock.json, yarn.lock, pnpm-lock.yaml, .npmrc, .nvmrc",
+      "tailwind.config.*": "postcss.config.*",
+      "next.config.*": "next-env.d.ts",
+      ".env.example": ".env, .env.local, .env.development, .env.production",
+      "tsconfig.json": "tsconfig.*.json",
+      "docker-compose.yml": "Dockerfile, .dockerignore",
+      "prisma": "schema.prisma"
+    },
+    "search.exclude": {
+      "**/node_modules": true,
+      "**/.next": true,
+      "**/out": true
+    }
+  },
+  "extensions": {
+    "recommendations": [
+      "esbenp.prettier-vscode",
+      "dbaeumer.vscode-eslint",
+      "bradlc.vscode-tailwindcss",
+      "Prisma.prisma",
+      "ms-azuretools.vscode-docker",
+      "usernamehw.errorlens",
+      "eamodio.gitlens",
+      "pkief.material-icon-theme"
+    ]
+  },
+  "launch": {
+    "configurations": [],
+    "compounds": []
+  },
+  "tasks": {
+    "version": "2.0.0",
+    "tasks": []
+  }
+}
