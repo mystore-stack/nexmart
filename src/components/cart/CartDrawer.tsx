@@ -127,7 +127,7 @@ export function CartDrawer() {
               ) : (
                 <AnimatePresence initial={false}>
                   {items.map((item) => {
-                    const img = item.variant?.images?.[0] || item.product.images?.[0] || "/placeholder.jpg";
+                    const img = item.product.images?.[0] || "/placeholder.jpg";
                     const price = item.variant?.price ?? item.product.price;
                     return (
                       <motion.div

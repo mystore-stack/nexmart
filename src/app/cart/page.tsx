@@ -1,6 +1,6 @@
 "use client";
 // src/app/cart/page.tsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
@@ -21,6 +21,7 @@ export default function CartPage() {
 
   const [couponInput, setCouponInput] = useState("");
   const [couponLoading, setCouponLoading] = useState(false);
+  const [isCleaningUp, setIsCleaningUp] = useState(false);
 
   const subtotal = getSubtotal();
   const discount = getDiscount();
@@ -29,6 +30,52 @@ export default function CartPage() {
   const tax = total * 0.08;
   const grandTotal = total + shipping + tax;
   const freeLivraisonProgress = Math.min(100, (total / 50) * 100);
+
+  // Automatic cart cleanup on page load
+  useEffect(() => {
+    const cleanupCart = async () => {
+      if (isCleaningUp) return;
+      setIsCleaningUp(true);
+
+      try {
+        const cleanupRes = await fetch("/api/cart", {
+          method: "DELETE",
+        });
+        const cleanupData = await cleanupRes.json();
+        console.log("Cart cleanup response:", cleanupData);
+
+        if (cleanupData.success && cleanupData.removedCount > 0) {
+          // Refresh cart from database
+          const cartRes = await fetch("/api/cart");
+          const cartData = await cartRes.json();
+
+          if (cartData.success && cartData.items) {
+            // Clear local cart and sync with database
+            clearCart();
+
+            // Rebuild cart from database items
+            cartData.items.forEach((dbItem: any) => {
+              const cartStore = useCartStore.getState();
+              cartStore.addItem(
+                dbItem.product,
+                dbItem.quantity,
+                dbItem.variant || undefined
+              );
+            });
+
+            toast.success(`Removed ${cleanupData.removedCount} unavailable item(s) from your cart.`);
+          }
+        }
+      } catch (error) {
+        console.error("Cart cleanup error:", error);
+        // Silently fail - don't show error to user on page load
+      } finally {
+        setIsCleaningUp(false);
+      }
+    };
+
+    cleanupCart();
+  }, []); // Run once on mount
 
   const handleCoupon = async () => {
     if (!couponInput.trim()) return;

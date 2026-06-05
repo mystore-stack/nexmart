@@ -12,11 +12,57 @@ import { formatPrice } from "@/utils/format";
 import Image from "next/image";
 import Link from "next/link";
 import toast from "react-hot-toast";
+import type { Address, Order } from "@/types";
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
 const STEPS = ["Address", "Payment", "Review"] as const;
 type Step = typeof STEPS[number];
+type PaymentMethod = Order["paymentMethod"];
+
+const PAYMENT_OPTIONS: Array<{
+  value: PaymentMethod;
+  label: string;
+  sub: string;
+  icon: typeof CreditCard;
+}> = [
+  { value: "STRIPE", label: "Credit / Debit Card", sub: "Secure payment via Stripe", icon: CreditCard },
+  { value: "CASH_ON_DELIVERY", label: "Cash on Delivery", sub: "Pay when your order arrives", icon: Truck },
+];
+
+interface PaymentStepProps {
+  method: PaymentMethod;
+  onMethodChange: (method: PaymentMethod) => void;
+  clientSecret: string;
+  paymentIntentId: string;
+  grandTotal: number;
+  onNext: () => void;
+  onStripeSuccess: () => void;
+  onBack: () => void;
+  creatingPaymentIntent: boolean;
+}
+
+interface ReviewStepProps {
+  items: any[];
+  paymentMethod: PaymentMethod;
+  grandTotal: number;
+  loading: boolean;
+  onBack: () => void;
+  onPlace: () => void;
+}
+
+interface AddressStepProps {
+  addresses: Address[];
+  selected: string;
+  onSelect: (id: string) => void;
+  onNext: () => void;
+}
+
+interface StripePaymentFormProps {
+  onSuccess: () => void;
+  paymentIntentId: string;
+  grandTotal: number;
+}
 
 export default function CheckoutPage() {
   const { items, getSubtotal, getDiscount, coupon, applyCoupon, removeCoupon } = useCartStore();
@@ -26,12 +72,16 @@ export default function CheckoutPage() {
   const [step, setStep] = useState<Step>("Address");
   const [addresses, setAddresses] = useState<any[]>([]);
   const [selectedAddress, setSelectedAddress] = useState<string>("");
-  const [paymentMethod, setPaymentMethod] = useState<"STRIPE" | "CASH_ON_DELIVERY">("STRIPE");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("STRIPE");
   const [clientSecret, setClientSecret] = useState<string>("");
+  const [paymentIntentId, setPaymentIntentId] = useState<string>("");
+  const [paymentIntentAmount, setPaymentIntentAmount] = useState<number | null>(null);
   const [pendingOrderNumber, setPendingOrderNumber] = useState<string>("");
+  const [creatingPaymentIntent, setCreatingPaymentIntent] = useState(false);
   const [couponInput, setCouponInput] = useState("");
   const [couponLoading, setCouponLoading] = useState(false);
   const [orderLoading, setOrderLoading] = useState(false);
+  const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [shippingCost, setShippingCost] = useState(30);
   const [shippingCarrierId, setShippingCarrierId] = useState("jibli");
 
@@ -96,14 +146,97 @@ export default function CheckoutPage() {
     }
   };
 
-  const placeOrder = async () => {
-    const addr = addresses.find((a: any) => a.id === selectedAddress);
-    if (!selectedAddress || !addr?.city) {
-      toast.error("Select a delivery address");
+  const handlePaymentMethodChange = async (method: PaymentMethod) => {
+    if (!method) {
+      toast.error("Please select a payment method");
       return;
     }
+    setPaymentMethod(method);
+    if (method === "STRIPE" && (!clientSecret || paymentIntentAmount !== grandTotal)) {
+      setCreatingPaymentIntent(true);
+      try {
+        const res = await fetch("/api/payments/create-intent-from-cart", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ amount: grandTotal, currency: "mad" }),
+        });
+        const data = await res.json();
+        if (data.success && data.clientSecret) {
+          setClientSecret(data.clientSecret);
+          setPaymentIntentId(data.paymentIntentId);
+          setPaymentIntentAmount(grandTotal);
+        } else {
+          toast.error(data.error || "Failed to initialize payment");
+          setClientSecret("");
+          setPaymentIntentId("");
+          setPaymentIntentAmount(null);
+          setPaymentMethod("CASH_ON_DELIVERY");
+        }
+      } catch (error) {
+        console.error("Payment intent creation error:", error);
+        toast.error("Failed to initialize payment");
+        setClientSecret("");
+        setPaymentIntentId("");
+        setPaymentIntentAmount(null);
+        setPaymentMethod("CASH_ON_DELIVERY");
+      } finally {
+        setCreatingPaymentIntent(false);
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (
+      step !== "Payment" ||
+      paymentMethod !== "STRIPE" ||
+      creatingPaymentIntent ||
+      (clientSecret && paymentIntentAmount === grandTotal)
+    ) {
+      return;
+    }
+
+    void handlePaymentMethodChange("STRIPE");
+  }, [step, paymentMethod, clientSecret, paymentIntentAmount, grandTotal, creatingPaymentIntent]);
+
+  const placeOrder = async () => {
+    // Prevent duplicate submissions
+    if (isPlacingOrder) {
+      toast.error("Order is already being placed. Please wait.");
+      return;
+    }
+
+    const addr = addresses.find((a: any) => a.id === selectedAddress);
+    if (!selectedAddress || !addr?.city) {
+      toast.error("Veuillez sélectionner une adresse de livraison");
+      return;
+    }
+    if (!paymentMethod) {
+      toast.error("Veuillez sélectionner un moyen de paiement");
+      setStep("Payment");
+      return;
+    }
+    if (paymentMethod === "STRIPE" && !paymentIntentId) {
+      toast.error("Paiement non complété. Veuillez compléter le paiement d'abord.");
+      setStep("Payment");
+      return;
+    }
+    if (items.length === 0) {
+      toast.error("Votre panier est vide");
+      router.push("/cart");
+      return;
+    }
+
+    setIsPlacingOrder(true);
     setOrderLoading(true);
+    
     try {
+      console.log("Placing order with:", {
+        paymentMethod,
+        paymentIntentId,
+        itemCount: items.length,
+        total: grandTotal,
+      });
+
       const res = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -119,34 +252,77 @@ export default function CheckoutPage() {
             quantity: i.quantity,
           })),
           couponCode: coupon?.code,
+          stripePaymentId: paymentMethod === "STRIPE" ? paymentIntentId : undefined,
         }),
       });
+      
       const data = await res.json();
+      console.log("Order API response:", data);
+      
       if (!data.success) {
-        toast.error(data.error || "Order creation failed");
+        // Handle cart cleanup required error
+        if (data.code === "CART_CLEANUP_REQUIRED") {
+          toast.error(data.error || "Some products in your cart are no longer available. Please refresh your cart.");
+          
+          // Call cleanup endpoint to remove invalid items
+          try {
+            const cleanupRes = await fetch("/api/cart", {
+              method: "DELETE",
+            });
+            const cleanupData = await cleanupRes.json();
+            console.log("Cart cleanup response:", cleanupData);
+            
+            if (cleanupData.success && cleanupData.removedCount > 0) {
+              // Refresh cart from database
+              const cartRes = await fetch("/api/cart");
+              const cartData = await cartRes.json();
+              
+              if (cartData.success && cartData.items) {
+                // Clear local cart and sync with database
+                useCartStore.getState().clearCart();
+                
+                // Rebuild cart from database items
+                cartData.items.forEach((dbItem: any) => {
+                  useCartStore.getState().addItem(
+                    dbItem.product,
+                    dbItem.quantity,
+                    dbItem.variant || undefined
+                  );
+                });
+                
+                toast.success(`Removed ${cleanupData.removedCount} unavailable item(s) from your cart.`);
+                
+                // Redirect to cart page to review
+                setTimeout(() => {
+                  router.push("/cart");
+                }, 1500);
+              }
+            }
+          } catch (cleanupError) {
+            console.error("Cart cleanup error:", cleanupError);
+            toast.error("Failed to clean up cart. Please refresh the page.");
+          }
+          return;
+        }
+        
+        toast.error(data.error || "Échec de la création de commande");
         return;
       }
 
       const order = data.order;
-      if (paymentMethod === "STRIPE" && order?.id) {
-        const payRes = await fetch("/api/payments/create-intent", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ orderId: order.id }),
-        });
-        const payData = await payRes.json();
-        if (payData.clientSecret) {
-          setClientSecret(payData.clientSecret);
-          setPendingOrderNumber(order.orderNumber);
-          setStep("Payment");
-          toast.success("Order created - finalize payment");
-          return;
-        }
-      }
-
+      setPendingOrderNumber(order.orderNumber);
+      
+      // Clear cart after successful order
+      useCartStore.getState().clearCart();
+      
+      // Redirect to order success page
       router.push(`/orders/${order.orderNumber}?success=true`);
+    } catch (error) {
+      console.error("Order placement error:", error);
+      toast.error("Échec de la commande. Veuillez réessayer.");
     } finally {
       setOrderLoading(false);
+      setIsPlacingOrder(false);
     }
   };
 
@@ -226,24 +402,34 @@ export default function CheckoutPage() {
                 {step === "Payment" && (
                   <PaymentStep
                     method={paymentMethod}
-                    onMethodChange={setPaymentMethod}
+                    onMethodChange={handlePaymentMethodChange}
                     clientSecret={clientSecret}
+                    paymentIntentId={paymentIntentId}
                     grandTotal={grandTotal}
-                    onNext={() => setStep("Review")}
-                    onStripeSuccess={() => {
-                      if (pendingOrderNumber) {
-                        router.push(`/orders/${pendingOrderNumber}?success=true`);
-                      } else {
-                        router.push("/orders?success=true");
+                    onNext={() => {
+                      if (!paymentMethod) {
+                        toast.error("Please select a payment method");
+                        return;
                       }
+                      if (paymentMethod === "STRIPE") {
+                        toast.error("Veuillez payer par carte avant de finaliser la commande.");
+                        return;
+                      }
+                      setStep("Review");
+                    }}
+                    onStripeSuccess={() => {
+                      // Payment confirmed, now create the order
+                      placeOrder();
                     }}
                     onBack={() => setStep("Address")}
+                    creatingPaymentIntent={creatingPaymentIntent}
                   />
                 )}
                 {step === "Review" && (
                   <ReviewStep
                     items={items}
                     paymentMethod={paymentMethod}
+                    grandTotal={grandTotal}
                     loading={orderLoading}
                     onBack={() => setStep("Payment")}
                     onPlace={() => placeOrder()}
@@ -358,7 +544,7 @@ export default function CheckoutPage() {
 
 // ─── Sub-components ──────────────────────────────────────────
 
-function AddressStep({ addresses, selected, onSelect, onNext }: any) {
+function AddressStep({ addresses, selected, onSelect, onNext }: AddressStepProps) {
   // UI-only shipping form (does not affect existing saved-address + shipping calculation flow)
   const [form, setForm] = useState({
     fullName: "",
@@ -531,7 +717,7 @@ function AddressStep({ addresses, selected, onSelect, onNext }: any) {
   );
 }
 
-function PaymentStep({ method, onMethodChange, clientSecret, grandTotal, onNext, onStripeSuccess, onBack }: any) {
+function PaymentStep({ method, onMethodChange, clientSecret, paymentIntentId, grandTotal, onNext, onStripeSuccess, onBack, creatingPaymentIntent }: PaymentStepProps) {
   return (
     <div className="rounded-2xl border border-gold-200/30 dark:border-gold-800/20 bg-white dark:bg-card p-6 space-y-6">
       <div className="flex items-center gap-3">
@@ -540,10 +726,7 @@ function PaymentStep({ method, onMethodChange, clientSecret, grandTotal, onNext,
       </div>
 
       <div className="space-y-3">
-        {[
-          { value: "STRIPE", label: "Credit / Debit Card", sub: "Secure payment via Stripe", icon: CreditCard },
-          { value: "CASH_ON_DELIVERY", label: "Cash on Delivery", sub: "Pay when your order arrives", icon: Truck },
-        ].map(({ value, label, sub, icon: Icon }) => (
+        {PAYMENT_OPTIONS.map(({ value, label, sub, icon: Icon }) => (
           <button
             key={value}
             onClick={() => onMethodChange(value)}
@@ -565,15 +748,30 @@ function PaymentStep({ method, onMethodChange, clientSecret, grandTotal, onNext,
         ))}
       </div>
 
-      {method === "STRIPE" && clientSecret && (
+      {method === "STRIPE" && (
         <div className="p-4 rounded-xl border border-border bg-muted/30">
           <div className="mb-4 rounded-lg bg-background p-3 text-sm">
             <p className="font-semibold">Secure payment</p>
             <p className="text-muted-foreground">Amount due: {formatPrice(grandTotal)}</p>
           </div>
-          <Elements stripe={stripePromise} options={{ clientSecret }}>
-            <StripePaymentForm onSuccess={onStripeSuccess} />
-          </Elements>
+          {creatingPaymentIntent ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-foreground"></div>
+              <span className="ml-3 text-sm text-muted-foreground">Initializing payment...</span>
+            </div>
+          ) : clientSecret ? (
+            <Elements stripe={stripePromise} options={{ clientSecret }}>
+              <StripePaymentForm 
+                onSuccess={onStripeSuccess} 
+                paymentIntentId={paymentIntentId}
+                grandTotal={grandTotal}
+              />
+            </Elements>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground text-sm">
+              Select payment method above to continue
+            </div>
+          )}
         </div>
       )}
 
@@ -582,34 +780,75 @@ function PaymentStep({ method, onMethodChange, clientSecret, grandTotal, onNext,
           <ArrowLeft className="w-4 h-4" />
           Back
         </button>
-        {!clientSecret && (
-          <button onClick={onNext} className="btn btn-primary flex-1 justify-center">
-            Review Order
-            <ChevronRight className="w-4 h-4" />
-          </button>
-        )}
+        <button 
+          onClick={onNext} 
+          className="btn btn-primary flex-1 justify-center"
+          disabled={creatingPaymentIntent || method === "STRIPE"}
+        >
+          {creatingPaymentIntent ? (
+            <span className="flex items-center gap-2">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-background"></div>
+              Processing...
+            </span>
+          ) : method === "STRIPE" ? (
+            <span className="flex items-center gap-2">
+              Pay with card above
+            </span>
+          ) : (
+            <span className="flex items-center gap-2">
+              Review Order
+              <ChevronRight className="w-4 h-4" />
+            </span>
+          )}
+        </button>
       </div>
     </div>
   );
 }
 
-function StripePaymentForm({ onSuccess }: any) {
+function StripePaymentForm({ onSuccess, paymentIntentId, grandTotal }: StripePaymentFormProps) {
   const stripe = useStripe();
   const elements = useElements();
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async () => {
-    if (!stripe || !elements) return;
+    if (!stripe || !elements) {
+      toast.error("Stripe non chargé. Veuillez rafraîchir la page.");
+      return;
+    }
+    if (!paymentIntentId) {
+      toast.error("Intent de paiement non trouvé. Veuillez réessayer.");
+      return;
+    }
     setLoading(true);
-    const { error } = await stripe.confirmPayment({
-      elements,
-      redirect: "if_required",
-    });
-    setLoading(false);
-    if (error) {
-      toast.error(error.message || "Payment failed");
-    } else {
-      onSuccess();
+    try {
+      console.log("Confirming payment with intent ID:", paymentIntentId);
+      const { error, paymentIntent } = await stripe.confirmPayment({
+        elements,
+        redirect: "if_required",
+        confirmParams: {
+          return_url: `${window.location.origin}/checkout`,
+        },
+      });
+      
+      console.log("Payment confirmation result:", { error, paymentIntent });
+      
+      if (error) {
+        toast.error(error.message || "Échec du paiement");
+      } else if (paymentIntent?.status === "succeeded") {
+        console.log("Payment succeeded, calling onSuccess");
+        toast.success("Paiement réussi!");
+        onSuccess();
+      } else if (paymentIntent?.status === "processing") {
+        toast.error("Le paiement est en cours de traitement. Veuillez patienter.");
+      } else {
+        toast.error("Paiement non complété");
+      }
+    } catch (error) {
+      console.error("Stripe payment error:", error);
+      toast.error("Une erreur s'est produite lors du paiement. Veuillez réessayer.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -618,21 +857,21 @@ function StripePaymentForm({ onSuccess }: any) {
       <PaymentElement />
       <button
         onClick={handleSubmit}
-        disabled={!stripe || loading}
+        disabled={!stripe || !elements || loading || !paymentIntentId}
         className={`btn btn-brand w-full justify-center ${loading ? "loading" : ""}`}
       >
-        {loading ? <span className="opacity-0">Processing...</span> : "Confirm Payment"}
+        {loading ? <span className="opacity-0">Traitement...</span> : "Payer " + formatPrice(grandTotal)}
       </button>
     </div>
   );
 }
 
-function ReviewStep({ items, paymentMethod, loading, onBack, onPlace }: any) {
+function ReviewStep({ items, paymentMethod, grandTotal, loading, onBack, onPlace }: ReviewStepProps) {
   return (
     <div className="rounded-2xl border border-gold-200/30 dark:border-gold-800/20 bg-white dark:bg-card p-6 space-y-6">
       <div className="flex items-center gap-3">
         <Check className="w-5 h-5 text-brand-500" />
-        <h2 className="text-xl font-bold">Review Your Order</h2>
+        <h2 className="text-xl font-bold">Réviser votre commande</h2>
       </div>
 
       <div className="space-y-3">
@@ -644,7 +883,7 @@ function ReviewStep({ items, paymentMethod, loading, onBack, onPlace }: any) {
             <div className="flex-1">
               <p className="font-medium text-sm">{item.product.name}</p>
               {item.variant && <p className="text-xs text-muted-foreground">{item.variant.label}</p>}
-              <p className="text-xs text-muted-foreground">Qty: {item.quantity}</p>
+              <p className="text-xs text-muted-foreground">Qté: {item.quantity}</p>
             </div>
             <p className="font-bold">{formatPrice((item.variant?.price ?? item.product.price) * item.quantity)}</p>
           </div>
@@ -654,15 +893,15 @@ function ReviewStep({ items, paymentMethod, loading, onBack, onPlace }: any) {
       <div className="p-4 rounded-xl bg-muted/50 flex items-center gap-3">
         {paymentMethod === "STRIPE" ? <CreditCard className="w-5 h-5" /> : <Truck className="w-5 h-5" />}
         <div>
-          <p className="text-sm font-medium">{paymentMethod === "STRIPE" ? "Card Payment" : "Cash on Delivery"}</p>
-          <p className="text-xs text-muted-foreground">{paymentMethod === "STRIPE" ? "You will pay securely after order creation" : "Pay when order arrives"}</p>
+          <p className="text-sm font-medium">{paymentMethod === "STRIPE" ? "Paiement par carte via Stripe" : "Paiement à la livraison"}</p>
+          <p className="text-xs text-muted-foreground">{paymentMethod === "STRIPE" ? `Paiement sécurisé de ${formatPrice(grandTotal)}` : "Payez à la réception de votre commande"}</p>
         </div>
       </div>
 
       <div className="flex gap-3">
         <button onClick={onBack} className="btn btn-outline btn-sm px-6">
           <ArrowLeft className="w-4 h-4" />
-          Back
+          Retour
         </button>
         <button
           onClick={onPlace}
@@ -671,12 +910,12 @@ function ReviewStep({ items, paymentMethod, loading, onBack, onPlace }: any) {
         >
           {loading ? (
             <span className="opacity-0 flex items-center gap-2">
-              Placing Order...
+              Traitement...
             </span>
           ) : (
             <span className="flex items-center gap-2">
               <Lock className="w-4 h-4" />
-              Place Order
+              Passer la commande
             </span>
           )}
         </button>

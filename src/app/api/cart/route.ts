@@ -73,3 +73,68 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: false, error: message }, { status });
   }
 }
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const user = await requireAuthFromRequest(req);
+    const organizationId = await getOrganizationIdForUser(user);
+
+    // Get all cart items for the user
+    const cartItems = await prisma.cartItem.findMany({
+      where: { userId: user.userId },
+      select: { id: true, productId: true },
+    });
+
+    if (cartItems.length === 0) {
+      return NextResponse.json({ success: true, removedCount: 0, details: [] });
+    }
+
+    const productIds = cartItems.map(item => item.productId);
+
+    // Find products that exist and are published for this organization
+    const validProducts = await prisma.product.findMany({
+      where: {
+        id: { in: productIds },
+        organizationId,
+        published: true,
+      },
+      select: { id: true },
+    });
+
+    const validProductIds = new Set(validProducts.map(p => p.id));
+    const invalidCartItems = cartItems.filter(item => !validProductIds.has(item.productId));
+
+    if (invalidCartItems.length === 0) {
+      return NextResponse.json({ success: true, removedCount: 0, details: [] });
+    }
+
+    // Remove invalid cart items
+    const deleteResult = await prisma.cartItem.deleteMany({
+      where: {
+        id: { in: invalidCartItems.map(item => item.id) },
+      },
+    });
+
+    const cleanupDetails = invalidCartItems.map(item => ({
+      cartItemId: item.id,
+      productId: item.productId,
+      reason: validProductIds.has(item.productId) ? "unpublished" : "not_found",
+    }));
+
+    console.log("[CART CLEANUP] Removed invalid cart items:", {
+      userId: user.userId,
+      removedCount: deleteResult.count,
+      details: cleanupDetails,
+    });
+
+    return NextResponse.json({
+      success: true,
+      removedCount: deleteResult.count,
+      details: cleanupDetails,
+    });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Erreur serveur";
+    const status = message === "Unauthorized" ? 401 : 500;
+    return NextResponse.json({ success: false, error: message }, { status });
+  }
+}

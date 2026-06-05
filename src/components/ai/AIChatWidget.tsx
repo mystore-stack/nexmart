@@ -35,7 +35,7 @@ export function AIChatWidget() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [unread, setUnread] = useState(0);
-  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [conversationId, setConversationId] = useState<string | undefined>(undefined);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const pathname = usePathname();
@@ -77,10 +77,18 @@ export function AIChatWidget() {
     setLoading(true);
     try {
       const history = messages.filter((m) => m.id !== "welcome").slice(-6).map((m) => ({ role: m.role, content: m.content }));
+      const requestBody: { conversationId?: string; message: string; history: Array<{ role: string; content: string }>; context: { productSlug?: string } } = {
+        message: userMessage,
+        history,
+        context: { productSlug },
+      };
+      if (conversationId) {
+        requestBody.conversationId = conversationId;
+      }
       const res = await fetch("/api/ai/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ conversationId, message: userMessage, history, context: { productSlug } }),
+        body: JSON.stringify(requestBody),
       });
       if (!(res.headers.get("Content-Type") || "").includes("text/event-stream")) {
         const data = await res.json();

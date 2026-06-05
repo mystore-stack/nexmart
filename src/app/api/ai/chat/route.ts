@@ -16,7 +16,7 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 30;
 
 const chatSchema = z.object({
-  conversationId: z.string().uuid().optional(),
+  conversationId: z.string().uuid().nullable().optional(),
   message: z.string().min(1).max(1000),
   history: z
     .array(z.object({ role: z.enum(["user", "assistant"]), content: z.string().max(2000) }))
@@ -84,7 +84,7 @@ export async function POST(req: NextRequest) {
     const organizationId = user ? await getOrganizationIdForUser(user) : await getDefaultOrganizationId();
 
     const conversation = await getOrCreateConversation({
-      conversationId: body.conversationId,
+      conversationId: body.conversationId || undefined,
       organizationId,
       userId: user?.userId,
       locale: body.locale,
@@ -167,7 +167,7 @@ export async function POST(req: NextRequest) {
       });
       await prisma.aiConversation.update({
         where: { id: conversation.id },
-        data: { updatedAt: new Date(), summary: content.slice(0, 500) },
+        data: { summary: content.slice(0, 500) },
       });
       if (cacheableFaq && !cachedReply) {
         await setAiCache(

@@ -452,7 +452,7 @@ model AiConversation {
   summary        String?
   metadata       Json?
   createdAt      DateTime             @default(now())
-  updatedAt      DateTime
+  updatedAt      DateTime             @updatedAt
   Organization   Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   User           User?                @relation(fields: [userId], references: [id])
   AiMessage      AiMessage[]
@@ -506,7 +506,7 @@ model AiProductEmbedding {
   embedding      Json
   searchableText String
   createdAt      DateTime     @default(now())
-  updatedAt      DateTime
+  updatedAt      DateTime     @updatedAt
   Organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   Product        Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
 
