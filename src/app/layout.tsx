@@ -37,7 +37,6 @@ export const metadata: Metadata = {
   twitter: { card: "summary_large_image", title: "NexMart Maroc", creator: "@nexmart_ma" },
   robots: { index: true, follow: true },
   icons: { icon: "/favicon.ico", shortcut: "/favicon-16x16.png", apple: "/apple-touch-icon.png" },
-  manifest: "/site.webmanifest",
 };
 
 export const viewport: Viewport = {

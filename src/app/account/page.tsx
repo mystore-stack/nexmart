@@ -106,7 +106,7 @@ export default function AccountPage() {
               <div className="relative w-20 h-20 mx-auto mb-3">
                 <div className="w-20 h-20 rounded-full bg-brand-700 flex items-center justify-center text-white text-2xl font-bold overflow-hidden">
                   {user?.avatar ? (
-                    <Image src={user.avatar} alt={user.name} fill className="object-cover" />
+                    <Image src={user.avatar} alt={user.name} fill className="object-cover" sizes="80px" />
                   ) : (
                     user?.name?.[0]?.toUpperCase()
                   )}

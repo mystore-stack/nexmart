@@ -30,6 +30,7 @@ model User {
   cart           CartItem[]
   Membership     Membership[]
   notifications  Notification[]
+  notificationLogs NotificationLog[]   @relation("UserNotificationLogs")
   orders         Order[]
   Organization   Organization[]
   viewedProducts RecentlyViewed[]
@@ -78,38 +79,39 @@ model Category {
 }
 
 model Product {
-  id                 String              @id @default(uuid()) @db.Uuid
-  organizationId     String              @db.Uuid
+  id                 String                  @id @default(uuid()) @db.Uuid
+  organizationId     String                  @db.Uuid
   name               String
   slug               String
   description        String
   price              Float
   comparePrice       Float?
   cost               Float?
-  categoryId         String              @db.Uuid
+  categoryId         String                  @db.Uuid
   images             String[]
   tags               String[]
   sku                String
-  stock              Int                 @default(0)
-  lowStockAt         Int                 @default(5)
+  stock              Int                     @default(0)
+  lowStockAt         Int                     @default(5)
   weight             Float?
-  published          Boolean             @default(false)
-  featured           Boolean             @default(false)
-  rating             Float               @default(0)
-  reviewCount        Int                 @default(0)
-  soldCount          Int                 @default(0)
-  createdAt          DateTime            @default(now())
-  updatedAt          DateTime            @updatedAt
+  published          Boolean                 @default(false)
+  featured           Boolean                 @default(false)
+  rating             Float                   @default(0)
+  reviewCount        Int                     @default(0)
+  soldCount          Int                     @default(0)
+  createdAt          DateTime                @default(now())
+  updatedAt          DateTime                @updatedAt
   AiEvent            AiEvent[]
   AiProductEmbedding AiProductEmbedding?
   cartItems          CartItem[]
   orderItems         OrderItem[]
-  category           Category            @relation(fields: [categoryId], references: [id])
-  Organization       Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  category           Category                @relation(fields: [categoryId], references: [id])
+  Organization       Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   variants           ProductVariant[]
   recentlyViewed     RecentlyViewed[]
   reviews            Review[]
   wishlistItems      WishlistItem[]
+  reservations       InventoryReservation[]
 
   @@unique([organizationId, sku])
   @@unique([organizationId, slug])
@@ -120,39 +122,43 @@ model Product {
 }
 
 model ProductVariant {
-  id         String      @id @default(uuid()) @db.Uuid
-  productId  String      @db.Uuid
+  id         String                  @id @default(uuid()) @db.Uuid
+  productId  String                  @db.Uuid
   name       String
   value      String
   label      String
   price      Float?
-  stock      Int         @default(0)
+  stock      Int                     @default(0)
   sku        String?
   cartItems  CartItem[]
   orderItems OrderItem[]
-  product    Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product    Product                 @relation(fields: [productId], references: [id], onDelete: Cascade)
+  reservations InventoryReservation[]
 
   @@index([productId])
 }
 
 model Review {
-  id        String   @id @default(uuid()) @db.Uuid
-  productId String   @db.Uuid
-  userId    String   @db.Uuid
-  rating    Int
-  title     String?
-  body      String
-  images    String[]
-  helpful   Int      @default(0)
-  verified  Boolean  @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id               String   @id @default(uuid()) @db.Uuid
+  productId        String   @db.Uuid
+  userId           String   @db.Uuid
+  orderId          String?  @db.Uuid
+  rating           Int
+  title            String?
+  body             String
+  images           String[]
+  helpfulCount     Int      @default(0)
+  verifiedPurchase Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  product          Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  order            Order?   @relation(fields: [orderId], references: [id], onDelete: SetNull)
 
   @@unique([productId, userId])
   @@index([productId])
   @@index([userId])
+  @@index([orderId])
 }
 
 model CartItem {
@@ -179,7 +185,7 @@ model Order {
   customerId      String?       @db.Uuid
   addressId       String        @db.Uuid
   status          OrderStatus   @default(PENDING)
-  paymentStatus   PaymentStatus @default(PENDING)
+  paymentStatus   PaymentStatus @default(UNPAID)
   paymentMethod   PaymentMethod
   subtotal        Float
   discount        Float         @default(0)
@@ -187,9 +193,12 @@ model Order {
   tax             Float         @default(0)
   total           Float
   couponId        String?       @db.Uuid
-  stripePaymentId String?
+  stripePaymentId String?       @unique
+  idempotencyKey  String?       @unique
   notes           String?
   trackingNumber  String?
+  courier         String?
+  estimatedDelivery DateTime?
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
   currency        String        @default("MAD")
@@ -202,11 +211,34 @@ model Order {
   Organization    Organization  @relation(fields: [organizationId], references: [id])
   user            User          @relation(fields: [userId], references: [id])
   items           OrderItem[]
+  reviews         Review[]
+  trackingHistory OrderTracking[]
+  webhookEvents   StripeWebhookEvent[]
+  notifications   NotificationLog[]     @relation("OrderNotifications")
 
   @@unique([organizationId, orderNumber])
   @@index([userId])
   @@index([status])
   @@index([organizationId])
+  @@index([stripePaymentId])
+  @@index([userId, status])
+  @@index([organizationId, status])
+  @@index([createdAt])
+}
+
+model OrderTracking {
+  id             String      @id @default(uuid()) @db.Uuid
+  orderId        String      @db.Uuid
+  status         OrderStatus
+  trackingNumber String?
+  courier        String?
+  notes          String?
+  createdAt      DateTime    @default(now())
+  order          Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([status])
+  @@index([createdAt])
 }
 
 model OrderItem {
@@ -301,6 +333,173 @@ model AuditLog {
   @@index([action])
   @@index([createdAt])
   @@index([organizationId])
+}
+
+// ============================================
+// PRODUCTION-GRADE AUDIT SYSTEM
+// ============================================
+
+model AuditEvent {
+  id             String        @id @default(uuid()) @db.Uuid
+  sessionId      String       @db.Uuid
+  eventType      AuditEventType
+  userId         String?      @db.Uuid
+  organizationId String       @db.Uuid
+  orderId        String?      @db.Uuid
+  cartSnapshot   Json?        // Full cart state at event time
+  metadata       Json?        // Additional event-specific data
+  ipAddress      String?
+  userAgent      String?
+  fraudScore     Float?       @default(0) // 0-100 risk score
+  anomalyFlags   String[]     @default([]) // Detected anomalies
+  replayId       String?      @db.Uuid    // Link to replay if created
+  createdAt      DateTime     @default(now())
+  
+  session        AuditSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  replay         AuditReplay? @relation(fields: [replayId], references: [id])
+  
+  @@index([sessionId])
+  @@index([eventType])
+  @@index([userId])
+  @@index([organizationId])
+  @@index([orderId])
+  @@index([createdAt])
+  @@index([fraudScore])
+  @@index([organizationId, createdAt])
+}
+
+model AuditSession {
+  id              String       @id @default(uuid()) @db.Uuid
+  userId          String?      @db.Uuid
+  organizationId  String       @db.Uuid
+  userAgent       String?
+  ipAddress       String?
+  referrer        String?
+  startTime       DateTime     @default(now())
+  endTime         DateTime?
+  eventCount      Int          @default(0)
+  completedSteps  String[]     @default([]) // Track checkout steps completed
+  abandonedAt     DateTime?
+  conversionValue Float?       // Final order value if converted
+  fraudScore      Float?       @default(0) // Aggregate session risk score
+  metadata        Json?
+  events          AuditEvent[]
+  replays         AuditReplay[]
+  
+  @@index([userId])
+  @@index([organizationId])
+  @@index([startTime])
+  @@index([endTime])
+  @@index([fraudScore])
+}
+
+model AuditReplay {
+  id              String       @id @default(uuid()) @db.Uuid
+  sessionId       String       @db.Uuid
+  userId          String?      @db.Uuid
+  organizationId  String       @db.Uuid
+  name            String
+  description     String?
+  events          Json         // Ordered list of events for replay
+  cartStates      Json         // Cart state at each step
+  replayData      Json?        // Additional replay context
+  createdAt       DateTime     @default(now())
+  replayedAt      DateTime?
+  replayedBy      String?      @db.Uuid // User who initiated replay
+  
+  session         AuditSession @relation(fields: [sessionId], references: [id])
+  eventsLinked    AuditEvent[]
+  
+  @@index([sessionId])
+  @@index([userId])
+  @@index([organizationId])
+  @@index([createdAt])
+}
+
+model AuditAlert {
+  id              String       @id @default(uuid()) @db.Uuid
+  sessionId       String?      @db.Uuid
+  userId          String?      @db.Uuid
+  organizationId  String       @db.Uuid
+  alertType       AuditAlertType
+  severity        AlertSeverity
+  title           String
+  description     String?
+  metadata        Json?
+  resolved        Boolean      @default(false)
+  resolvedAt      DateTime?
+  resolvedBy      String?      @db.Uuid
+  createdAt       DateTime     @default(now())
+  
+  @@index([sessionId])
+  @@index([userId])
+  @@index([organizationId])
+  @@index([alertType])
+  @@index([severity])
+  @@index([resolved])
+  @@index([createdAt])
+}
+
+enum AuditEventType {
+  // Checkout flow events
+  CHECKOUT_START
+  CHECKOUT_STEP_ADDRESS
+  CHECKOUT_STEP_PAYMENT
+  CHECKOUT_STEP_REVIEW
+  CHECKOUT_COMPLETE
+  CHECKOUT_ABANDONED
+  
+  // Payment events
+  PAYMENT_INITIATED
+  PAYMENT_SUCCESS
+  PAYMENT_FAILED
+  PAYMENT_RETRY
+  
+  // Cart events
+  CART_VIEWED
+  CART_ITEM_ADDED
+  CART_ITEM_REMOVED
+  CART_ITEM_UPDATED
+  CART_CLEARED
+  COUPON_APPLIED
+  COUPON_REMOVED
+  
+  // Order events
+  ORDER_CREATED
+  ORDER_UPDATED
+  ORDER_CANCELLED
+  ORDER_REFUNDED
+  
+  // User events
+  USER_LOGIN
+  USER_LOGOUT
+  USER_REGISTER
+  ADDRESS_ADDED
+  ADDRESS_UPDATED
+  
+  // Error events
+  CHECKOUT_ERROR
+  PAYMENT_ERROR
+  VALIDATION_ERROR
+  SYSTEM_ERROR
+}
+
+enum AuditAlertType {
+  FRAUD_DETECTED
+  ANOMALY_DETECTED
+  HIGH_VALUE_ORDER
+  RAPID_CHECKOUT
+  PAYMENT_FAILURE
+  STOCK_ISSUE
+  COUPON_ABUSE
+  SUSPICIOUS_ACTIVITY
+}
+
+enum AlertSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
 }
 
 model CmiPayment {
@@ -423,6 +622,70 @@ model StripeWebhookEvent {
   eventId     String   @unique
   type        String
   processedAt DateTime @default(now())
+  orderId     String?  @db.Uuid
+  metadata    Json?
+  order       Order?   @relation(fields: [orderId], references: [id])
+  
+  @@index([eventId])
+  @@index([orderId])
+}
+
+enum ReservationStatus {
+  RESERVED
+  CONFIRMED
+  RELEASED
+  EXPIRED
+}
+
+model InventoryReservation {
+  id             String            @id @default(uuid()) @db.Uuid
+  productId      String            @db.Uuid
+  variantId      String?           @db.Uuid
+  quantity       Int
+  status         ReservationStatus @default(RESERVED)
+  expiresAt      DateTime
+  idempotencyKey String?
+  orderId        String?           @db.Uuid
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  product        Product           @relation(fields: [productId], references: [id], onDelete: Cascade)
+  variant        ProductVariant?   @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  
+  @@index([productId])
+  @@index([variantId])
+  @@index([status])
+  @@index([expiresAt])
+  @@index([idempotencyKey])
+  @@index([orderId])
+}
+
+model NotificationLog {
+  id              String              @id @default(uuid()) @db.Uuid
+  orderId         String?             @db.Uuid
+  userId          String?             @db.Uuid
+  type            NotificationType
+  channel         NotificationChannel
+  recipient       String              // Email or phone number
+  subject         String?
+  content         String              @db.Text
+  status          NotificationStatus  @default(PENDING)
+  error           String?             @db.Text
+  sentAt          DateTime?
+  deliveredAt     DateTime?
+  retryCount      Int                 @default(0)
+  metadata        Json?               // Additional data (tracking number, etc.)
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  
+  order           Order?              @relation("OrderNotifications", fields: [orderId], references: [id], onDelete: Cascade)
+  user            User?               @relation("UserNotificationLogs", fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([orderId])
+  @@index([userId])
+  @@index([type])
+  @@index([channel])
+  @@index([status])
+  @@index([createdAt])
 }
 
 model Subscription {
@@ -442,7 +705,7 @@ model Subscription {
 }
 
 model AiConversation {
-  id             String               @id @db.Uuid
+  id             String               @id @default(uuid()) @db.Uuid
   userId         String?              @db.Uuid
   organizationId String               @db.Uuid
   status         AiConversationStatus @default(OPEN)
@@ -463,7 +726,7 @@ model AiConversation {
 }
 
 model AiEvent {
-  id             String       @id @db.Uuid
+  id             String       @id @default(uuid()) @db.Uuid
   organizationId String       @db.Uuid
   userId         String?      @db.Uuid
   productId      String?      @db.Uuid
@@ -482,7 +745,7 @@ model AiEvent {
 }
 
 model AiMessage {
-  id             String         @id @db.Uuid
+  id             String         @id @default(uuid()) @db.Uuid
   conversationId String         @db.Uuid
   role           AiMessageRole
   content        String
@@ -498,7 +761,7 @@ model AiMessage {
 }
 
 model AiProductEmbedding {
-  id             String       @id @db.Uuid
+  id             String       @id @default(uuid()) @db.Uuid
   organizationId String       @db.Uuid
   productId      String       @unique @db.Uuid
   model          String
@@ -531,6 +794,7 @@ enum OrderStatus {
 }
 
 enum PaymentStatus {
+  UNPAID
   PENDING
   PAID
   FAILED
@@ -605,4 +869,18 @@ enum AiMessageRole {
   USER
   ASSISTANT
   SYSTEM
+}
+
+enum NotificationChannel {
+  EMAIL
+  SMS
+  TELEGRAM
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  DELIVERED
+  FAILED
+  RETRYING
 }

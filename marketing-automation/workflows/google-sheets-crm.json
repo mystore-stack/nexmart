@@ -1,0 +1,483 @@
+{
+  "name": "Google Sheets CRM Sync",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 * * * *"
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "command": "get",
+        "key": "sheets:lock:{{ $env.GOOGLE_SHEET_ID }}",
+        "options": {}
+      },
+      "id": "redis-check-lock",
+      "name": "Check Sync Lock",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [450, 300],
+      "credentials": {
+        "redis": {
+          "id": "redis_credentials",
+          "name": "Redis"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition-1",
+              "leftValue": "={{$json}}",
+              "rightValue": "",
+              "operator": {
+                "type": "null",
+                "operation": "isNull"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "condition-should-sync",
+      "name": "Should Sync?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "command": "set",
+        "key": "sheets:lock:{{ $env.GOOGLE_SHEET_ID }}",
+        "value": "={{ $now.toISO() }}",
+        "options": {
+          "ttl": 600
+        }
+      },
+      "id": "redis-set-lock",
+      "name": "Set Sync Lock",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [850, 300],
+      "credentials": {
+        "redis": {
+          "id": "redis_credentials",
+          "name": "Redis"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n  u.id,\n  u.email,\n  u.name,\n  u.phone,\n  u.role,\n  u.\"emailVerified\",\n  u.createdAt,\n  COALESCE(SUM(o.total), 0) as total_spent,\n  COUNT(o.id) as order_count,\n  MAX(o.createdAt) as last_order_date\nFROM \"User\" u\nLEFT JOIN \"Order\" o ON u.id = o.\"userId\" AND o.status = 'DELIVERED'\nGROUP BY u.id, u.email, u.name, u.phone, u.role, u.\"emailVerified\", u.createdAt\nORDER BY total_spent DESC\nLIMIT 1000;",
+        "options": {}
+      },
+      "id": "postgres-get-customers",
+      "name": "Get Customers Data",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [1050, 200],
+      "credentials": {
+        "postgres": {
+          "id": "postgres_credentials",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n  o.\"orderNumber\",\n  o.\"userId\",\n  u.email as customer_email,\n  u.name as customer_name,\n  o.status,\n  o.\"paymentStatus\",\n  o.\"paymentMethod\",\n  o.subtotal,\n  o.discount,\n  o.shipping,\n  o.tax,\n  o.total,\n  o.\"trackingNumber\",\n  o.courier,\n  o.createdAt,\n  o.updatedAt\nFROM \"Order\" o\nINNER JOIN \"User\" u ON o.\"userId\" = u.id\nWHERE o.createdAt > NOW() - INTERVAL '30 days'\nORDER BY o.createdAt DESC\nLIMIT 1000;",
+        "options": {}
+      },
+      "id": "postgres-get-orders",
+      "name": "Get Orders Data",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [1050, 400],
+      "credentials": {
+        "postgres": {
+          "id": "postgres_credentials",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n  DATE(o.createdAt) as date,\n  COUNT(*) as orders,\n  SUM(o.total) as revenue,\n  AVG(o.total) as avg_order_value,\n  COUNT(DISTINCT o.\"userId\") as unique_customers\nFROM \"Order\" o\nWHERE o.status = 'DELIVERED'\n  AND o.createdAt > NOW() - INTERVAL '30 days'\nGROUP BY DATE(o.createdAt)\nORDER BY date DESC;",
+        "options": {}
+      },
+      "id": "postgres-get-revenue",
+      "name": "Get Revenue Data",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [1050, 600],
+      "credentials": {
+        "postgres": {
+          "id": "postgres_credentials",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n  c.code,\n  c.description,\n  c.type,\n  c.value,\n  c.\"minOrder\",\n  c.usageLimit,\n  c.usedCount,\n  c.active,\n  c.startDate,\n  c.endDate\nFROM \"Coupon\" c\nWHERE c.createdAt > NOW() - INTERVAL '30 days'\nORDER BY c.createdAt DESC\nLIMIT 500;",
+        "options": {}
+      },
+      "id": "postgres-get-coupons",
+      "name": "Get Coupons Data",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [1050, 800],
+      "credentials": {
+        "postgres": {
+          "id": "postgres_credentials",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n  COUNT(DISTINCT ci.\"userId\") as abandoned_carts,\n  COUNT(DISTINCT ci.\"productId\") as affected_products,\n  AVG(ci.quantity) as avg_items_per_cart\nFROM \"CartItem\" ci\nWHERE ci.updatedAt > NOW() - INTERVAL '24 hours'\n  AND NOT EXISTS (\n    SELECT 1 FROM \"Order\" o \n    WHERE o.\"userId\" = ci.\"userId\" \n    AND o.createdAt > ci.updatedAt\n  );",
+        "options": {}
+      },
+      "id": "postgres-get-abandoned",
+      "name": "Get Abandoned Carts Data",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [1050, 1000],
+      "credentials": {
+        "postgres": {
+          "id": "postgres_credentials",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "resource": "sheet",
+        "operation": "update",
+        "sheetId": "={{ $env.GOOGLE_SHEET_ID }}",
+        "range": "Customers!A2",
+        "options": {
+          "valueInputMode": "userEntered"
+        }
+      },
+      "id": "google-sheets-customers",
+      "name": "Update Customers Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [1250, 200],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "google_sheets_credentials",
+          "name": "Google Sheets"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "resource": "sheet",
+        "operation": "update",
+        "sheetId": "={{ $env.GOOGLE_SHEET_ID }}",
+        "range": "Orders!A2",
+        "options": {
+          "valueInputMode": "userEntered"
+        }
+      },
+      "id": "google-sheets-orders",
+      "name": "Update Orders Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [1250, 400],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "google_sheets_credentials",
+          "name": "Google Sheets"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "resource": "sheet",
+        "operation": "update",
+        "sheetId": "={{ $env.GOOGLE_SHEET_ID }}",
+        "range": "Revenue!A2",
+        "options": {
+          "valueInputMode": "userEntered"
+        }
+      },
+      "id": "google-sheets-revenue",
+      "name": "Update Revenue Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [1250, 600],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "google_sheets_credentials",
+          "name": "Google Sheets"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "resource": "sheet",
+        "operation": "update",
+        "sheetId": "={{ $env.GOOGLE_SHEET_ID }}",
+        "range": "Coupons!A2",
+        "options": {
+          "valueInputMode": "userEntered"
+        }
+      },
+      "id": "google-sheets-coupons",
+      "name": "Update Coupons Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [1250, 800],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "google_sheets_credentials",
+          "name": "Google Sheets"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleSheetsOAuth2Api",
+        "resource": "sheet",
+        "operation": "update",
+        "sheetId": "={{ $env.GOOGLE_SHEET_ID }}",
+        "range": "AbandonedCarts!A2",
+        "options": {
+          "valueInputMode": "userEntered"
+        }
+      },
+      "id": "google-sheets-abandoned",
+      "name": "Update Abandoned Carts Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [1250, 1000],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "google_sheets_credentials",
+          "name": "Google Sheets"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "command": "del",
+        "key": "sheets:lock:{{ $env.GOOGLE_SHEET_ID }}",
+        "options": {}
+      },
+      "id": "redis-release-lock",
+      "name": "Release Sync Lock",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [1450, 600],
+      "credentials": {
+        "redis": {
+          "id": "redis_credentials",
+          "name": "Redis"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Check Sync Lock",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Sync Lock": {
+      "main": [
+        [
+          {
+            "node": "Should Sync?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Should Sync?": {
+      "main": [
+        [
+          {
+            "node": "Set Sync Lock",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Sync Lock": {
+      "main": [
+        [
+          {
+            "node": "Get Customers Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Customers Data": {
+      "main": [
+        [
+          {
+            "node": "Update Customers Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Orders Data": {
+      "main": [
+        [
+          {
+            "node": "Update Orders Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Revenue Data": {
+      "main": [
+        [
+          {
+            "node": "Update Revenue Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Coupons Data": {
+      "main": [
+        [
+          {
+            "node": "Update Coupons Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Abandoned Carts Data": {
+      "main": [
+        [
+          {
+            "node": "Update Abandoned Carts Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Customers Sheet": {
+      "main": [
+        [
+          {
+            "node": "Release Sync Lock",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Orders Sheet": {
+      "main": [
+        [
+          {
+            "node": "Release Sync Lock",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Revenue Sheet": {
+      "main": [
+        [
+          {
+            "node": "Release Sync Lock",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Coupons Sheet": {
+      "main": [
+        [
+          {
+            "node": "Release Sync Lock",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Abandoned Carts Sheet": {
+      "main": [
+        [
+          {
+            "node": "Release Sync Lock",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 1,
+  "updatedAt": "2024-06-07T00:00:00.000Z",
+  "versionId": "1"
+}

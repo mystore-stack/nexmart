@@ -1,0 +1,412 @@
+{
+  "name": "Weekly CEO Report",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9 * * 1"
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "command": "get",
+        "key": "report:weekly:{{ $now.format('yyyy-Www') }}",
+        "options": {}
+      },
+      "id": "redis-check-report",
+      "name": "Check Report Already Generated",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [450, 300],
+      "credentials": {
+        "redis": {
+          "id": "redis_credentials",
+          "name": "Redis"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition-1",
+              "leftValue": "={{$json}}",
+              "rightValue": "",
+              "operator": {
+                "type": "null",
+                "operation": "isNull"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "condition-should-generate",
+      "name": "Should Generate Report?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "WITH weekly_data AS (\n  SELECT \n    DATE_TRUNC('week', o.createdAt) as week,\n    SUM(o.total) as weekly_revenue,\n    COUNT(*) as weekly_orders,\n    COUNT(DISTINCT o.\"userId\") as weekly_customers\n  FROM \"Order\" o\n  WHERE o.status = 'DELIVERED'\n    AND o.createdAt > NOW() - INTERVAL '8 weeks'\n  GROUP BY DATE_TRUNC('week', o.createdAt)\n)\nSELECT \n  week,\n  weekly_revenue,\n  weekly_orders,\n  weekly_customers,\n  LAG(weekly_revenue) OVER (ORDER BY week) as prev_week_revenue,\n  ROUND(\n    (weekly_revenue - LAG(weekly_revenue) OVER (ORDER BY week)) / \n    NULLIF(LAG(weekly_revenue) OVER (ORDER BY week), 0) * 100, \n    2\n  ) as growth_percentage\nFROM weekly_data\nORDER BY week DESC\nLIMIT 2;",
+        "options": {}
+      },
+      "id": "postgres-weekly-revenue",
+      "name": "Get Weekly Revenue",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [850, 200],
+      "credentials": {
+        "postgres": {
+          "id": "postgres_credentials",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n  p.name,\n  p.sku,\n  SUM(oi.quantity) as units_sold,\n  SUM(oi.quantity * oi.price) as revenue\nFROM \"OrderItem\" oi\nINNER JOIN \"Order\" o ON oi.\"orderId\" = o.id\nINNER JOIN \"Product\" p ON oi.\"productId\" = p.id\nWHERE o.status = 'DELIVERED'\n  AND o.createdAt > NOW() - INTERVAL '7 days'\nGROUP BY p.id, p.name, p.sku\nORDER BY revenue DESC\nLIMIT 10;",
+        "options": {}
+      },
+      "id": "postgres-best-sellers",
+      "name": "Get Best Sellers",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [850, 400],
+      "credentials": {
+        "postgres": {
+          "id": "postgres_credentials",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n  p.name,\n  p.sku,\n  p.stock,\n  p.\"lowStockAt\",\n  SUM(oi.quantity) as units_sold\nFROM \"Product\" p\nLEFT JOIN \"OrderItem\" oi ON p.id = oi.\"productId\"\nLEFT JOIN \"Order\" o ON oi.\"orderId\" = o.id AND o.createdAt > NOW() - INTERVAL '7 days'\nWHERE p.published = true\nGROUP BY p.id, p.name, p.sku, p.stock, p.\"lowStockAt\"\nHAVING SUM(oi.quantity) IS NULL OR SUM(oi.quantity) = 0\nORDER BY p.stock ASC\nLIMIT 10;",
+        "options": {}
+      },
+      "id": "postgres-worst-sellers",
+      "name": "Get Worst Sellers",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [850, 600],
+      "credentials": {
+        "postgres": {
+          "id": "postgres_credentials",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n  COUNT(DISTINCT o.\"userId\") as new_customers,\n  COUNT(*) as total_orders,\n  SUM(o.total) as total_revenue\nFROM \"Order\" o\nWHERE o.status = 'DELIVERED'\n  AND o.createdAt > NOW() - INTERVAL '7 days';",
+        "options": {}
+      },
+      "id": "postgres-customer-acquisition",
+      "name": "Get Customer Acquisition",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [850, 800],
+      "credentials": {
+        "postgres": {
+          "id": "postgres_credentials",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "WITH customer_orders AS (\n  SELECT \n    o.\"userId\",\n    COUNT(*) as order_count,\n    SUM(o.total) as total_spent\n  FROM \"Order\" o\n  WHERE o.status = 'DELIVERED'\n    AND o.createdAt > NOW() - INTERVAL '30 days'\n  GROUP BY o.\"userId\"\n)\nSELECT \n  COUNT(CASE WHEN order_count > 1 THEN 1 END) as returning_customers,\n  COUNT(*) as total_customers,\n  ROUND(\n    (COUNT(CASE WHEN order_count > 1 THEN 1 END)::float / NULLIF(COUNT(*), 0)) * 100, \n    2\n  ) as return_rate\nFROM customer_orders;",
+        "options": {}
+      },
+      "id": "postgres-return-customers",
+      "name": "Get Return Customer Rate",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [850, 1000],
+      "credentials": {
+        "postgres": {
+          "id": "postgres_credentials",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Format weekly report data\nconst weeklyRevenue = $input.item.json.weekly_revenue || 0;\nconst growth = $input.item.json.growth_percentage || 0;\nconst bestSellers = $input.item.json.best_sellers || [];\nconst worstSellers = $input.item.json.worst_sellers || [];\nconst newCustomers = $input.item.json.new_customers || 0;\nconst returnRate = $input.item.json.return_rate || 0;\n\nlet bestSellersText = bestSellers.map((p, i) => \n  `${i + 1}. ${p.name} - ${p.units_sold} units (${p.revenue} MAD)`\n).join('\\n');\n\nlet worstSellersText = worstSellers.map((p, i) => \n  `${i + 1}. ${p.name} - ${p.stock} in stock (0 sales)`\n).join('\\n');\n\nconst report = `📊 **Weekly CEO Report**\n📅 Week: ${$now.format('yyyy-Www')}\n\n💰 **Weekly Revenue**: ${weeklyRevenue} MAD\n📈 **Growth**: ${growth}%\n👥 **New Customers**: ${newCustomers}\n🔄 **Return Rate**: ${returnRate}%\n\n🏆 **Best Sellers This Week**:\n${bestSellersText || 'No sales this week'}\n\n📉 **Worst Sellers (No Sales)**:\n${worstSellersText || 'All products sold'}\n\n📊 **Executive Summary**:\n${growth > 0 ? '✅ Revenue growing!' : '⚠️ Revenue declining'}\n${returnRate > 20 ? '✅ Good customer retention' : '⚠️ Low return rate'}\n${newCustomers > 50 ? '✅ Strong acquisition' : '📈 Need more acquisition'}`;\n\nreturn {\n  json: {\n    report_text: report,\n    weekly_revenue: weeklyRevenue,\n    growth_percentage: growth,\n    new_customers: newCustomers,\n    return_rate: returnRate\n  }\n};"
+      },
+      "id": "function-format-report",
+      "name": "Format Report",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1050, 600]
+    },
+    {
+      "parameters": {
+        "model": "gpt-4",
+        "options": {
+          "temperature": 0.7
+        },
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are a business analyst for NexMart. Generate executive summaries for weekly CEO reports."
+            },
+            {
+              "role": "user",
+              "content": "Generate a concise executive summary for this weekly report: {{ $json.report_text }}. Highlight key insights, risks, and recommendations. Keep it under 200 words."
+            }
+          ]
+        }
+      },
+      "id": "openai-executive-summary",
+      "name": "Generate Executive Summary",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1.5,
+      "position": [1250, 600],
+      "credentials": {
+        "openAiApi": {
+          "id": "openai_credentials",
+          "name": "OpenAI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $env.TELEGRAM_ADMIN_CHAT_ID }}",
+        "text": "={{ $json.report_text }}\n\n📝 **Executive Summary**:\n{{ $json.executive_summary }}",
+        "options": {
+          "parseMode": "markdown"
+        }
+      },
+      "id": "telegram-send-report",
+      "name": "Send Telegram Report",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1450, 500],
+      "credentials": {
+        "telegramApi": {
+          "id": "telegram_credentials",
+          "name": "Telegram API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "ceo@nexmart.ma",
+        "toEmail": "ceo@nexmart.ma",
+        "subject": "Weekly CEO Report - Week {{ $now.format('yyyy-Www') }}",
+        "emailType": "html",
+        "message": "<!DOCTYPE html>\n<html>\n<head>\n  <style>\n    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }\n    .container { max-width: 800px; margin: 0 auto; padding: 20px; }\n    .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }\n    .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }\n    .metric { background: white; padding: 20px; border-radius: 8px; margin: 10px 0; text-align: center; }\n    .metric-value { font-size: 32px; font-weight: bold; color: #667eea; }\n    .metric-label { color: #666; font-size: 14px; }\n    .summary { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; }\n    .footer { text-align: center; margin-top: 30px; color: #666; font-size: 12px; }\n  </style>\n</head>\n<body>\n  <div class=\"container\">\n    <div class=\"header\">\n      <h1>Weekly CEO Report</h1>\n      <p>Week {{ $now.format('yyyy-Www') }}</p>\n    </div>\n    <div class=\"content\">\n      <div class=\"metric\">\n        <div class=\"metric-value\">{{ $json.weekly_revenue }} MAD</div>\n        <div class=\"metric-label\">Weekly Revenue</div>\n      </div>\n      <div class=\"metric\">\n        <div class=\"metric-value\">{{ $json.growth_percentage }}%</div>\n        <div class=\"metric-label\">Growth Rate</div>\n      </div>\n      <div class=\"metric\">\n        <div class=\"metric-value\">{{ $json.new_customers }}</div>\n        <div class=\"metric-label\">New Customers</div>\n      </div>\n      <div class=\"metric\">\n        <div class=\"metric-value\">{{ $json.return_rate }}%</div>\n        <div class=\"metric-label\">Return Rate</div>\n      </div>\n      <div class=\"summary\">\n        <h3>Executive Summary</h3>\n        <p>{{ $json.executive_summary }}</p>\n      </div>\n    </div>\n    <div class=\"footer\">\n      <p>NexMart Executive Dashboard</p>\n    </div>\n  </div>\n</body>\n</html>",
+        "options": {}
+      },
+      "id": "email-send-report",
+      "name": "Send Email Report",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [1450, 700],
+      "credentials": {
+        "smtp": {
+          "id": "gmail_smtp_credentials",
+          "name": "Gmail SMTP"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "command": "set",
+        "key": "report:weekly:{{ $now.format('yyyy-Www') }}",
+        "value": "={{ $now.toISO() }}",
+        "options": {
+          "ttl": 86400
+        }
+      },
+      "id": "redis-set-cache",
+      "name": "Set Report Cache",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [1650, 600],
+      "credentials": {
+        "redis": {
+          "id": "redis_credentials",
+          "name": "Redis"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Check Report Already Generated",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Report Already Generated": {
+      "main": [
+        [
+          {
+            "node": "Should Generate Report?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Should Generate Report?": {
+      "main": [
+        [
+          {
+            "node": "Get Weekly Revenue",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set Report Cache",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Weekly Revenue": {
+      "main": [
+        [
+          {
+            "node": "Get Best Sellers",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Best Sellers": {
+      "main": [
+        [
+          {
+            "node": "Get Worst Sellers",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Worst Sellers": {
+      "main": [
+        [
+          {
+            "node": "Get Customer Acquisition",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Customer Acquisition": {
+      "main": [
+        [
+          {
+            "node": "Get Return Customer Rate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Return Customer Rate": {
+      "main": [
+        [
+          {
+            "node": "Format Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Report": {
+      "main": [
+        [
+          {
+            "node": "Generate Executive Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Executive Summary": {
+      "main": [
+        [
+          {
+            "node": "Send Telegram Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Telegram Report": {
+      "main": [
+        [
+          {
+            "node": "Send Email Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Email Report": {
+      "main": [
+        [
+          {
+            "node": "Set Report Cache",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 1,
+  "updatedAt": "2024-06-07T00:00:00.000Z",
+  "versionId": "1"
+}

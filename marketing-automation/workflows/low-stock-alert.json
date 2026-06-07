@@ -1,0 +1,233 @@
+{
+  "name": "Low Stock Alert",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 5
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n  p.id,\n  p.name,\n  p.sku,\n  p.stock,\n  p.\"lowStockAt\",\n  p.images,\n  c.name as category_name,\n  p.soldCount\nFROM \"Product\" p\nINNER JOIN \"Category\" c ON p.\"categoryId\" = c.id\nWHERE p.published = true\n  AND p.stock <= p.\"lowStockAt\"\nORDER BY p.stock ASC;",
+        "options": {}
+      },
+      "id": "postgres-find-low-stock",
+      "name": "Find Low Stock Products",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [450, 300],
+      "credentials": {
+        "postgres": {
+          "id": "postgres_credentials",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "command": "get",
+        "key": "alert:lowstock:{{ $json.id }}",
+        "options": {}
+      },
+      "id": "redis-check-alert",
+      "name": "Check Alert Already Sent",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [650, 300],
+      "credentials": {
+        "redis": {
+          "id": "redis_credentials",
+          "name": "Redis"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition-1",
+              "leftValue": "={{$json}}",
+              "rightValue": "",
+              "operator": {
+                "type": "null",
+                "operation": "isNull"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "condition-should-alert",
+      "name": "Should Send Alert?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $env.TELEGRAM_ADMIN_CHAT_ID }}",
+        "text": "⚠️ **LOW STOCK ALERT**\n\n**Product:** {{ $json.name }}\n**SKU:** {{ $json.sku }}\n**Category:** {{ $json.category_name }}\n**Current Stock:** {{ $json.stock }}\n**Threshold:** {{ $json.lowStockAt }}\n**Sold Count:** {{ $json.soldCount }}\n\n⚠️ Action required: Restock this product soon!",
+        "options": {
+          "parseMode": "markdown"
+        }
+      },
+      "id": "telegram-alert",
+      "name": "Send Telegram Alert",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1050, 200],
+      "credentials": {
+        "telegramApi": {
+          "id": "telegram_credentials",
+          "name": "Telegram API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "alerts@nexmart.ma",
+        "toEmail": "inventory@nexmart.ma",
+        "subject": "⚠️ Low Stock Alert - {{ $json.name }}",
+        "emailType": "html",
+        "message": "<!DOCTYPE html>\n<html>\n<head>\n  <style>\n    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }\n    .container { max-width: 600px; margin: 0 auto; padding: 20px; }\n    .header { background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }\n    .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }\n    .alert { background: #fff3cd; border-left: 4px solid #ffc107; padding: 20px; margin: 20px 0; border-radius: 5px; }\n    .product-info { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; }\n    .product-info p { margin: 10px 0; }\n    .stock-critical { color: #dc3545; font-weight: bold; font-size: 24px; }\n    .footer { text-align: center; margin-top: 30px; color: #666; font-size: 12px; }\n  </style>\n</head>\n<body>\n  <div class=\"container\">\n    <div class=\"header\">\n      <h1>⚠️ Low Stock Alert</h1>\n      <p>Action Required</p>\n    </div>\n    <div class=\"content\">\n      <div class=\"alert\">\n        <strong>This product has fallen below the low stock threshold and needs immediate attention.</strong>\n      </div>\n      <div class=\"product-info\">\n        <p><strong>Product Name:</strong> {{ $json.name }}</p>\n        <p><strong>SKU:</strong> {{ $json.sku }}</p>\n        <p><strong>Category:</strong> {{ $json.category_name }}</p>\n        <p><strong>Current Stock:</strong> <span class=\"stock-critical\">{{ $json.stock }}</span></p>\n        <p><strong>Low Stock Threshold:</strong> {{ $json.lowStockAt }}</p>\n        <p><strong>Total Sold:</strong> {{ $json.soldCount }}</p>\n      </div>\n      <p>Please restock this product as soon as possible to avoid stockouts.</p>\n      <div style=\"text-align: center;\">\n        <a href=\"https://nexmart.ma/admin/products/{{ $json.id }}\" style=\"display: inline-block; background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%); color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold;\">Manage Product</a>\n      </div>\n    </div>\n    <div class=\"footer\">\n      <p>NexMart Inventory Management System</p>\n      <p>This is an automated alert. Please do not reply to this email.</p>\n    </div>\n  </div>\n</body>\n</html>",
+        "options": {}
+      },
+      "id": "email-alert",
+      "name": "Send Email Alert",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [1050, 400],
+      "credentials": {
+        "smtp": {
+          "id": "gmail_smtp_credentials",
+          "name": "Gmail SMTP"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "command": "set",
+        "key": "alert:lowstock:{{ $json.id }}",
+        "value": "={{ $now.toISO() }}",
+        "options": {
+          "ttl": 3600
+        }
+      },
+      "id": "redis-set-alert",
+      "name": "Set Alert Flag",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [1250, 300],
+      "credentials": {
+        "redis": {
+          "id": "redis_credentials",
+          "name": "Redis"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Find Low Stock Products",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Low Stock Products": {
+      "main": [
+        [
+          {
+            "node": "Check Alert Already Sent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Alert Already Sent": {
+      "main": [
+        [
+          {
+            "node": "Should Send Alert?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Should Send Alert?": {
+      "main": [
+        [
+          {
+            "node": "Send Telegram Alert",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set Alert Flag",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Telegram Alert": {
+      "main": [
+        [
+          {
+            "node": "Send Email Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Email Alert": {
+      "main": [
+        [
+          {
+            "node": "Set Alert Flag",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 1,
+  "updatedAt": "2024-06-07T00:00:00.000Z",
+  "versionId": "1"
+}

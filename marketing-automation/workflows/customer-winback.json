@@ -1,0 +1,302 @@
+{
+  "name": "Customer Winback Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9 * * *"
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n  u.id,\n  u.email,\n  u.name,\n  u.locale,\n  COALESCE(SUM(o.total), 0) as total_spent,\n  COUNT(o.id) as order_count,\n  MAX(o.createdAt) as last_order_date\nFROM \"User\" u\nLEFT JOIN \"Order\" o ON u.id = o.\"userId\" AND o.status = 'DELIVERED'\nWHERE u.createdAt < NOW() - INTERVAL '30 days'\n  AND (\n    MAX(o.createdAt) IS NULL \n    OR MAX(o.createdAt) < NOW() - INTERVAL '30 days'\n  )\nGROUP BY u.id, u.email, u.name, u.locale\nHAVING COUNT(o.id) >= 1\nORDER BY last_order_date ASC\nLIMIT 100;",
+        "options": {}
+      },
+      "id": "postgres-find-inactive",
+      "name": "Find Inactive Customers",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [450, 300],
+      "credentials": {
+        "postgres": {
+          "id": "postgres_credentials",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "command": "get",
+        "key": "email:sent:{{ $json.id }}:winback",
+        "options": {}
+      },
+      "id": "redis-check-dedup",
+      "name": "Check Redis Deduplication",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [650, 300],
+      "credentials": {
+        "redis": {
+          "id": "redis_credentials",
+          "name": "Redis"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition-1",
+              "leftValue": "={{$json}}",
+              "rightValue": "",
+              "operator": {
+                "type": "null",
+                "operation": "isNull"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "condition-should-send",
+      "name": "Should Send Email?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n  p.id,\n  p.name,\n  p.slug,\n  p.images,\n  p.price,\n  p.rating,\n  p.reviewCount,\n  p.soldCount\nFROM \"Product\" p\nWHERE p.published = true\n  AND p.stock > 0\nORDER BY p.rating DESC, p.soldCount DESC\nLIMIT 5;",
+        "options": {}
+      },
+      "id": "postgres-get-recommendations",
+      "name": "Get Product Recommendations",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [1050, 300],
+      "credentials": {
+        "postgres": {
+          "id": "postgres_credentials",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "gpt-4",
+        "options": {
+          "temperature": 0.7
+        },
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are a helpful marketing assistant for NexMart, a Moroccan ecommerce platform. Generate personalized winback email content for inactive customers."
+            },
+            {
+              "role": "user",
+              "content": "Generate a personalized winback email for {{ $json.name }} who hasn't purchased in 30+ days. They have spent {{ $json.total_spent }} MAD on {{ $json.order_count }} orders. Recommend these top products: {{ $json.recommendations }}. Create a warm, engaging message that encourages them to return. Include a special 10% discount offer with code WELCOME10."
+            }
+          ]
+        }
+      },
+      "id": "openai-generate-content",
+      "name": "Generate Personalized Content",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1.5,
+      "position": [1250, 300],
+      "credentials": {
+        "openAiApi": {
+          "id": "openai_credentials",
+          "name": "OpenAI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "noreply@nexmart.ma",
+        "toEmail": "={{ $json.email }}",
+        "subject": "We miss you! Here's 10% off your next order 🎁",
+        "emailType": "html",
+        "message": "={{ $json.message }}",
+        "options": {}
+      },
+      "id": "email-send-winback",
+      "name": "Send Winback Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [1450, 300],
+      "credentials": {
+        "smtp": {
+          "id": "gmail_smtp_credentials",
+          "name": "Gmail SMTP"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO \"MarketingCoupon\" (\n  \"organizationId\",\n  code,\n  type,\n  value,\n  \"minOrder\",\n  \"startDate\",\n  \"endDate\",\n  active,\n  \"userId\",\n  metadata\n) VALUES (\n  (SELECT id FROM \"Organization\" LIMIT 1),\n  'WELCOME10-' || SUBSTR(MD5(RANDOM()::TEXT), 1, 8),\n  'percentage',\n  10.0,\n  200.0,\n  NOW(),\n  NOW() + INTERVAL '14 days',\n  true,\n  '{{ $json.id }}',\n  '{\"generated_for\": \"winback\", \"customer_segment\": \"inactive\"}'::jsonb\n) RETURNING code;",
+        "options": {}
+      },
+      "id": "postgres-generate-coupon",
+      "name": "Generate Winback Coupon",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [1650, 300],
+      "credentials": {
+        "postgres": {
+          "id": "postgres_credentials",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "command": "set",
+        "key": "email:sent:{{ $json.id }}:winback",
+        "value": "={{ $now.toISO() }}",
+        "options": {
+          "ttl": 2592000
+        }
+      },
+      "id": "redis-set-dedup",
+      "name": "Set Redis Deduplication",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [1850, 300],
+      "credentials": {
+        "redis": {
+          "id": "redis_credentials",
+          "name": "Redis"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Find Inactive Customers",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Inactive Customers": {
+      "main": [
+        [
+          {
+            "node": "Check Redis Deduplication",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Redis Deduplication": {
+      "main": [
+        [
+          {
+            "node": "Should Send Email?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Should Send Email?": {
+      "main": [
+        [
+          {
+            "node": "Get Product Recommendations",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set Redis Deduplication",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Product Recommendations": {
+      "main": [
+        [
+          {
+            "node": "Generate Personalized Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Personalized Content": {
+      "main": [
+        [
+          {
+            "node": "Send Winback Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Winback Email": {
+      "main": [
+        [
+          {
+            "node": "Generate Winback Coupon",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Winback Coupon": {
+      "main": [
+        [
+          {
+            "node": "Set Redis Deduplication",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 1,
+  "updatedAt": "2024-06-07T00:00:00.000Z",
+  "versionId": "1"
+}

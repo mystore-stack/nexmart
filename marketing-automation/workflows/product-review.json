@@ -1,0 +1,231 @@
+{
+  "name": "Product Review Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 10 * * *"
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n  o.id as order_id,\n  o.\"orderNumber\",\n  o.\"userId\",\n  u.email,\n  u.name,\n  o.\"estimatedDelivery\"\nFROM \"Order\" o\nINNER JOIN \"User\" u ON o.\"userId\" = u.id\nWHERE o.status = 'DELIVERED'\n  AND o.\"estimatedDelivery\" < NOW() - INTERVAL '7 days'\n  AND o.\"estimatedDelivery\" >= NOW() - INTERVAL '8 days'\n  AND NOT EXISTS (\n    SELECT 1 FROM \"Review\" r \n    WHERE r.\"orderId\" = o.id\n  );",
+        "options": {}
+      },
+      "id": "postgres-find-delivered-orders",
+      "name": "Find Delivered Orders",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [450, 300],
+      "credentials": {
+        "postgres": {
+          "id": "postgres_credentials",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "command": "get",
+        "key": "email:sent:{{ $json.user_id }}:review:{{ $json.order_id }}",
+        "options": {}
+      },
+      "id": "redis-check-dedup",
+      "name": "Check Review Request Sent",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [650, 300],
+      "credentials": {
+        "redis": {
+          "id": "redis_credentials",
+          "name": "Redis"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition-1",
+              "leftValue": "={{$json}}",
+              "rightValue": "",
+              "operator": {
+                "type": "null",
+                "operation": "isNull"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "condition-should-send",
+      "name": "Should Send Review Request?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n  oi.\"productId\",\n  p.name as product_name,\n  p.slug,\n  p.images,\n  oi.name as item_name,\n  oi.image as item_image,\n  oi.quantity\nFROM \"OrderItem\" oi\nINNER JOIN \"Product\" p ON oi.\"productId\" = p.id\nWHERE oi.\"orderId\" = '{{ $json.order_id }}';",
+        "options": {}
+      },
+      "id": "postgres-get-order-products",
+      "name": "Get Order Products",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [1050, 300],
+      "credentials": {
+        "postgres": {
+          "id": "postgres_credentials",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "noreply@nexmart.ma",
+        "toEmail": "={{ $json.email }}",
+        "subject": "How was your order? Leave a review ⭐",
+        "emailType": "html",
+        "message": "<!DOCTYPE html>\n<html>\n<head>\n  <style>\n    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }\n    .container { max-width: 600px; margin: 0 auto; padding: 20px; }\n    .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }\n    .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }\n    .product { display: flex; align-items: center; margin-bottom: 20px; padding: 15px; background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }\n    .product img { width: 80px; height: 80px; object-fit: cover; border-radius: 5px; margin-right: 15px; }\n    .product-info { flex: 1; }\n    .product-name { font-weight: bold; margin-bottom: 5px; }\n    .stars { color: #ffc107; font-size: 24px; }\n    .button { display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; text-align: center; }\n    .footer { text-align: center; margin-top: 30px; color: #666; font-size: 12px; }\n  </style>\n</head>\n<body>\n  <div class=\"container\">\n    <div class=\"header\">\n      <h1>How was your order? ⭐</h1>\n      <p>We'd love to hear from you</p>\n    </div>\n    <div class=\"content\">\n      <p>Hi {{ $json.name }},</p>\n      <p>It's been a week since your order #{{ $json.order_number }} was delivered. We hope you're enjoying your purchase!</p>\n      <p>Could you take a moment to leave a review? Your feedback helps us improve and helps other customers make informed decisions.</p>\n      {{ $json.products_html }}\n      <div style=\"text-align: center; margin: 30px 0;\">\n        <div class=\"stars\">⭐⭐⭐⭐⭐</div>\n      </div>\n      <div style=\"text-align: center;\">\n        <a href=\"https://nexmart.ma/orders/{{ $json.order_number }}/review\" class=\"button\">Leave a Review</a>\n      </div>\n      <p style=\"text-align: center; margin-top: 20px; color: #666; font-size: 14px;\">\n        Your review helps us serve you better!\n      </p>\n    </div>\n    <div class=\"footer\">\n      <p>NexMart - Your Premium Moroccan Marketplace</p>\n    </div>\n  </div>\n</body>\n</html>",
+        "options": {}
+      },
+      "id": "email-send-review-request",
+      "name": "Send Review Request Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [1250, 300],
+      "credentials": {
+        "smtp": {
+          "id": "gmail_smtp_credentials",
+          "name": "Gmail SMTP"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "command": "set",
+        "key": "email:sent:{{ $json.user_id }}:review:{{ $json.order_id }}",
+        "value": "={{ $now.toISO() }}",
+        "options": {
+          "ttl": 2592000
+        }
+      },
+      "id": "redis-set-dedup",
+      "name": "Set Review Request Flag",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [1450, 300],
+      "credentials": {
+        "redis": {
+          "id": "redis_credentials",
+          "name": "Redis"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Find Delivered Orders",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Delivered Orders": {
+      "main": [
+        [
+          {
+            "node": "Check Review Request Sent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Review Request Sent": {
+      "main": [
+        [
+          {
+            "node": "Should Send Review Request?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Should Send Review Request?": {
+      "main": [
+        [
+          {
+            "node": "Get Order Products",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set Review Request Flag",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Order Products": {
+      "main": [
+        [
+          {
+            "node": "Send Review Request Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Review Request Email": {
+      "main": [
+        [
+          {
+            "node": "Set Review Request Flag",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 1,
+  "updatedAt": "2024-06-07T00:00:00.000Z",
+  "versionId": "1"
+}

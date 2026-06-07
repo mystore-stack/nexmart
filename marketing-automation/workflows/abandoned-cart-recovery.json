@@ -1,0 +1,620 @@
+{
+  "name": "Abandoned Cart Recovery",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 15
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n  u.id as user_id,\n  u.email,\n  u.name,\n  u.locale,\n  COUNT(ci.id) as items_count,\n  SUM(p.price * ci.quantity) as cart_value,\n  MAX(ci.updatedAt) as last_activity,\n  COALESCE(acr.recovery_stage, 0) as recovery_stage\nFROM \"User\" u\nINNER JOIN \"CartItem\" ci ON u.id = ci.\"userId\"\nINNER JOIN \"Product\" p ON ci.\"productId\" = p.id\nLEFT JOIN \"AbandonedCartRecovery\" acr ON u.id = acr.\"userId\"\nWHERE \n  ci.updatedAt > NOW() - INTERVAL '48 hours'\n  AND NOT EXISTS (\n    SELECT 1 FROM \"Order\" o \n    WHERE o.\"userId\" = u.id \n    AND o.createdAt > ci.updatedAt\n  )\nGROUP BY u.id, u.email, u.name, u.locale, acr.recovery_stage\nHAVING COUNT(ci.id) > 0\nORDER BY last_activity DESC;",
+        "options": {}
+      },
+      "id": "postgres-query-abandoned-carts",
+      "name": "Find Abandoned Carts",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [450, 300],
+      "credentials": {
+        "postgres": {
+          "id": "postgres_credentials",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "command": "get",
+        "key": "={{$json.user_id}}",
+        "options": {}
+      },
+      "id": "redis-check-dedup",
+      "name": "Check Redis Deduplication",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [650, 300],
+      "credentials": {
+        "redis": {
+          "id": "redis_credentials",
+          "name": "Redis"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition-1",
+              "leftValue": "={{$json}}",
+              "rightValue": "",
+              "operator": {
+                "type": "null",
+                "operation": "isNull"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "condition-redis-check",
+      "name": "Check if Already Processed",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Calculate recovery stage based on time elapsed\nconst lastActivity = new Date($input.item.json.last_activity);\nconst now = new Date();\nconst hoursElapsed = (now - lastActivity) / (1000 * 60 * 60);\nconst currentStage = $input.item.json.recovery_stage || 0;\n\nlet nextStage = currentStage;\nlet shouldSend = false;\n\nif (hoursElapsed >= 0.5 && currentStage === 0) {\n  nextStage = 1;\n  shouldSend = true;\n} else if (hoursElapsed >= 6 && currentStage === 1) {\n  nextStage = 2;\n  shouldSend = true;\n} else if (hoursElapsed >= 24 && currentStage === 2) {\n  nextStage = 3;\n  shouldSend = true;\n}\n\nreturn {\n  json: {\n    ...$input.item.json,\n    hours_elapsed: hoursElapsed,\n    next_stage: nextStage,\n    should_send: shouldSend\n  }\n};"
+      },
+      "id": "function-calculate-stage",
+      "name": "Calculate Recovery Stage",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1050, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition-2",
+              "leftValue": "={{$json.should_send}}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "condition-should-send",
+      "name": "Should Send Email?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1250, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition-3",
+              "leftValue": "={{$json.next_stage}}",
+              "rightValue": 1,
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "condition-stage-1",
+      "name": "Stage 1 (30 min)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1450, 200]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition-4",
+              "leftValue": "={{$json.next_stage}}",
+              "rightValue": 2,
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "condition-stage-2",
+      "name": "Stage 2 (6 hours)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1450, 400]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition-5",
+              "leftValue": "={{$json.next_stage}}",
+              "rightValue": 3,
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "condition-stage-3",
+      "name": "Stage 3 (24 hours)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1450, 600]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n  p.id,\n  p.name,\n  p.slug,\n  p.images,\n  p.price,\n  p.\"comparePrice\",\n  ci.quantity\nFROM \"CartItem\" ci\nINNER JOIN \"Product\" p ON ci.\"productId\" = p.id\nWHERE ci.\"userId\" = '{{ $json.user_id }}'\nORDER BY ci.updatedAt DESC;",
+        "options": {}
+      },
+      "id": "postgres-get-cart-items-stage1",
+      "name": "Get Cart Items - Stage 1",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [1650, 200],
+      "credentials": {
+        "postgres": {
+          "id": "postgres_credentials",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "noreply@nexmart.ma",
+        "toEmail": "={{ $json.email }}",
+        "subject": "You left something behind 👀",
+        "emailType": "html",
+        "message": "<!DOCTYPE html>\n<html>\n<head>\n  <style>\n    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }\n    .container { max-width: 600px; margin: 0 auto; padding: 20px; }\n    .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }\n    .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }\n    .product { display: flex; align-items: center; margin-bottom: 20px; padding: 15px; background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }\n    .product img { width: 80px; height: 80px; object-fit: cover; border-radius: 5px; margin-right: 15px; }\n    .product-info { flex: 1; }\n    .product-name { font-weight: bold; margin-bottom: 5px; }\n    .product-price { color: #667eea; font-weight: bold; }\n    .total { text-align: right; font-size: 24px; font-weight: bold; color: #667eea; margin: 20px 0; }\n    .button { display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; text-align: center; }\n    .footer { text-align: center; margin-top: 30px; color: #666; font-size: 12px; }\n  </style>\n</head>\n<body>\n  <div class=\"container\">\n    <div class=\"header\">\n      <h1>You left something behind 👀</h1>\n      <p>Your cart is waiting for you!</p>\n    </div>\n    <div class=\"content\">\n      <p>Hi {{ $json.name }},</p>\n      <p>We noticed you left some items in your cart. Don't miss out on these great products!</p>\n      {{ $json.cart_items_html }}\n      <div class=\"total\">Total: {{ $json.cart_value }} MAD</div>\n      <div style=\"text-align: center;\">\n        <a href=\"https://nexmart.ma/checkout\" class=\"button\">Complete Your Order</a>\n      </div>\n      <p style=\"text-align: center; margin-top: 20px; color: #666;\">\n        This link expires in 24 hours\n      </p>\n    </div>\n    <div class=\"footer\">\n      <p>NexMart - Your Premium Moroccan Marketplace</p>\n      <p>If you didn't add these items to your cart, you can safely ignore this email.</p>\n    </div>\n  </div>\n</body>\n</html>",
+        "options": {}
+      },
+      "id": "email-send-stage-1",
+      "name": "Send Email - Stage 1",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [1850, 200],
+      "credentials": {
+        "smtp": {
+          "id": "gmail_smtp_credentials",
+          "name": "Gmail SMTP"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n  p.id,\n  p.name,\n  p.slug,\n  p.images,\n  p.price,\n  p.\"comparePrice\",\n  ci.quantity\nFROM \"CartItem\" ci\nINNER JOIN \"Product\" p ON ci.\"productId\" = p.id\nWHERE ci.\"userId\" = '{{ $json.user_id }}'\nORDER BY ci.updatedAt DESC;",
+        "options": {}
+      },
+      "id": "postgres-get-cart-items-stage2",
+      "name": "Get Cart Items - Stage 2",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [1650, 400],
+      "credentials": {
+        "postgres": {
+          "id": "postgres_credentials",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "noreply@nexmart.ma",
+        "toEmail": "={{ $json.email }}",
+        "subject": "Your cart is waiting ⏰",
+        "emailType": "html",
+        "message": "<!DOCTYPE html>\n<html>\n<head>\n  <style>\n    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }\n    .container { max-width: 600px; margin: 0 auto; padding: 20px; }\n    .header { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }\n    .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }\n    .urgency { background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; border-radius: 5px; }\n    .product { display: flex; align-items: center; margin-bottom: 20px; padding: 15px; background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }\n    .product img { width: 80px; height: 80px; object-fit: cover; border-radius: 5px; margin-right: 15px; }\n    .product-info { flex: 1; }\n    .product-name { font-weight: bold; margin-bottom: 5px; }\n    .product-price { color: #f5576c; font-weight: bold; }\n    .total { text-align: right; font-size: 24px; font-weight: bold; color: #f5576c; margin: 20px 0; }\n    .button { display: inline-block; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; text-align: center; }\n    .footer { text-align: center; margin-top: 30px; color: #666; font-size: 12px; }\n  </style>\n</head>\n<body>\n  <div class=\"container\">\n    <div class=\"header\">\n      <h1>Your cart is waiting ⏰</h1>\n      <p>Don't let these items slip away!</p>\n    </div>\n    <div class=\"content\">\n      <p>Hi {{ $json.name }},</p>\n      <div class=\"urgency\">\n        <strong>⚠️ Limited Time:</strong> Items in your cart may sell out soon!\n      </div>\n      <p>It's been 6 hours since you visited. Your cart is still saved, but popular items are selling fast.</p>\n      {{ $json.cart_items_html }}\n      <div class=\"total\">Total: {{ $json.cart_value }} MAD</div>\n      <div style=\"text-align: center;\">\n        <a href=\"https://nexmart.ma/checkout\" class=\"button\">Complete Your Order Now</a>\n      </div>\n    </div>\n    <div class=\"footer\">\n      <p>NexMart - Your Premium Moroccan Marketplace</p>\n    </div>\n  </div>\n</body>\n</html>",
+        "options": {}
+      },
+      "id": "email-send-stage-2",
+      "name": "Send Email - Stage 2",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [1850, 400],
+      "credentials": {
+        "smtp": {
+          "id": "gmail_smtp_credentials",
+          "name": "Gmail SMTP"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n  p.id,\n  p.name,\n  p.slug,\n  p.images,\n  p.price,\n  p.\"comparePrice\",\n  ci.quantity\nFROM \"CartItem\" ci\nINNER JOIN \"Product\" p ON ci.\"productId\" = p.id\nWHERE ci.\"userId\" = '{{ $json.user_id }}'\nORDER BY ci.updatedAt DESC;",
+        "options": {}
+      },
+      "id": "postgres-get-cart-items-stage3",
+      "name": "Get Cart Items - Stage 3",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [1650, 600],
+      "credentials": {
+        "postgres": {
+          "id": "postgres_credentials",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO \"MarketingCoupon\" (\n  \"organizationId\",\n  code,\n  type,\n  value,\n  \"minOrder\",\n  \"startDate\",\n  \"endDate\",\n  active,\n  \"userId\",\n  metadata\n) VALUES (\n  (SELECT id FROM \"Organization\" LIMIT 1),\n  'SAVE5NOW-' || SUBSTR(MD5(RANDOM()::TEXT), 1, 8),\n  'percentage',\n  5.0,\n  100.0,\n  NOW(),\n  NOW() + INTERVAL '7 days',\n  true,\n  '{{ $json.user_id }}',\n  '{\"generated_for\": \"abandoned_cart\", \"stage\": 3}'::jsonb\n) RETURNING code;",
+        "options": {}
+      },
+      "id": "postgres-generate-coupon",
+      "name": "Generate 5% Coupon",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [1850, 600],
+      "credentials": {
+        "postgres": {
+          "id": "postgres_credentials",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "noreply@nexmart.ma",
+        "toEmail": "={{ $json.email }}",
+        "subject": "Last chance before stock runs out 🔥",
+        "emailType": "html",
+        "message": "<!DOCTYPE html>\n<html>\n<head>\n  <style>\n    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }\n    .container { max-width: 600px; margin: 0 auto; padding: 20px; }\n    .header { background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }\n    .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }\n    .coupon { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; text-align: center; border-radius: 10px; margin: 20px 0; }\n    .coupon-code { font-size: 32px; font-weight: bold; letter-spacing: 3px; margin: 10px 0; }\n    .urgency { background: #dc3545; color: white; padding: 15px; margin: 20px 0; border-radius: 5px; text-align: center; font-weight: bold; }\n    .product { display: flex; align-items: center; margin-bottom: 20px; padding: 15px; background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }\n    .product img { width: 80px; height: 80px; object-fit: cover; border-radius: 5px; margin-right: 15px; }\n    .product-info { flex: 1; }\n    .product-name { font-weight: bold; margin-bottom: 5px; }\n    .product-price { color: #fa709a; font-weight: bold; }\n    .total { text-align: right; font-size: 24px; font-weight: bold; color: #fa709a; margin: 20px 0; }\n    .button { display: inline-block; background: linear-gradient(135deg, #fa709a 0%, #fee140 100%); color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; text-align: center; }\n    .footer { text-align: center; margin-top: 30px; color: #666; font-size: 12px; }\n  </style>\n</head>\n<body>\n  <div class=\"container\">\n    <div class=\"header\">\n      <h1>Last chance before stock runs out 🔥</h1>\n      <p>Your cart items are almost gone!</p>\n    </div>\n    <div class=\"content\">\n      <p>Hi {{ $json.name }},</p>\n      <div class=\"urgency\">\n        ⚠️ FINAL NOTICE: Items in your cart are selling fast!\n      </div>\n      <p>It's been 24 hours. We don't want you to miss out, so here's a special offer:</p>\n      <div class=\"coupon\">\n        <p>Use this code for 5% OFF</p>\n        <div class=\"coupon-code\">{{ $json.coupon_code }}</div>\n        <p>Valid for 7 days • Minimum order: 100 MAD</p>\n      </div>\n      {{ $json.cart_items_html }}\n      <div class=\"total\">Total: {{ $json.cart_value }} MAD</div>\n      <div style=\"text-align: center;\">\n        <a href=\"https://nexmart.ma/checkout?coupon={{ $json.coupon_code }}\" class=\"button\">Apply Coupon & Checkout</a>\n      </div>\n    </div>\n    <div class=\"footer\">\n      <p>NexMart - Your Premium Moroccan Marketplace</p>\n    </div>\n  </div>\n</body>\n</html>",
+        "options": {}
+      },
+      "id": "email-send-stage-3",
+      "name": "Send Email - Stage 3",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [2050, 600],
+      "credentials": {
+        "smtp": {
+          "id": "gmail_smtp_credentials",
+          "name": "Gmail SMTP"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO \"AbandonedCartRecovery\" (\n  \"userId\",\n  \"cartValue\",\n  \"itemsCount\",\n  \"recoveryEmail1\",\n  \"recoveryEmail2\",\n  \"recoveryEmail3\",\n  \"couponGenerated\",\n  \"couponCode\",\n  \"lastActivityAt\"\n) VALUES (\n  '{{ $json.user_id }}',\n  {{ $json.cart_value }},\n  {{ $json.items_count }},\n  {{ $json.next_stage >= 1 }},\n  {{ $json.next_stage >= 2 }},\n  {{ $json.next_stage >= 3 }},\n  {{ $json.next_stage >= 3 }},\n  '{{ $json.coupon_code || \"\" }}',\n  NOW()\n) ON CONFLICT (\"userId\") DO UPDATE SET\n  \"recoveryEmail1\" = EXCLUDED.\"recoveryEmail1\" OR \"AbandonedCartRecovery\".\"recoveryEmail1\",\n  \"recoveryEmail2\" = EXCLUDED.\"recoveryEmail2\" OR \"AbandonedCartRecovery\".\"recoveryEmail2\",\n  \"recoveryEmail3\" = EXCLUDED.\"recoveryEmail3\" OR \"AbandonedCartRecovery\".\"recoveryEmail3\",\n  \"couponGenerated\" = EXCLUDED.\"couponGenerated\" OR \"AbandonedCartRecovery\".\"couponGenerated\",\n  \"couponCode\" = COALESCE(EXCLUDED.\"couponCode\", \"AbandonedCartRecovery\".\"couponCode\"),\n  \"lastActivityAt\" = NOW();",
+        "options": {}
+      },
+      "id": "postgres-update-recovery",
+      "name": "Update Recovery Record",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [2250, 400],
+      "credentials": {
+        "postgres": {
+          "id": "postgres_credentials",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "command": "set",
+        "key": "email:sent:{{ $json.user_id }}:abandoned-cart:{{ $json.next_stage }}",
+        "value": "={{ $now.toISO() }}",
+        "options": {
+          "ttl": 604800
+        }
+      },
+      "id": "redis-set-dedup",
+      "name": "Set Redis Deduplication",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [2450, 400],
+      "credentials": {
+        "redis": {
+          "id": "redis_credentials",
+          "name": "Redis"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Find Abandoned Carts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Find Abandoned Carts": {
+      "main": [
+        [
+          {
+            "node": "Check Redis Deduplication",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Redis Deduplication": {
+      "main": [
+        [
+          {
+            "node": "Check if Already Processed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check if Already Processed": {
+      "main": [
+        [
+          {
+            "node": "Calculate Recovery Stage",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Calculate Recovery Stage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Recovery Stage": {
+      "main": [
+        [
+          {
+            "node": "Should Send Email?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Should Send Email?": {
+      "main": [
+        [
+          {
+            "node": "Stage 1 (30 min)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Update Recovery Record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stage 1 (30 min)": {
+      "main": [
+        [
+          {
+            "node": "Get Cart Items",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get Cart Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stage 2 (6 hours)": {
+      "main": [
+        [
+          {
+            "node": "Get Cart Items",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get Cart Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stage 3 (24 hours)": {
+      "main": [
+        [
+          {
+            "node": "Get Cart Items",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get Cart Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Cart Items - Stage 1": {
+      "main": [
+        [
+          {
+            "node": "Send Email - Stage 1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Email - Stage 1": {
+      "main": [
+        [
+          {
+            "node": "Update Recovery Record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Cart Items - Stage 2": {
+      "main": [
+        [
+          {
+            "node": "Send Email - Stage 2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Email - Stage 2": {
+      "main": [
+        [
+          {
+            "node": "Update Recovery Record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Cart Items - Stage 3": {
+      "main": [
+        [
+          {
+            "node": "Generate 5% Coupon",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate 5% Coupon": {
+      "main": [
+        [
+          {
+            "node": "Send Email - Stage 3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Email - Stage 3": {
+      "main": [
+        [
+          {
+            "node": "Update Recovery Record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Recovery Record": {
+      "main": [
+        [
+          {
+            "node": "Set Redis Deduplication",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 1,
+  "updatedAt": "2024-06-07T00:00:00.000Z",
+  "versionId": "1"
+}

@@ -40,9 +40,26 @@ export default function OrderDetailPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!orderNumber) {
+      setLoading(false);
+      return;
+    }
+
     fetch(`/api/orders/${orderNumber}`)
-      .then((r) => r.json())
-      .then((d) => { if (d.success) setOrder(d.data); })
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
+      .then((d) => {
+        if (d.success) {
+          setOrder(d.data);
+        } else {
+          console.error("[ORDER_FETCH_ERROR]", d.error);
+        }
+      })
+      .catch((err) => {
+        console.error("[ORDER_FETCH_ERROR]", err);
+      })
       .finally(() => setLoading(false));
   }, [orderNumber]);
 
@@ -109,14 +126,14 @@ This order doesn&apos;t exist or you don&apos;t have access.
         {/* Header */}
         <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
           <div>
-            <h1 className="text-2xl font-bold">Order #{order.orderNumber}</h1>
+            <h1 className="text-2xl font-bold">Order #{order.orderNumber || "Unknown"}</h1>
             <p className="text-muted-foreground text-sm mt-1">
-              Placed {formatDateTime(order.createdAt)}
+              Placed {order.createdAt ? formatDateTime(order.createdAt) : "Unknown date"}
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <span className={`badge text-xs font-semibold px-3 py-1.5 ${STATUS_COLOR[order.status] || ""}`}>
-              {order.status}
+            <span className={`badge text-xs font-semibold px-3 py-1.5 ${STATUS_COLOR[order.status || ""] || ""}`}>
+              {order.status || "Unknown"}
             </span>
             <button
               onClick={() => { navigator.clipboard.writeText(window.location.href); toast.success("Link copied!"); }}
@@ -129,7 +146,7 @@ This order doesn&apos;t exist or you don&apos;t have access.
         </div>
 
         {/* Progress tracker */}
-        {STATUS_STEPS.some((s) => s.key === order.status) && (
+        {order.status && STATUS_STEPS.some((s) => s.key === order.status) && (
           <div className="bg-card border border-border rounded-2xl p-6 mb-6">
             <h2 className="font-semibold mb-5">Order Progress</h2>
             <div className="relative">
@@ -196,34 +213,38 @@ This order doesn&apos;t exist or you don&apos;t have access.
           <div className="px-6 py-4 border-b border-border">
             <h2 className="font-semibold flex items-center gap-2">
               <Package className="w-5 h-5 text-muted-foreground" />
-              Items ({order.items.length})
+              Items ({order.items?.length || 0})
             </h2>
           </div>
           <div className="divide-y divide-border">
-            {order.items.map((item) => (
+            {order.items?.map((item) => (
               <div key={item.id} className="flex items-center gap-4 px-6 py-4">
                 <div className="relative w-16 h-16 rounded-xl overflow-hidden bg-muted flex-shrink-0">
                   <Image
                     src={item.image || "/placeholder.jpg"}
-                    alt={item.name}
+                    alt={item.name || "Item"}
                     fill
                     className="object-cover"
                     sizes="64px"
                   />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium text-sm line-clamp-2">{item.name}</p>
+                  <p className="font-medium text-sm line-clamp-2">{item.name || "Unknown item"}</p>
                   {item.variant && (
                     <p className="text-xs text-muted-foreground mt-0.5">{item.variant.label}</p>
                   )}
                   <p className="text-xs text-muted-foreground mt-1">Qty: {item.quantity}</p>
                 </div>
                 <div className="text-right">
-                  <p className="font-bold">{formatPrice(item.price * item.quantity)}</p>
-                  <p className="text-xs text-muted-foreground">{formatPrice(item.price)} each</p>
+                  <p className="font-bold">{formatPrice((item.price || 0) * (item.quantity || 0))}</p>
+                  <p className="text-xs text-muted-foreground">{formatPrice(item.price || 0)} each</p>
                 </div>
               </div>
-            ))}
+            )) || (
+              <div className="px-6 py-8 text-center text-muted-foreground">
+                No items found for this order
+              </div>
+            )}
           </div>
         </div>
 
@@ -235,15 +256,17 @@ This order doesn&apos;t exist or you don&apos;t have access.
               <MapPin className="w-4 h-4 text-muted-foreground" />
               Delivery Address
             </h2>
-            {order.address && (
+            {order.address ? (
               <div className="text-sm text-muted-foreground space-y-0.5">
-                <p className="font-semibold text-foreground">{order.address.name}</p>
-                <p>{order.address.phone}</p>
-                <p>{order.address.line1}</p>
+                <p className="font-semibold text-foreground">{order.address.name || "N/A"}</p>
+                <p>{order.address.phone || "N/A"}</p>
+                <p>{order.address.line1 || "N/A"}</p>
                 {order.address.line2 && <p>{order.address.line2}</p>}
-                <p>{order.address.city}, {order.address.state} {order.address.zip}</p>
-                <p>{order.address.country}</p>
+                <p>{order.address.city || "N/A"}, {order.address.state || ""} {order.address.zip || ""}</p>
+                <p>{order.address.country || "N/A"}</p>
               </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">No address information available</p>
             )}
           </div>
 
@@ -267,13 +290,13 @@ This order doesn&apos;t exist or you don&apos;t have access.
                   : order.paymentStatus === "FAILED" ? "text-red-500"
                   : "text-yellow-600"
                 }`}>
-                  {order.paymentStatus}
+                  {order.paymentStatus || "Unknown"}
                 </span>
               </div>
-              {order.coupon && (
+              {order.coupon?.code && (
                 <div className="flex justify-between text-green-600">
                   <span>Coupon ({order.coupon.code})</span>
-                  <span>−{formatPrice(order.discount)}</span>
+                  <span>−{formatPrice(order.discount || 0)}</span>
                 </div>
               )}
             </div>
@@ -286,25 +309,25 @@ This order doesn&apos;t exist or you don&apos;t have access.
           <div className="space-y-2 text-sm">
             <div className="flex justify-between text-muted-foreground">
               <span>Subtotal</span>
-              <span>{formatPrice(order.subtotal)}</span>
+              <span>{formatPrice(order.subtotal || 0)}</span>
             </div>
-            {order.discount > 0 && (
+            {(order.discount || 0) > 0 && (
               <div className="flex justify-between text-green-600">
                 <span>Discount</span>
-                <span>−{formatPrice(order.discount)}</span>
+                <span>−{formatPrice(order.discount || 0)}</span>
               </div>
             )}
             <div className="flex justify-between text-muted-foreground">
               <span>Shipping</span>
-              <span>{order.shipping === 0 ? "FREE" : formatPrice(order.shipping)}</span>
+              <span>{(order.shipping || 0) === 0 ? "FREE" : formatPrice(order.shipping || 0)}</span>
             </div>
             <div className="flex justify-between text-muted-foreground">
               <span>Tax</span>
-              <span>{formatPrice(order.tax)}</span>
+              <span>{formatPrice(order.tax || 0)}</span>
             </div>
             <div className="pt-3 border-t border-border flex justify-between font-bold text-base">
               <span>Total</span>
-              <span>{formatPrice(order.total)}</span>
+              <span>{formatPrice(order.total || 0)}</span>
             </div>
           </div>
         </div>
@@ -316,13 +339,13 @@ This order doesn&apos;t exist or you don&apos;t have access.
           </Link>
           {order.status === "DELIVERED" && (
             <Link
-              href={`/products?review=${order.items[0]?.productId}`}
+              href={`/products?review=${order.items?.[0]?.productId || ""}`}
               className="btn-outline py-3 px-6"
             >
               Write a Review
             </Link>
           )}
-          {["PENDING", "CONFIRMED"].includes(order.status) && (
+          {["PENDING", "CONFIRMED"].includes(order.status || "") && (
             <button
               onClick={() => toast("To cancel this order, please contact support.")}
               className="btn-ghost py-3 px-6 text-destructive"

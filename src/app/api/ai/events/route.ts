@@ -28,17 +28,21 @@ export async function POST(req: NextRequest) {
     const organizationId = user ? await getOrganizationIdForUser(user) : await getDefaultOrganizationId();
     const body = schema.parse(await req.json());
 
-    await prisma.aiEvent.create({
-      data: {
-        organizationId,
-        ...(user?.userId ? { userId: user.userId } : {}),
-        ...(body.productId ? { productId: body.productId } : {}),
-        type: body.type as any,
-        ...(body.query ? { query: body.query } : {}),
-        ...(body.score !== undefined ? { score: body.score } : {}),
-        ...(body.metadata ? { metadata: body.metadata as any } : {}),
-      } as any,
-    });
+    try {
+      await prisma.aiEvent.create({
+        data: {
+          organizationId,
+          ...(user?.userId ? { userId: user.userId } : {}),
+          ...(body.productId ? { productId: body.productId } : {}),
+          type: body.type as any,
+          ...(body.query ? { query: body.query } : {}),
+          ...(body.score !== undefined ? { score: body.score } : {}),
+          ...(body.metadata ? { metadata: body.metadata as any } : {}),
+        } as any,
+      });
+    } catch (error) {
+      console.error("[AI_EVENT_CREATE_ERROR]", error);
+    }
 
     return NextResponse.json({ success: true });
   } catch (err: unknown) {

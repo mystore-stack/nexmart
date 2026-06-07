@@ -1,0 +1,341 @@
+{
+  "name": "Daily Business Report",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 * * *"
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "command": "get",
+        "key": "report:daily:{{ $now.format('yyyy-MM-dd') }}",
+        "options": {}
+      },
+      "id": "redis-check-report",
+      "name": "Check Report Already Generated",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [450, 300],
+      "credentials": {
+        "redis": {
+          "id": "redis_credentials",
+          "name": "Redis"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition-1",
+              "leftValue": "={{$json}}",
+              "rightValue": "",
+              "operator": {
+                "type": "null",
+                "operation": "isNull"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "condition-should-generate",
+      "name": "Should Generate Report?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n  COALESCE(SUM(total), 0) as revenue_today,\n  COUNT(*) as orders_today,\n  COALESCE(AVG(total), 0) as avg_order_value\nFROM \"Order\"\nWHERE DATE(createdAt) = CURRENT_DATE;",
+        "options": {}
+      },
+      "id": "postgres-revenue-today",
+      "name": "Get Today's Revenue",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [850, 200],
+      "credentials": {
+        "postgres": {
+          "id": "postgres_credentials",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n  p.name,\n  p.sku,\n  SUM(oi.quantity) as units_sold,\n  SUM(oi.quantity * oi.price) as revenue\nFROM \"OrderItem\" oi\nINNER JOIN \"Order\" o ON oi.\"orderId\" = o.id\nINNER JOIN \"Product\" p ON oi.\"productId\" = p.id\nWHERE DATE(o.createdAt) = CURRENT_DATE\nGROUP BY p.id, p.name, p.sku\nORDER BY units_sold DESC\nLIMIT 5;",
+        "options": {}
+      },
+      "id": "postgres-top-products",
+      "name": "Get Top Products",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [850, 400],
+      "credentials": {
+        "postgres": {
+          "id": "postgres_credentials",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n  COUNT(DISTINCT ci.\"userId\") as abandoned_carts\nFROM \"CartItem\" ci\nWHERE ci.updatedAt > NOW() - INTERVAL '24 hours'\n  AND NOT EXISTS (\n    SELECT 1 FROM \"Order\" o \n    WHERE o.\"userId\" = ci.\"userId\" \n    AND o.createdAt > ci.updatedAt\n  );",
+        "options": {}
+      },
+      "id": "postgres-abandoned-carts",
+      "name": "Get Abandoned Carts",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [850, 600],
+      "credentials": {
+        "postgres": {
+          "id": "postgres_credentials",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n  COUNT(DISTINCT o.\"userId\") as unique_customers,\n  COUNT(*) as total_orders\nFROM \"Order\" o\nWHERE DATE(o.createdAt) = CURRENT_DATE;",
+        "options": {}
+      },
+      "id": "postgres-conversion-data",
+      "name": "Get Conversion Data",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [850, 800],
+      "credentials": {
+        "postgres": {
+          "id": "postgres_credentials",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Format report data\nconst revenue = $input.item.json.revenue_today || 0;\nconst orders = $input.item.json.orders_today || 0;\nconst aov = $input.item.json.avg_order_value || 0;\nconst topProducts = $input.item.json.top_products || [];\nconst abandonedCarts = $input.item.json.abandoned_carts || 0;\nconst uniqueCustomers = $input.item.json.unique_customers || 0;\n\nconst conversionRate = uniqueCustomers > 0 ? (orders / uniqueCustomers * 100).toFixed(2) : 0;\n\nlet topProductsText = topProducts.map((p, i) => \n  `${i + 1}. ${p.name} - ${p.units_sold} units sold (${p.revenue} MAD)`\n).join('\\n');\n\nconst report = `📊 **Daily Business Report**\n📅 Date: ${$now.format('yyyy-MM-dd')}\n\n💰 **Revenue Today**: ${revenue} MAD\n🛒 **Orders Today**: ${orders}\n📦 **Average Order Value**: ${aov} MAD\n👥 **Unique Customers**: ${uniqueCustomers}\n📈 **Conversion Rate**: ${conversionRate}%\n🛍️ **Abandoned Carts**: ${abandonedCarts}\n\n🏆 **Top Products Today**:\n${topProductsText || 'No sales today'}\n\n📊 **Summary**:\n${orders > 0 ? '✅ Orders coming in!' : '⚠️ No orders today'}\n${abandonedCarts > 10 ? '⚠️ High abandoned cart rate' : '✅ Cart abandonment normal'}\n${revenue > 10000 ? '🎉 Great revenue day!' : '📈 Keep pushing!'}`;\n\nreturn {\n  json: {\n    report_text: report,\n    revenue,\n    orders,\n    aov,\n    abandoned_carts: abandonedCarts,\n    conversion_rate: conversionRate\n  }\n};"
+      },
+      "id": "function-format-report",
+      "name": "Format Report",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1050, 400]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $env.TELEGRAM_ADMIN_CHAT_ID }}",
+        "text": "={{ $json.report_text }}",
+        "options": {
+          "parseMode": "markdown"
+        }
+      },
+      "id": "telegram-send-report",
+      "name": "Send Telegram Report",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1250, 300],
+      "credentials": {
+        "telegramApi": {
+          "id": "telegram_credentials",
+          "name": "Telegram API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "reports@nexmart.ma",
+        "toEmail": "admin@nexmart.ma",
+        "subject": "Daily Business Report - {{ $now.format('yyyy-MM-dd') }}",
+        "emailType": "html",
+        "message": "<!DOCTYPE html>\n<html>\n<head>\n  <style>\n    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }\n    .container { max-width: 600px; margin: 0 auto; padding: 20px; }\n    .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }\n    .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }\n    .metric { background: white; padding: 20px; border-radius: 8px; margin: 10px 0; text-align: center; }\n    .metric-value { font-size: 32px; font-weight: bold; color: #667eea; }\n    .metric-label { color: #666; font-size: 14px; }\n    .products { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; }\n    .product-item { padding: 10px; border-bottom: 1px solid #eee; }\n    .footer { text-align: center; margin-top: 30px; color: #666; font-size: 12px; }\n  </style>\n</head>\n<body>\n  <div class=\"container\">\n    <div class=\"header\">\n      <h1>Daily Business Report</h1>\n      <p>{{ $now.format('yyyy-MM-dd') }}</p>\n    </div>\n    <div class=\"content\">\n      <div class=\"metric\">\n        <div class=\"metric-value\">{{ $json.revenue }} MAD</div>\n        <div class=\"metric-label\">Revenue Today</div>\n      </div>\n      <div class=\"metric\">\n        <div class=\"metric-value\">{{ $json.orders }}</div>\n        <div class=\"metric-label\">Orders Today</div>\n      </div>\n      <div class=\"metric\">\n        <div class=\"metric-value\">{{ $json.aov }} MAD</div>\n        <div class=\"metric-label\">Average Order Value</div>\n      </div>\n      <div class=\"metric\">\n        <div class=\"metric-value\">{{ $json.conversion_rate }}%</div>\n        <div class=\"metric-label\">Conversion Rate</div>\n      </div>\n      <div class=\"metric\">\n        <div class=\"metric-value\">{{ $json.abandoned_carts }}</div>\n        <div class=\"metric-label\">Abandoned Carts</div>\n      </div>\n    </div>\n    <div class=\"footer\">\n      <p>NexMart Business Intelligence</p>\n    </div>\n  </div>\n</body>\n</html>",
+        "options": {}
+      },
+      "id": "email-send-report",
+      "name": "Send Email Report",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [1250, 500],
+      "credentials": {
+        "smtp": {
+          "id": "gmail_smtp_credentials",
+          "name": "Gmail SMTP"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "command": "set",
+        "key": "report:daily:{{ $now.format('yyyy-MM-dd') }}",
+        "value": "={{ $now.toISO() }}",
+        "options": {
+          "ttl": 7200
+        }
+      },
+      "id": "redis-set-cache",
+      "name": "Set Report Cache",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [1450, 400],
+      "credentials": {
+        "redis": {
+          "id": "redis_credentials",
+          "name": "Redis"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Check Report Already Generated",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Report Already Generated": {
+      "main": [
+        [
+          {
+            "node": "Should Generate Report?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Should Generate Report?": {
+      "main": [
+        [
+          {
+            "node": "Get Today's Revenue",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set Report Cache",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Today's Revenue": {
+      "main": [
+        [
+          {
+            "node": "Get Top Products",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Top Products": {
+      "main": [
+        [
+          {
+            "node": "Get Abandoned Carts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Abandoned Carts": {
+      "main": [
+        [
+          {
+            "node": "Get Conversion Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Conversion Data": {
+      "main": [
+        [
+          {
+            "node": "Format Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Report": {
+      "main": [
+        [
+          {
+            "node": "Send Telegram Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Telegram Report": {
+      "main": [
+        [
+          {
+            "node": "Send Email Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Email Report": {
+      "main": [
+        [
+          {
+            "node": "Set Report Cache",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 1,
+  "updatedAt": "2024-06-07T00:00:00.000Z",
+  "versionId": "1"
+}

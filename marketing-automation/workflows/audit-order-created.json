@@ -1,0 +1,185 @@
+{
+  "name": "Audit: Order Created - Send Notifications",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "audit-webhook",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "webhook-1",
+      "name": "Webhook - Audit Alert",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition-1",
+              "leftValue": "={{ $json.alertType }}",
+              "rightValue": "ORDER_CREATED",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "if-1",
+      "name": "Check if ORDER_CREATED",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "resource": "user",
+        "id": "={{ $json.userId }}"
+      },
+      "id": "supabase-1",
+      "name": "Get User Details",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [650, 200]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "resource": "order",
+        "id": "={{ $json.orderId }}"
+      },
+      "id": "supabase-2",
+      "name": "Get Order Details",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [650, 400]
+    },
+    {
+      "parameters": {
+        "from": "support@nexmart.ma",
+        "to": "={{ $json.email }}",
+        "subject": "Order Confirmed - #{{ $json.orderNumber }}",
+        "emailType": "html",
+        "message": "=<!DOCTYPE html>\n<html>\n<head>\n    <style>\n        body { font-family: Arial, sans-serif; }\n        .container { max-width: 600px; margin: 0 auto; padding: 20px; }\n        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; }\n        .content { padding: 30px; background: #f9f9f9; }\n        .order-details { background: white; padding: 20px; margin: 20px 0; border-radius: 8px; }\n        .total { font-size: 24px; font-weight: bold; text-align: right; margin-top: 20px; }\n    </style>\n</head>\n<body>\n    <div class=\"container\">\n        <div class=\"header\">\n            <h1>Order Confirmed!</h1>\n            <p>Thank you for your purchase</p>\n        </div>\n        <div class=\"content\">\n            <h2>Order #{{ $json.orderNumber }}</h2>\n            <div class=\"order-details\">\n                <p><strong>Total:</strong> <span class=\"total\">{{ $json.total }} MAD</span></p>\n                <p><strong>Payment Method:</strong> {{ $json.paymentMethod }}</p>\n                <p><strong>Shipping Address:</strong> {{ $json.address }}</p>\n            </div>\n            <p>You'll receive another email when your order ships.</p>\n        </div>\n    </div>\n</body>\n</html>"
+      },
+      "id": "email-1",
+      "name": "Send Email Confirmation",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [850, 200]
+    },
+    {
+      "parameters": {
+        "operation": "sendMessage",
+        "chatId": "={{ $json.phone }}",
+        "text": "✅ Your order #{{ $json.orderNumber }} has been confirmed!\n\nTotal: {{ $json.total }} MAD\nPayment: {{ $json.paymentMethod }}\n\nYou'll receive updates when your order ships.\n\nThank you for shopping with NexMart!"
+      },
+      "id": "whatsapp-1",
+      "name": "Send WhatsApp Notification",
+      "type": "n8n-nodes-base.whatsappApi",
+      "typeVersion": 1,
+      "position": [850, 400]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "resource": "customer",
+        "id": "={{ $json.customerId }}",
+        "data": {
+          "lastOrderDate": "={{ $now }}",
+          "totalOrders": "={{ $json.totalOrders + 1 }}"
+        }
+      },
+      "id": "supabase-3",
+      "name": "Update CRM",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [1050, 300]
+    }
+  ],
+  "connections": {
+    "Webhook - Audit Alert": {
+      "main": [
+        [
+          {
+            "node": "Check if ORDER_CREATED",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check if ORDER_CREATED": {
+      "main": [
+        [
+          {
+            "node": "Get User Details",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get Order Details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get User Details": {
+      "main": [
+        [
+          {
+            "node": "Send Email Confirmation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Order Details": {
+      "main": [
+        [
+          {
+            "node": "Send WhatsApp Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Email Confirmation": {
+      "main": [
+        [
+          {
+            "node": "Update CRM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send WhatsApp Notification": {
+      "main": [
+        [
+          {
+            "node": "Update CRM",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

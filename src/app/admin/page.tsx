@@ -1,6 +1,6 @@
 // src/app/admin/page.tsx
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { motion } from "framer-motion";
@@ -20,15 +20,18 @@ import {
   Activity,
   AlertTriangle,
   ArrowRight,
+  Bell,
   Brain,
   DollarSign,
   Package,
+  RefreshCw,
   ShoppingCart,
   Sparkles,
   TrendingDown,
   TrendingUp,
   Users,
 } from "lucide-react";
+import toast from "react-hot-toast";
 import { formatPrice } from "@/utils/format";
 
 const STATUS_COLORS: Record<string, string> = {
@@ -102,6 +105,8 @@ export default function AdminDashboard() {
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [range, setRange] = useState(30);
+  const [isConnected, setIsConnected] = useState(false);
+  const eventSourceRef = useRef<EventSource | null>(null);
 
   useEffect(() => {
     setLoading(true);
@@ -112,6 +117,77 @@ export default function AdminDashboard() {
         setLoading(false);
       })
       .catch(() => setLoading(false));
+  }, [range]);
+
+  // SSE connection for real-time updates
+  useEffect(() => {
+    const eventSource = new EventSource("/api/admin/events");
+    eventSourceRef.current = eventSource;
+
+    eventSource.onopen = () => {
+      setIsConnected(true);
+      console.log("[SSE] Connected to admin events");
+    };
+
+    eventSource.onerror = (error) => {
+      console.error("[SSE] Connection error:", error);
+      setIsConnected(false);
+    };
+
+    eventSource.addEventListener("connected", (event) => {
+      console.log("[SSE] Server confirmed connection");
+    });
+
+    eventSource.addEventListener("orders", (event) => {
+      const data = JSON.parse(event.data);
+      if (data.type === "new_orders") {
+        // Show toast notification for new orders
+        data.orders.forEach((order: any) => {
+          toast.success(
+            `🛒 New Order #${order.orderNumber} - ${formatPrice(order.total)}`,
+            {
+              duration: 5000,
+              icon: <ShoppingCart className="w-5 h-5" />,
+            }
+          );
+        });
+        // Refresh analytics to include new order
+        fetchAnalytics();
+      }
+    });
+
+    eventSource.addEventListener("inventory", (event) => {
+      const data = JSON.parse(event.data);
+      if (data.type === "inventory_alert") {
+        data.products.forEach((product: any) => {
+          toast.error(
+            `⚠️ Low Stock: ${product.name} (${product.stock} left)`,
+            {
+              duration: 8000,
+              icon: <Bell className="w-5 h-5" />,
+            }
+          );
+        });
+        // Refresh analytics to update low stock count
+        fetchAnalytics();
+      }
+    });
+
+    const fetchAnalytics = () => {
+      setLoading(true);
+      fetch(`/api/admin/analytics?range=${range}`)
+        .then((r) => r.json())
+        .then((d) => {
+          setData(d.data);
+          setLoading(false);
+        })
+        .catch(() => setLoading(false));
+    };
+
+    return () => {
+      eventSource.close();
+      eventSourceRef.current = null;
+    };
   }, [range]);
 
   const metrics = data?.summary;
@@ -153,18 +229,44 @@ export default function AdminDashboard() {
           <h2 className="text-xl font-black tracking-tight">Performance Overview</h2>
           <p className="mt-1 text-sm text-muted-foreground">Live commercial health for the last {range} days.</p>
         </div>
-        <div className="flex items-center gap-1 rounded-2xl border border-border bg-card p-1 shadow-sm">
-          {RANGE_OPTIONS.map((opt) => (
-            <button
-              key={opt.value}
-              onClick={() => setRange(opt.value)}
-              className={`rounded-xl px-4 py-2 text-sm font-black transition-all ${
-                range === opt.value ? "bg-foreground text-background shadow" : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {opt.label}
-            </button>
-          ))}
+        <div className="flex items-center gap-3">
+          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium ${
+            isConnected 
+              ? "bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400" 
+              : "bg-red-500/10 text-red-600 dark:bg-red-500/20 dark:text-red-400"
+          }`}>
+            <div className={`w-2 h-2 rounded-full ${isConnected ? "bg-emerald-500 animate-pulse" : "bg-red-500"}`} />
+            {isConnected ? "Live Updates" : "Disconnected"}
+          </div>
+          <button
+            onClick={() => {
+              setLoading(true);
+              fetch(`/api/admin/analytics?range=${range}`)
+                .then((r) => r.json())
+                .then((d) => {
+                  setData(d.data);
+                  setLoading(false);
+                })
+                .catch(() => setLoading(false));
+            }}
+            disabled={loading}
+            className="btn-outline py-2 px-3 text-sm"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+          </button>
+          <div className="flex items-center gap-1 rounded-2xl border border-border bg-card p-1 shadow-sm">
+            {RANGE_OPTIONS.map((opt) => (
+              <button
+                key={opt.value}
+                onClick={() => setRange(opt.value)}
+                className={`rounded-xl px-4 py-2 text-sm font-black transition-all ${
+                  range === opt.value ? "bg-foreground text-background shadow" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 

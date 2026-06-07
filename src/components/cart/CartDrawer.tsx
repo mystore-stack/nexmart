@@ -140,7 +140,7 @@ export function CartDrawer() {
                       >
                         <Link href={`/products/${item.product.slug}`} onClick={closeCart} className="flex-shrink-0">
                           <div className="relative h-20 w-20 overflow-hidden rounded-xl border border-gold-200/30 dark:border-gold-800/20 bg-muted img-zoom">
-                            <Image src={img} alt={item.product.name} fill className="object-cover" />
+                            <Image src={img} alt={item.product.name} fill className="object-cover" sizes="80px" />
                           </div>
                         </Link>
                         <div className="flex flex-1 min-w-0 flex-col gap-1.5">

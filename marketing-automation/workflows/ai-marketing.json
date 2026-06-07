@@ -1,0 +1,322 @@
+{
+  "name": "AI Marketing Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 * * *"
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n  p.id,\n  p.name,\n  p.description,\n  p.price,\n  p.rating,\n  p.reviewCount,\n  p.soldCount,\n  c.name as category_name\nFROM \"Product\" p\nINNER JOIN \"Category\" c ON p.\"categoryId\" = c.id\nWHERE p.published = true\n  AND p.stock > 0\nORDER BY p.rating DESC, p.soldCount DESC\nLIMIT 10;",
+        "options": {}
+      },
+      "id": "postgres-get-products",
+      "name": "Get Top Products",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [450, 300],
+      "credentials": {
+        "postgres": {
+          "id": "postgres_credentials",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "gpt-4",
+        "options": {
+          "temperature": 0.7
+        },
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are a creative marketing copywriter for NexMart, a premium Moroccan ecommerce platform. Generate engaging email subject lines and content for promotional campaigns."
+            },
+            {
+              "role": "user",
+              "content": "Generate 5 compelling email subject lines for promoting these products: {{ $json.products }}. Make them catchy, urgent, and relevant to Moroccan customers. Include emojis where appropriate."
+            }
+          ]
+        }
+      },
+      "id": "openai-generate-subjects",
+      "name": "Generate Email Subjects",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1.5,
+      "position": [650, 200],
+      "credentials": {
+        "openAiApi": {
+          "id": "openai_credentials",
+          "name": "OpenAI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "gpt-4",
+        "options": {
+          "temperature": 0.7
+        },
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are a creative marketing copywriter for NexMart, a premium Moroccan ecommerce platform. Generate engaging email content for promotional campaigns."
+            },
+            {
+              "role": "user",
+              "content": "Generate promotional email content for these products: {{ $json.products }}. Include a compelling headline, product highlights, call-to-action, and urgency elements. Write in a friendly, professional tone suitable for Moroccan customers."
+            }
+          ]
+        }
+      },
+      "id": "openai-generate-content",
+      "name": "Generate Email Content",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1.5,
+      "position": [650, 400],
+      "credentials": {
+        "openAiApi": {
+          "id": "openai_credentials",
+          "name": "OpenAI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "gpt-4",
+        "options": {
+          "temperature": 0.8
+        },
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are a social media marketing expert for NexMart. Create engaging social media posts for Instagram and Facebook."
+            },
+            {
+              "role": "user",
+              "content": "Create 3 social media posts (Instagram/Facebook) promoting these products: {{ $json.products }}. Include relevant hashtags, emojis, and call-to-actions. Make them visually appealing and engaging."
+            }
+          ]
+        }
+      },
+      "id": "openai-generate-social",
+      "name": "Generate Social Media Posts",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1.5,
+      "position": [650, 600],
+      "credentials": {
+        "openAiApi": {
+          "id": "openai_credentials",
+          "name": "OpenAI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "gpt-4",
+        "options": {
+          "temperature": 0.6
+        },
+        "messages": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are a product description writer for NexMart. Create compelling, SEO-friendly product descriptions."
+            },
+            {
+              "role": "user",
+              "content": "Rewrite and enhance the product descriptions for these products: {{ $json.products }}. Make them more compelling, highlight key benefits, and optimize for SEO. Keep descriptions under 200 words each."
+            }
+          ]
+        }
+      },
+      "id": "openai-generate-descriptions",
+      "name": "Generate Product Descriptions",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1.5,
+      "position": [650, 800],
+      "credentials": {
+        "openAiApi": {
+          "id": "openai_credentials",
+          "name": "OpenAI API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO \"MarketingCampaign\" (\n  \"organizationId\",\n  name,\n  type,\n  status,\n  startDate,\n  metadata\n) VALUES (\n  (SELECT id FROM \"Organization\" LIMIT 1),\n  'AI Generated Campaign - ' || CURRENT_DATE,\n  'PROMOTION',\n  'DRAFT',\n  CURRENT_DATE,\n  '{\"generated_by\": \"ai\", \"products\": \"{{ $json.products }}\", \"subjects\": \"{{ $json.subjects }}\"}'::jsonb\n) RETURNING id;",
+        "options": {}
+      },
+      "id": "postgres-save-campaign",
+      "name": "Save AI Campaign",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [850, 400],
+      "credentials": {
+        "postgres": {
+          "id": "postgres_credentials",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "command": "set",
+        "key": "ai:content:daily:{{ $now.format('yyyy-MM-dd') }}",
+        "value": "={{ JSON.stringify($json) }}",
+        "options": {
+          "ttl": 604800
+        }
+      },
+      "id": "redis-cache-content",
+      "name": "Cache Generated Content",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [1050, 400],
+      "credentials": {
+        "redis": {
+          "id": "redis_credentials",
+          "name": "Redis"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $env.TELEGRAM_ADMIN_CHAT_ID }}",
+        "text": "🤖 **AI Marketing Content Generated**\n\n📅 Date: {{ $now.format('yyyy-MM-dd') }}\n\n📧 **Email Subjects:** {{ $json.subjects }}\n\n📝 **Email Content:** Generated\n\n📱 **Social Media Posts:** 3 posts generated\n\n📦 **Product Descriptions:** Enhanced\n\nCampaign saved to database for review.",
+        "options": {
+          "parseMode": "markdown"
+        }
+      },
+      "id": "telegram-notification",
+      "name": "Send Telegram Notification",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1250, 400],
+      "credentials": {
+        "telegramApi": {
+          "id": "telegram_credentials",
+          "name": "Telegram API"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get Top Products",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Top Products": {
+      "main": [
+        [
+          {
+            "node": "Generate Email Subjects",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Email Subjects": {
+      "main": [
+        [
+          {
+            "node": "Generate Email Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Email Content": {
+      "main": [
+        [
+          {
+            "node": "Generate Social Media Posts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Social Media Posts": {
+      "main": [
+        [
+          {
+            "node": "Generate Product Descriptions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Product Descriptions": {
+      "main": [
+        [
+          {
+            "node": "Save AI Campaign",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save AI Campaign": {
+      "main": [
+        [
+          {
+            "node": "Cache Generated Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cache Generated Content": {
+      "main": [
+        [
+          {
+            "node": "Send Telegram Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 1,
+  "updatedAt": "2024-06-07T00:00:00.000Z",
+  "versionId": "1"
+}

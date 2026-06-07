@@ -1,0 +1,291 @@
+{
+  "name": "Shipping Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "shipping-update",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [250, 300],
+      "webhookId": "shipping-update-webhook"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n  o.*,\n  u.email,\n  u.name as customer_name,\n  a.line1,\n  a.city,\n  a.country\nFROM \"Order\" o\nINNER JOIN \"User\" u ON o.\"userId\" = u.id\nINNER JOIN \"Address\" a ON o.\"addressId\" = a.id\nWHERE o.id = '{{ $json.order_id }}';",
+        "options": {}
+      },
+      "id": "postgres-get-order",
+      "name": "Get Order Details",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [450, 300],
+      "credentials": {
+        "postgres": {
+          "id": "postgres_credentials",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition-processing",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "PROCESSING",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "condition-check-status",
+      "name": "Check Order Status",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "fromEmail": "noreply@nexmart.ma",
+        "toEmail": "={{ $json.email }}",
+        "subject": "Your order is being prepared 📦",
+        "emailType": "html",
+        "message": "<!DOCTYPE html>\n<html>\n<head>\n  <style>\n    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }\n    .container { max-width: 600px; margin: 0 auto; padding: 20px; }\n    .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }\n    .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }\n    .status { background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; border-radius: 5px; }\n    .footer { text-align: center; margin-top: 30px; color: #666; font-size: 12px; }\n  </style>\n</head>\n<body>\n  <div class=\"container\">\n    <div class=\"header\">\n      <h1>Your order is being prepared 📦</h1>\n      <p>We're working on your order</p>\n    </div>\n    <div class=\"content\">\n      <p>Hi {{ $json.customer_name }},</p>\n      <div class=\"status\">\n        <strong>Order Status:</strong> Processing\n      </div>\n      <p>Great news! Your order #{{ $json.orderNumber }} is now being prepared for shipment.</p>\n      <p>We'll notify you as soon as it ships with tracking information.</p>\n      <div style=\"text-align: center;\">\n        <a href=\"https://nexmart.ma/orders/{{ $json.orderNumber }}\" style=\"display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold;\">Track Your Order</a>\n      </div>\n    </div>\n    <div class=\"footer\">\n      <p>NexMart - Your Premium Moroccan Marketplace</p>\n    </div>\n  </div>\n</body>\n</html>",
+        "options": {}
+      },
+      "id": "email-processing",
+      "name": "Send Processing Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [850, 200],
+      "credentials": {
+        "smtp": {
+          "id": "gmail_smtp_credentials",
+          "name": "Gmail SMTP"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "noreply@nexmart.ma",
+        "toEmail": "={{ $json.email }}",
+        "subject": "Your order has shipped! 🚚",
+        "emailType": "html",
+        "message": "<!DOCTYPE html>\n<html>\n<head>\n  <style>\n    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }\n    .container { max-width: 600px; margin: 0 auto; padding: 20px; }\n    .header { background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }\n    .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }\n    .tracking { background: #d4edda; border-left: 4px solid #28a745; padding: 20px; margin: 20px 0; border-radius: 5px; }\n    .tracking-number { font-size: 24px; font-weight: bold; color: #11998e; margin: 10px 0; }\n    .footer { text-align: center; margin-top: 30px; color: #666; font-size: 12px; }\n  </style>\n</head>\n<body>\n  <div class=\"container\">\n    <div class=\"header\">\n      <h1>Your order has shipped! 🚚</h1>\n      <p>On its way to you</p>\n    </div>\n    <div class=\"content\">\n      <p>Hi {{ $json.customer_name }},</p>\n      <p>Great news! Your order #{{ $json.orderNumber }} has been shipped and is on its way to you.</p>\n      <div class=\"tracking\">\n        <p><strong>Tracking Number:</strong></p>\n        <div class=\"tracking-number\">{{ $json.trackingNumber }}</div>\n        <p><strong>Courier:</strong> {{ $json.courier }}</p>\n        <p><strong>Estimated Delivery:</strong> {{ $json.estimatedDelivery }}</p>\n      </div>\n      <div style=\"text-align: center;\">\n        <a href=\"https://nexmart.ma/orders/{{ $json.orderNumber }}\" style=\"display: inline-block; background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold;\">Track Your Package</a>\n      </div>\n    </div>\n    <div class=\"footer\">\n      <p>NexMart - Your Premium Moroccan Marketplace</p>\n    </div>\n  </div>\n</body>\n</html>",
+        "options": {}
+      },
+      "id": "email-shipped",
+      "name": "Send Shipped Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [850, 400],
+      "credentials": {
+        "smtp": {
+          "id": "gmail_smtp_credentials",
+          "name": "Gmail SMTP"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "noreply@nexmart.ma",
+        "toEmail": "={{ $json.email }}",
+        "subject": "Your order has been delivered! 🎉",
+        "emailType": "html",
+        "message": "<!DOCTYPE html>\n<html>\n<head>\n  <style>\n    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }\n    .container { max-width: 600px; margin: 0 auto; padding: 20px; }\n    .header { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }\n    .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }\n    .review { background: #fff3cd; border-left: 4px solid #ffc107; padding: 20px; margin: 20px 0; border-radius: 5px; }\n    .button { display: inline-block; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; text-align: center; }\n    .footer { text-align: center; margin-top: 30px; color: #666; font-size: 12px; }\n  </style>\n</head>\n<body>\n  <div class=\"container\">\n    <div class=\"header\">\n      <h1>Your order has been delivered! 🎉</h1>\n      <p>Enjoy your purchase</p>\n    </div>\n    <div class=\"content\">\n      <p>Hi {{ $json.customer_name }},</p>\n      <p>Your order #{{ $json.orderNumber }} has been delivered to {{ $json.line1 }}, {{ $json.city }}.</p>\n      <div class=\"review\">\n        <h3>Leave a Review</h3>\n        <p>We'd love to hear about your experience! Please leave a review for the products you purchased.</p>\n        <div style=\"text-align: center; margin-top: 15px;\">\n          <a href=\"https://nexmart.ma/orders/{{ $json.orderNumber }}/review\" class=\"button\">Write a Review</a>\n        </div>\n      </div>\n      <p>Thank you for shopping with NexMart!</p>\n    </div>\n    <div class=\"footer\">\n      <p>NexMart - Your Premium Moroccan Marketplace</p>\n    </div>\n  </div>\n</body>\n</html>",
+        "options": {}
+      },
+      "id": "email-delivered",
+      "name": "Send Delivered Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [850, 600],
+      "credentials": {
+        "smtp": {
+          "id": "gmail_smtp_credentials",
+          "name": "Gmail SMTP"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO \"NotificationLog\" (\n  \"orderId\",\n  \"type\",\n  \"channel\",\n  \"recipient\",\n  \"subject\",\n  \"content\",\n  \"status\",\n  \"sentAt\",\n  \"metadata\"\n) VALUES (\n  '{{ $json.id }}',\n  'ORDER_UPDATE',\n  'EMAIL',\n  '{{ $json.email }}',\n  'Order Status Update',\n  'Shipping status email sent for status: {{ $json.status }}',\n  'SENT',\n  NOW(),\n  '{\"order_number\": \"{{ $json.orderNumber }}\", \"status\": \"{{ $json.status }}\"}'::jsonb\n);",
+        "options": {}
+      },
+      "id": "postgres-log-notification",
+      "name": "Log Notification",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [1050, 400],
+      "credentials": {
+        "postgres": {
+          "id": "postgres_credentials",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "command": "set",
+        "key": "email:sent:{{ $json.email }}:shipping:{{ $json.id }}:{{ $json.status }}",
+        "value": "={{ $now.toISO() }}",
+        "options": {
+          "ttl": 604800
+        }
+      },
+      "id": "redis-set-dedup",
+      "name": "Set Redis Deduplication",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [1250, 400],
+      "credentials": {
+        "redis": {
+          "id": "redis_credentials",
+          "name": "Redis"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ {\"success\": true, \"message\": \"Shipping notification sent\"} }}"
+      },
+      "id": "respond-to-webhook",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1450, 400]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get Order Details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Order Details": {
+      "main": [
+        [
+          {
+            "node": "Check Order Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Order Status": {
+      "main": [
+        [
+          {
+            "node": "Send Processing Email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Shipped Email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Delivered Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Processing Email": {
+      "main": [
+        [
+          {
+            "node": "Log Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Shipped Email": {
+      "main": [
+        [
+          {
+            "node": "Log Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Delivered Email": {
+      "main": [
+        [
+          {
+            "node": "Log Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Notification": {
+      "main": [
+        [
+          {
+            "node": "Set Redis Deduplication",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Redis Deduplication": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 1,
+  "updatedAt": "2024-06-07T00:00:00.000Z",
+  "versionId": "1"
+}

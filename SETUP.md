@@ -34,9 +34,11 @@ Ouvrir `.env.local` et remplir :
 
 ```env
 # Obligatoire pour démarrer
-# Neon example:
-# DATABASE_URL=postgresql://<neon_user>:<neon_password>@<neon_host>:5432/<neon_database>?sslmode=require
-DATABASE_URL=postgresql://<neon_user>:<neon_password>@<neon_host>:5432/<neon_database>?sslmode=require
+# Neon example with connection pooling (prevents connection closed errors):
+# DATABASE_URL=postgresql://<neon_user>:<neon_password>@<neon_host>:5432/<neon_database>?sslmode=require&pgbouncer=true&connection_limit=10
+# DIRECT_URL=postgresql://<neon_user>:<neon_password>@<neon_host>:5432/<neon_database>?sslmode=require
+DATABASE_URL=postgresql://<neon_user>:<neon_password>@<neon_host>:5432/<neon_database>?sslmode=require&pgbouncer=true&connection_limit=10
+DIRECT_URL=postgresql://<neon_user>:<neon_password>@<neon_host>:5432/<neon_database>?sslmode=require
 REDIS_URL=redis://localhost:6379
 JWT_SECRET=nexmart-super-secret-jwt-key-minimum-32-chars
 JWT_REFRESH_SECRET=nexmart-refresh-secret-key-minimum-32-chars

@@ -1,0 +1,337 @@
+// PostgreSQL Schema Extensions for Marketing Automation
+// Add these models to your existing Prisma schema
+// NOTE: This file references the existing Organization model from your main schema
+// Merge these models into your prisma/schema.prisma file
+
+// Marketing Campaign Model
+model MarketingCampaign {
+  id              String              @id @default(uuid()) @db.Uuid
+  organizationId  String              @db.Uuid
+  name            String
+  type            CampaignType
+  status          CampaignStatus      @default(DRAFT)
+  startDate       DateTime
+  endDate         DateTime?
+  budget          Float?
+  targetAudience  Json?
+  metadata        Json?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  Organization    Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  automations     MarketingAutomation[]
+
+  @@index([organizationId])
+  @@index([status])
+  @@index([startDate])
+}
+
+// Marketing Automation Workflow
+model MarketingAutomation {
+  id              String              @id @default(uuid()) @db.Uuid
+  organizationId  String              @db.Uuid
+  campaignId      String?             @db.Uuid
+  name            String
+  type            AutomationType
+  trigger         AutomationTrigger
+  triggerConfig   Json
+  status          AutomationStatus    @default(ACTIVE)
+  enabled         Boolean             @default(true)
+  metadata        Json?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  Organization    Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  Campaign        MarketingCampaign?  @relation(fields: [campaignId], references: [id])
+  executions      AutomationExecution[]
+  steps           AutomationStep[]
+
+  @@index([organizationId])
+  @@index([type])
+  @@index([status])
+  @@index([enabled])
+}
+
+// Automation Execution Log
+model AutomationExecution {
+  id              String              @id @default(uuid()) @db.Uuid
+  automationId    String              @db.Uuid
+  userId          String?             @db.Uuid
+  orderId         String?             @db.Uuid
+  status          ExecutionStatus     @default(RUNNING)
+  startedAt       DateTime            @default(now())
+  completedAt     DateTime?
+  error           String?             @db.Text
+  metadata        Json?
+  Automation      MarketingAutomation @relation(fields: [automationId], references: [id], onDelete: Cascade)
+  stepExecutions  AutomationStepExecution[]
+
+  @@index([automationId])
+  @@index([userId])
+  @@index([orderId])
+  @@index([status])
+  @@index([startedAt])
+}
+
+// Automation Step
+model AutomationStep {
+  id              String              @id @default(uuid()) @db.Uuid
+  automationId    String              @db.Uuid
+  name            String
+  type            StepType
+  order           Int
+  config          Json
+  conditions      Json?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  Automation      MarketingAutomation @relation(fields: [automationId], references: [id], onDelete: Cascade)
+  executions      AutomationStepExecution[]
+
+  @@index([automationId])
+  @@index([order])
+}
+
+// Automation Step Execution
+model AutomationStepExecution {
+  id              String              @id @default(uuid()) @db.Uuid
+  stepId          String              @db.Uuid
+  executionId     String              @db.Uuid
+  status          ExecutionStatus     @default(PENDING)
+  startedAt       DateTime            @default(now())
+  completedAt     DateTime?
+  error           String?             @db.Text
+  output          Json?
+  Step            AutomationStep      @relation(fields: [stepId], references: [id], onDelete: Cascade)
+  Execution       AutomationExecution @relation(fields: [executionId], references: [id], onDelete: Cascade)
+
+  @@index([stepId])
+  @@index([executionId])
+  @@index([status])
+}
+
+// Abandoned Cart Recovery
+model AbandonedCartRecovery {
+  id              String              @id @default(uuid()) @db.Uuid
+  userId          String              @db.Uuid
+  cartValue       Float
+  itemsCount      Int
+  recoveryEmail1  Boolean             @default(false)
+  recoveryEmail2  Boolean             @default(false)
+  recoveryEmail3  Boolean             @default(false)
+  couponGenerated Boolean             @default(false)
+  couponCode      String?
+  recovered       Boolean             @default(false)
+  recoveredOrderId String?             @db.Uuid
+  lastActivityAt  DateTime
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  @@index([userId])
+  @@index([recovered])
+  @@index([lastActivityAt])
+}
+
+// Customer Segmentation
+model CustomerSegment {
+  id              String              @id @default(uuid()) @db.Uuid
+  organizationId  String              @db.Uuid
+  name            String
+  description     String?
+  criteria        Json
+  customerCount   Int                 @default(0)
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  Organization    Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  segmentMembers  CustomerSegmentMember[]
+
+  @@index([organizationId])
+}
+
+// Customer Segment Membership
+model CustomerSegmentMember {
+  id              String              @id @default(uuid()) @db.Uuid
+  segmentId       String              @db.Uuid
+  userId          String              @db.Uuid
+  createdAt       DateTime            @default(now())
+  Segment         CustomerSegment     @relation(fields: [segmentId], references: [id], onDelete: Cascade)
+
+  @@unique([segmentId, userId])
+  @@index([segmentId])
+  @@index([userId])
+}
+
+// Email Template
+model EmailTemplate {
+  id              String              @id @default(uuid()) @db.Uuid
+  organizationId  String              @db.Uuid
+  name            String
+  subject         String
+  htmlContent     String              @db.Text
+  textContent     String?             @db.Text
+  variables       Json?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  Organization    Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+}
+
+// Facebook Conversion Events
+model FacebookConversionEvent {
+  id              String              @id @default(uuid()) @db.Uuid
+  organizationId  String              @db.Uuid
+  eventType       FacebookEventType
+  eventId         String              @unique
+  userId          String?             @db.Uuid
+  orderId         String?             @db.Uuid
+  productId       String?             @db.Uuid
+  value           Float?
+  currency        String              @default("MAD")
+  payload         Json
+  sentAt          DateTime            @default(now())
+  response        Json?
+  error           String?
+  Organization    Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([eventType])
+  @@index([eventId])
+  @@index([sentAt])
+}
+
+// Marketing Metrics
+model MarketingMetric {
+  id              String              @id @default(uuid()) @db.Uuid
+  organizationId  String              @db.Uuid
+  date            DateTime
+  metricType      MetricType
+  metricValue     Float
+  metadata        Json?
+  createdAt       DateTime            @default(now())
+  Organization    Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, date, metricType])
+  @@index([organizationId])
+  @@index([date])
+  @@index([metricType])
+}
+
+// Coupon Generation for Marketing
+model MarketingCoupon {
+  id              String              @id @default(uuid()) @db.Uuid
+  organizationId  String              @db.Uuid
+  code            String              @unique
+  type            String
+  value           Float
+  minOrder        Float?
+  maxDiscount     Float?
+  usageLimit      Int?
+  usedCount       Int                 @default(0)
+  startDate       DateTime
+  endDate         DateTime
+  active          Boolean             @default(true)
+  campaignId      String?             @db.Uuid
+  userId          String?             @db.Uuid
+  metadata        Json?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  Organization    Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([code])
+  @@index([active])
+  @@index([userId])
+}
+
+// Enums
+enum CampaignType {
+  ABANDONED_CART
+  WINBACK
+  VIP
+  REVIEW_REQUEST
+  PROMOTION
+  NEWSLETTER
+}
+
+enum CampaignStatus {
+  DRAFT
+  SCHEDULED
+  ACTIVE
+  PAUSED
+  COMPLETED
+  CANCELLED
+}
+
+enum AutomationType {
+  ABANDONED_CART_RECOVERY
+  ORDER_CONFIRMATION
+  SHIPPING_UPDATE
+  CUSTOMER_WINBACK
+  VIP_CUSTOMER
+  PRODUCT_REVIEW
+  LOW_STOCK_ALERT
+  FACEBOOK_CONVERSION
+  GOOGLE_SHEETS_SYNC
+  AI_MARKETING
+  DAILY_REPORT
+  WEEKLY_REPORT
+}
+
+enum AutomationTrigger {
+  SCHEDULE
+  WEBHOOK
+  DATABASE_EVENT
+  STOCK_THRESHOLD
+  ORDER_STATUS_CHANGE
+  TIME_BASED
+}
+
+enum AutomationStatus {
+  ACTIVE
+  PAUSED
+  DISABLED
+  ERROR
+}
+
+enum ExecutionStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  RETRYING
+}
+
+enum StepType {
+  EMAIL_SEND
+  TELEGRAM_SEND
+  SMS_SEND
+  WEBHOOK_CALL
+  DATABASE_QUERY
+  CONDITION_CHECK
+  DELAY
+  AI_GENERATE
+  FACEBOOK_EVENT
+  GOOGLE_SHEETS
+}
+
+enum FacebookEventType {
+  VIEW_CONTENT
+  ADD_TO_CART
+  INITIATE_CHECKOUT
+  PURCHASE
+  SEARCH
+  ADD_TO_WISHLIST
+  LEAD
+  COMPLETE_REGISTRATION
+}
+
+enum MetricType {
+  REVENUE
+  ORDERS
+  CONVERSION_RATE
+  ABANDONED_CARTS
+  AVERAGE_ORDER_VALUE
+  CUSTOMER_ACQUISITION
+  RETURN_CUSTOMER_RATE
+  EMAIL_OPEN_RATE
+  EMAIL_CLICK_RATE
+  RECOVERY_RATE
+}

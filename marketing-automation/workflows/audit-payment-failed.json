@@ -1,0 +1,219 @@
+{
+  "name": "Audit: Payment Failed - Retry & Alert",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "audit-webhook",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "webhook-1",
+      "name": "Webhook - Audit Alert",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition-1",
+              "leftValue": "={{ $json.alertType }}",
+              "rightValue": "PAYMENT_FAILED",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "if-1",
+      "name": "Check if PAYMENT_FAILED",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "resource": "user",
+        "id": "={{ $json.userId }}"
+      },
+      "id": "supabase-1",
+      "name": "Get User Details",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "resource": "auditEvent",
+        "filters": {
+          "userId": "={{ $json.userId }}",
+          "eventType": "PAYMENT_FAILED",
+          "timeRange": "24h"
+        }
+      },
+      "id": "supabase-2",
+      "name": "Count Recent Failures",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [650, 450]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition-1",
+              "leftValue": "={{ $json.count }}",
+              "rightValue": "3",
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "if-2",
+      "name": "Check if > 3 Failures",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "resource": "user",
+        "id": "={{ $json.userId }}",
+        "data": {
+          "paymentBlocked": true,
+          "paymentBlockReason": "Multiple payment failures",
+          "paymentBlockedAt": "={{ $now }}"
+        }
+      },
+      "id": "supabase-3",
+      "name": "Block User Payments",
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [1050, 200]
+    },
+    {
+      "parameters": {
+        "from": "alerts@nexmart.ma",
+        "to": "admin@nexmart.ma",
+        "subject": "⚠️ Payment Blocked - User #{{ $json.userId }}",
+        "emailType": "text",
+        "message": "User has been blocked from making payments due to multiple failed attempts.\n\nUser ID: {{ $json.userId }}\nEmail: {{ $json.email }}\nFailed Attempts: {{ $json.count }}\n\nPlease review this account."
+      },
+      "id": "email-1",
+      "name": "Alert Admin",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [1050, 400]
+    },
+    {
+      "parameters": {
+        "operation": "sendMessage",
+        "chatId": "={{ $json.phone }}",
+        "text": "❌ Payment failed. Please try again or use a different payment method.\n\nIf you continue to experience issues, please contact support."
+      },
+      "id": "whatsapp-1",
+      "name": "Notify User",
+      "type": "n8n-nodes-base.whatsappApi",
+      "typeVersion": 1,
+      "position": [850, 500]
+    }
+  ],
+  "connections": {
+    "Webhook - Audit Alert": {
+      "main": [
+        [
+          {
+            "node": "Check if PAYMENT_FAILED",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check if PAYMENT_FAILED": {
+      "main": [
+        [
+          {
+            "node": "Get User Details",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Count Recent Failures",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get User Details": {
+      "main": [
+        [
+          {
+            "node": "Check if > 3 Failures",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Count Recent Failures": {
+      "main": [
+        [
+          {
+            "node": "Check if > 3 Failures",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check if > 3 Failures": {
+      "main": [
+        [
+          {
+            "node": "Block User Payments",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Alert Admin",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Notify User",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

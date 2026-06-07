@@ -1,11 +1,11 @@
 "use client";
 // src/app/admin/orders/page.tsx
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import {
-  Search, ChevronLeft, ChevronRight, ShoppingCart,
+  Bell, RefreshCw, Search, ChevronLeft, ChevronRight, ShoppingCart,
   ChevronDown, Check
 } from "lucide-react";
 import { formatPrice, formatDateTime } from "@/utils/format";
@@ -32,6 +32,8 @@ export default function AdminOrdersPage() {
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [isConnected, setIsConnected] = useState(false);
+  const eventSourceRef = useRef<EventSource | null>(null);
 
   const fetchOrders = useCallback(async () => {
     setLoading(true);
@@ -43,10 +45,15 @@ export default function AdminOrdersPage() {
       const res = await fetch(`/api/admin/orders?${params}`);
       const data = await res.json();
       if (data.success) {
-        setOrders(data.data);
-        setTotal(data.pagination.total);
-        setTotalPages(data.pagination.totalPages);
+        setOrders(Array.isArray(data.data) ? data.data : []);
+        setTotal(data.pagination?.total || 0);
+        setTotalPages(data.pagination?.totalPages || 1);
+      } else {
+        setOrders([]);
       }
+    } catch (error) {
+      console.error("Failed to fetch orders:", error);
+      setOrders([]);
     } finally {
       setLoading(false);
     }
@@ -54,6 +61,77 @@ export default function AdminOrdersPage() {
 
   useEffect(() => { fetchOrders(); }, [fetchOrders]);
   useEffect(() => { setPage(1); }, [search, statusFilter]);
+
+  // SSE connection for real-time updates
+  useEffect(() => {
+    const eventSource = new EventSource("/api/admin/events");
+    eventSourceRef.current = eventSource;
+
+    eventSource.onopen = () => {
+      setIsConnected(true);
+      console.log("[SSE] Connected to admin events");
+    };
+
+    eventSource.onerror = (error) => {
+      console.error("[SSE] Connection error:", error);
+      setIsConnected(false);
+    };
+
+    eventSource.addEventListener("connected", (event) => {
+      console.log("[SSE] Server confirmed connection");
+    });
+
+    eventSource.addEventListener("orders", (event) => {
+      const data = JSON.parse(event.data);
+      if (data.type === "new_orders") {
+        // Show toast notification for new orders
+        data.orders.forEach((order: any) => {
+          toast.success(
+            `🛒 New Order #${order.orderNumber}`,
+            {
+              duration: 5000,
+              icon: <ShoppingCart className="w-5 h-5" />,
+            }
+          );
+        });
+        // Refresh orders to show new ones
+        fetchOrders();
+      }
+    });
+
+    eventSource.addEventListener("updates", (event) => {
+      const data = JSON.parse(event.data);
+      if (data.type === "order_updates") {
+        // Update existing orders in state
+        setOrders((prev) =>
+          prev.map((order) => {
+            const updated = data.orders.find((u: any) => u.id === order.id);
+            return updated ? { ...order, ...updated } : order;
+          })
+        );
+      }
+    });
+
+    eventSource.addEventListener("inventory", (event) => {
+      const data = JSON.parse(event.data);
+      if (data.type === "inventory_alert") {
+        data.products.forEach((product: any) => {
+          toast.error(
+            `⚠️ Low Stock: ${product.name} (${product.stock} left)`,
+            {
+              duration: 8000,
+              icon: <Bell className="w-5 h-5" />,
+            }
+          );
+        });
+      }
+    });
+
+    return () => {
+      eventSource.close();
+      eventSourceRef.current = null;
+    };
+  }, [fetchOrders]);
 
   const updateStatus = async (orderId: string, status: string) => {
     setUpdatingId(orderId);
@@ -81,6 +159,23 @@ export default function AdminOrdersPage() {
           <p className="text-muted-foreground text-sm mt-1">
             {total.toLocaleString()} total orders
           </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium ${
+            isConnected 
+              ? "bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400" 
+              : "bg-red-500/10 text-red-600 dark:bg-red-500/20 dark:text-red-400"
+          }`}>
+            <div className={`w-2 h-2 rounded-full ${isConnected ? "bg-emerald-500 animate-pulse" : "bg-red-500"}`} />
+            {isConnected ? "Live" : "Disconnected"}
+          </div>
+          <button
+            onClick={fetchOrders}
+            disabled={loading}
+            className="btn-outline py-2 px-3 text-sm"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+          </button>
         </div>
       </div>
 

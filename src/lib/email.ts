@@ -19,7 +19,7 @@ const transporter = nodemailer.createTransport({
 
 interface EmailOptions { to: string; subject: string; html: string; }
 
-async function sendEmail({ to, subject, html }: EmailOptions) {
+export async function sendEmail({ to, subject, html }: EmailOptions) {
   try {
     await transporter.sendMail({
       from: process.env.SMTP_FROM || `"NexMart Maroc" <noreply@nexmart.ma>`,

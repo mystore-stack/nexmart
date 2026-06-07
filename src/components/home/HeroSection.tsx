@@ -126,7 +126,7 @@ export function HeroSection() {
           transition={{ duration: 0.85 }}
           className="absolute inset-0"
         >
-          <Image src={slide.image} alt="" fill className="object-cover opacity-30" priority />
+          <Image src={slide.image} alt="" fill className="object-cover opacity-30" priority sizes="100vw" />
           <div className="absolute inset-0" style={{
             background: "linear-gradient(90deg, rgba(10,15,28,0.98) 0%, rgba(10,15,28,0.75) 55%, rgba(10,15,28,0.3) 100%)"
           }} />
@@ -244,7 +244,7 @@ export function HeroSection() {
                 <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-gold-400/70 to-transparent" />
 
                 <div className="relative aspect-[4/5] overflow-hidden">
-                  <Image src={slide.image} alt="" fill className="object-cover" priority />
+                  <Image src={slide.image} alt="" fill className="object-cover" priority sizes="(max-width: 640px) 100vw, 50vw" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
                 </div>
 

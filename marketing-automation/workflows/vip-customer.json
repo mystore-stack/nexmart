@@ -1,0 +1,327 @@
+{
+  "name": "VIP Customer Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "vip-check",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [250, 300],
+      "webhookId": "vip-check-webhook"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n  u.id,\n  u.email,\n  u.name,\n  COALESCE(SUM(o.total), 0) as lifetime_value,\n  COUNT(o.id) as order_count,\n  MAX(o.createdAt) as last_order_date\nFROM \"User\" u\nINNER JOIN \"Order\" o ON u.id = o.\"userId\" AND o.status = 'DELIVERED'\nWHERE u.id = '{{ $json.user_id }}'\nGROUP BY u.id, u.email, u.name;",
+        "options": {}
+      },
+      "id": "postgres-get-customer-ltv",
+      "name": "Get Customer Lifetime Value",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [450, 300],
+      "credentials": {
+        "postgres": {
+          "id": "postgres_credentials",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition-1",
+              "leftValue": "={{ $json.lifetime_value }}",
+              "rightValue": 3000,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "condition-check-vip",
+      "name": "Is Customer VIP?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "command": "get",
+        "key": "customer:vip:{{ $json.id }}",
+        "options": {}
+      },
+      "id": "redis-check-vip-status",
+      "name": "Check VIP Status",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [850, 200],
+      "credentials": {
+        "redis": {
+          "id": "redis_credentials",
+          "name": "Redis"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition-2",
+              "leftValue": "={{$json}}",
+              "rightValue": "true",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "condition-new-vip",
+      "name": "Is New VIP?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1050, 200]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO \"MarketingCoupon\" (\n  \"organizationId\",\n  code,\n  type,\n  value,\n  \"minOrder\",\n  \"startDate\",\n  \"endDate\",\n  active,\n  \"userId\",\n  metadata\n) VALUES (\n  (SELECT id FROM \"Organization\" LIMIT 1),\n  'VIP15-' || SUBSTR(MD5(RANDOM()::TEXT), 1, 8),\n  'percentage',\n  15.0,\n  500.0,\n  NOW(),\n  NOW() + INTERVAL '30 days',\n  true,\n  '{{ $json.id }}',\n  '{\"generated_for\": \"vip_customer\", \"exclusive\": true}'::jsonb\n) RETURNING code;",
+        "options": {}
+      },
+      "id": "postgres-generate-vip-coupon",
+      "name": "Generate VIP Coupon",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [1250, 200],
+      "credentials": {
+        "postgres": {
+          "id": "postgres_credentials",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "vip@nexmart.ma",
+        "toEmail": "={{ $json.email }}",
+        "subject": "Welcome to VIP! 🌟 Exclusive 15% Off Inside",
+        "emailType": "html",
+        "message": "<!DOCTYPE html>\n<html>\n<head>\n  <style>\n    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }\n    .container { max-width: 600px; margin: 0 auto; padding: 20px; }\n    .header { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }\n    .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }\n    .vip-badge { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; text-align: center; border-radius: 10px; margin: 20px 0; }\n    .coupon { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 20px; text-align: center; border-radius: 10px; margin: 20px 0; }\n    .coupon-code { font-size: 32px; font-weight: bold; letter-spacing: 3px; margin: 10px 0; }\n    .benefits { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; }\n    .benefit { padding: 10px; border-bottom: 1px solid #eee; }\n    .button { display: inline-block; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; text-align: center; }\n    .footer { text-align: center; margin-top: 30px; color: #666; font-size: 12px; }\n  </style>\n</head>\n<body>\n  <div class=\"container\">\n    <div class=\"header\">\n      <h1>Welcome to VIP! 🌟</h1>\n      <p>You've unlocked exclusive benefits</p>\n    </div>\n    <div class=\"content\">\n      <p>Dear {{ $json.name }},</p>\n      <p>Congratulations! You've reached VIP status at NexMart with a lifetime value of {{ $json.lifetime_value }} MAD!</p>\n      <div class=\"vip-badge\">\n        <h2>👑 VIP Member</h2>\n        <p>Thank you for your loyalty</p>\n      </div>\n      <div class=\"coupon\">\n        <p>Your Exclusive VIP Coupon</p>\n        <div class=\"coupon-code\">{{ $json.coupon_code }}</div>\n        <p>15% OFF • Valid for 30 days • Minimum order: 500 MAD</p>\n      </div>\n      <div class=\"benefits\">\n        <h3>Your VIP Benefits:</h3>\n        <div class=\"benefit\">✨ Exclusive discounts and promotions</div>\n        <div class=\"benefit\">🚀 Early access to new products</div>\n        <div class=\"benefit\">🎁 Special birthday offers</div>\n        <div class=\"benefit\">💬 Priority customer support</div>\n      </div>\n      <div style=\"text-align: center;\">\n        <a href=\"https://nexmart.ma/shop?coupon={{ $json.coupon_code }}\" class=\"button\">Use Your VIP Coupon</a>\n      </div>\n    </div>\n    <div class=\"footer\">\n      <p>NexMart VIP Program</p>\n    </div>\n  </div>\n</body>\n</html>",
+        "options": {}
+      },
+      "id": "email-send-vip-welcome",
+      "name": "Send VIP Welcome Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [1450, 200],
+      "credentials": {
+        "smtp": {
+          "id": "gmail_smtp_credentials",
+          "name": "Gmail SMTP"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $env.TELEGRAM_ADMIN_CHAT_ID }}",
+        "text": "🌟 **New VIP Customer**\n\n**Customer:** {{ $json.name }}\n**Email:** {{ $json.email }}\n**Lifetime Value:** {{ $json.lifetime_value }} MAD\n**Total Orders:** {{ $json.order_count }}\n\n🎉 VIP welcome email sent with exclusive 15% coupon!",
+        "options": {
+          "parseMode": "markdown"
+        }
+      },
+      "id": "telegram-admin-alert",
+      "name": "Send Telegram VIP Alert",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1650, 200],
+      "credentials": {
+        "telegramApi": {
+          "id": "telegram_credentials",
+          "name": "Telegram API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "command": "set",
+        "key": "customer:vip:{{ $json.id }}",
+        "value": "true",
+        "options": {
+          "ttl": 86400
+        }
+      },
+      "id": "redis-set-vip-status",
+      "name": "Set VIP Status",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [1850, 200],
+      "credentials": {
+        "redis": {
+          "id": "redis_credentials",
+          "name": "Redis"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ {\"success\": true, \"vip\": true, \"lifetime_value\": $json.lifetime_value} }}"
+      },
+      "id": "respond-to-webhook",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [2050, 300]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get Customer Lifetime Value",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Customer Lifetime Value": {
+      "main": [
+        [
+          {
+            "node": "Is Customer VIP?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Customer VIP?": {
+      "main": [
+        [
+          {
+            "node": "Check VIP Status",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check VIP Status": {
+      "main": [
+        [
+          {
+            "node": "Is New VIP?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is New VIP?": {
+      "main": [
+        [
+          {
+            "node": "Generate VIP Coupon",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate VIP Coupon": {
+      "main": [
+        [
+          {
+            "node": "Send VIP Welcome Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send VIP Welcome Email": {
+      "main": [
+        [
+          {
+            "node": "Send Telegram VIP Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Telegram VIP Alert": {
+      "main": [
+        [
+          {
+            "node": "Set VIP Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set VIP Status": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 1,
+  "updatedAt": "2024-06-07T00:00:00.000Z",
+  "versionId": "1"
+}

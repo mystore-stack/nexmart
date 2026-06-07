@@ -1,6 +1,6 @@
 "use client";
 // src/app/checkout/page.tsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { loadStripe } from "@stripe/stripe-js";
@@ -13,6 +13,7 @@ import Image from "next/image";
 import Link from "next/link";
 import toast from "react-hot-toast";
 import type { Address, Order } from "@/types";
+import { audit } from "@/lib/audit/client";
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
@@ -36,6 +37,7 @@ interface PaymentStepProps {
   clientSecret: string;
   paymentIntentId: string;
   grandTotal: number;
+  paymentCompleted: boolean;
   onNext: () => void;
   onStripeSuccess: () => void;
   onBack: () => void;
@@ -47,6 +49,7 @@ interface ReviewStepProps {
   paymentMethod: PaymentMethod;
   grandTotal: number;
   loading: boolean;
+  isPlacingOrder: boolean;
   onBack: () => void;
   onPlace: () => void;
 }
@@ -68,20 +71,27 @@ export default function CheckoutPage() {
   const { items, getSubtotal, getDiscount, coupon, applyCoupon, removeCoupon } = useCartStore();
   const { user } = useAuthStore();
   const router = useRouter();
+  const mounted = useRef(false);
 
   const [step, setStep] = useState<Step>("Address");
+  const [isMounted, setIsMounted] = useState(false);
   const [addresses, setAddresses] = useState<any[]>([]);
   const [selectedAddress, setSelectedAddress] = useState<string>("");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("STRIPE");
   const [clientSecret, setClientSecret] = useState<string>("");
   const [paymentIntentId, setPaymentIntentId] = useState<string>("");
   const [paymentIntentAmount, setPaymentIntentAmount] = useState<number | null>(null);
+  const [paymentCompleted, setPaymentCompleted] = useState(false);
   const [pendingOrderNumber, setPendingOrderNumber] = useState<string>("");
   const [creatingPaymentIntent, setCreatingPaymentIntent] = useState(false);
   const [couponInput, setCouponInput] = useState("");
   const [couponLoading, setCouponLoading] = useState(false);
   const [orderLoading, setOrderLoading] = useState(false);
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
+  const isSubmittingRef = useRef(false);
+  const orderJustPlacedRef = useRef(false);
+  const hasRedirectedRef = useRef(false);
+  const isProcessingOrderRef = useRef(false);
   const [shippingCost, setShippingCost] = useState(30);
   const [shippingCarrierId, setShippingCarrierId] = useState("jibli");
 
@@ -91,20 +101,48 @@ export default function CheckoutPage() {
   const grandTotal = subtotal - discount + shippingCost + tax;
 
   useEffect(() => {
-    if (!user) { router.push("/login?from=/checkout"); return; }
-    if (items.length === 0) { router.push("/cart"); return; }
+    mounted.current = true;
+    setIsMounted(true);
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!user) { if (mounted.current) router.push("/login?from=/checkout"); return; }
+    // Only redirect to cart if:
+    // - Cart is empty AND
+    // - Order is NOT being processed AND
+    // - Order was NOT just placed (check sessionStorage)
+    const orderJustPlaced = typeof window !== "undefined" && sessionStorage.getItem("orderJustPlaced") === "true";
+    if (items.length === 0 && !isProcessingOrderRef.current && !orderJustPlaced && mounted.current) {
+      console.log("[CART_REDIRECT_TRIGGERED] items.length === 0, isProcessingOrderRef.current:", isProcessingOrderRef.current, "orderJustPlaced:", orderJustPlaced);
+      router.push("/cart");
+      return;
+    }
 
     fetch("/api/auth/addresses")
       .then((r) => r.json())
       .then((d) => {
-        if (d.data) {
+        if (mounted.current && d.data) {
           setAddresses(d.data);
           const def = d.data.find((a: any) => a.isDefault);
           if (def) setSelectedAddress(def.id);
         }
       })
       .catch(() => {});
+
+    // Initialize audit session
+    audit.initSession().catch(console.error);
   }, [user, items, router]);
+
+  // Reset submission lock when component unmounts
+  useEffect(() => {
+    return () => {
+      isSubmittingRef.current = false;
+      hasRedirectedRef.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     const addr = addresses.find((a: any) => a.id === selectedAddress);
@@ -152,6 +190,11 @@ export default function CheckoutPage() {
       return;
     }
     setPaymentMethod(method);
+    setPaymentCompleted(false); // Reset payment completion when method changes
+    
+    // Audit: Track payment method selection
+    await audit.trackStep("PAYMENT_METHOD_SELECTED");
+    
     if (method === "STRIPE" && (!clientSecret || paymentIntentAmount !== grandTotal)) {
       setCreatingPaymentIntent(true);
       try {
@@ -165,12 +208,18 @@ export default function CheckoutPage() {
           setClientSecret(data.clientSecret);
           setPaymentIntentId(data.paymentIntentId);
           setPaymentIntentAmount(grandTotal);
+          
+          // Audit: Payment initiated
+          await audit.payment.initiated(grandTotal, "STRIPE");
         } else {
           toast.error(data.error || "Failed to initialize payment");
           setClientSecret("");
           setPaymentIntentId("");
           setPaymentIntentAmount(null);
           setPaymentMethod("CASH_ON_DELIVERY");
+          
+          // Audit: Payment error
+          await audit.payment.failed(data.error || "Failed to initialize payment", grandTotal);
         }
       } catch (error) {
         console.error("Payment intent creation error:", error);
@@ -179,6 +228,9 @@ export default function CheckoutPage() {
         setPaymentIntentId("");
         setPaymentIntentAmount(null);
         setPaymentMethod("CASH_ON_DELIVERY");
+        
+        // Audit: Payment error
+        await audit.payment.failed("Payment intent creation failed", grandTotal);
       } finally {
         setCreatingPaymentIntent(false);
       }
@@ -197,6 +249,13 @@ export default function CheckoutPage() {
 
     void handlePaymentMethodChange("STRIPE");
   }, [step, paymentMethod, clientSecret, paymentIntentAmount, grandTotal, creatingPaymentIntent]);
+
+  // Audit: Track checkout start when page loads
+  useEffect(() => {
+    if (items.length > 0) {
+      audit.checkout.start(items).catch(console.error);
+    }
+  }, [items.length]);
 
   const placeOrder = async () => {
     // Prevent duplicate submissions
@@ -222,19 +281,37 @@ export default function CheckoutPage() {
     }
     if (items.length === 0) {
       toast.error("Votre panier est vide");
-      router.push("/cart");
+      if (mounted.current) router.push("/cart");
       return;
     }
 
+    // Strict submission lock - prevent duplicate submissions
+    if (isSubmittingRef.current) {
+      console.log("[PLACE_ORDER] Already submitting, blocking duplicate submission");
+      toast.error("Commande en cours de traitement. Veuillez patienter.");
+      return;
+    }
+
+    // Generate or retrieve idempotency key (UUID format for production-grade idempotency)
+    let idempotencyKey = localStorage.getItem("checkout_idempotency_key");
+    if (!idempotencyKey) {
+      idempotencyKey = crypto.randomUUID();
+      localStorage.setItem("checkout_idempotency_key", idempotencyKey);
+    }
+    console.log("[PLACE_ORDER] Using idempotency key:", idempotencyKey);
+
+    isSubmittingRef.current = true;
     setIsPlacingOrder(true);
+    isProcessingOrderRef.current = true; // Set flag to prevent cart redirect during order processing
     setOrderLoading(true);
-    
+
     try {
       console.log("Placing order with:", {
         paymentMethod,
         paymentIntentId,
         itemCount: items.length,
         total: grandTotal,
+        idempotencyKey,
       });
 
       const res = await fetch("/api/orders", {
@@ -253,6 +330,7 @@ export default function CheckoutPage() {
           })),
           couponCode: coupon?.code,
           stripePaymentId: paymentMethod === "STRIPE" ? paymentIntentId : undefined,
+          idempotencyKey,
         }),
       });
       
@@ -263,7 +341,10 @@ export default function CheckoutPage() {
         // Handle cart cleanup required error
         if (data.code === "CART_CLEANUP_REQUIRED") {
           toast.error(data.error || "Some products in your cart are no longer available. Please refresh your cart.");
-          
+
+          // Set flag to prevent cart redirect during cleanup
+          isProcessingOrderRef.current = true;
+
           // Call cleanup endpoint to remove invalid items
           try {
             const cleanupRes = await fetch("/api/cart", {
@@ -271,16 +352,16 @@ export default function CheckoutPage() {
             });
             const cleanupData = await cleanupRes.json();
             console.log("Cart cleanup response:", cleanupData);
-            
+
             if (cleanupData.success && cleanupData.removedCount > 0) {
               // Refresh cart from database
               const cartRes = await fetch("/api/cart");
               const cartData = await cartRes.json();
-              
+
               if (cartData.success && cartData.items) {
                 // Clear local cart and sync with database
                 useCartStore.getState().clearCart();
-                
+
                 // Rebuild cart from database items
                 cartData.items.forEach((dbItem: any) => {
                   useCartStore.getState().addItem(
@@ -289,18 +370,20 @@ export default function CheckoutPage() {
                     dbItem.variant || undefined
                   );
                 });
-                
+
                 toast.success(`Removed ${cleanupData.removedCount} unavailable item(s) from your cart.`);
-                
+
                 // Redirect to cart page to review
                 setTimeout(() => {
-                  router.push("/cart");
+                  if (mounted.current) router.push("/cart");
                 }, 1500);
               }
             }
           } catch (cleanupError) {
             console.error("Cart cleanup error:", cleanupError);
             toast.error("Failed to clean up cart. Please refresh the page.");
+          } finally {
+            isProcessingOrderRef.current = false; // Reset flag after cleanup
           }
           return;
         }
@@ -310,23 +393,76 @@ export default function CheckoutPage() {
       }
 
       const order = data.order;
-      setPendingOrderNumber(order.orderNumber);
+      const orderNumber = order.orderNumber;
       
-      // Clear cart after successful order
-      useCartStore.getState().clearCart();
+      if (!orderNumber) {
+        console.error("Missing order number after order creation");
+        toast.error("Order created but order number is missing. Please contact support.");
+        setOrderLoading(false);
+        setIsPlacingOrder(false);
+        
+        // Audit: Checkout error
+        await audit.checkout.error("Missing order number");
+        return;
+      }
       
-      // Redirect to order success page
-      router.push(`/orders/${order.orderNumber}?success=true`);
-    } catch (error) {
+      setPendingOrderNumber(orderNumber);
+
+      console.log("[CHECKOUT_REDIRECT] Order created successfully, orderNumber:", orderNumber);
+
+      // Audit: Order created successfully
+      await audit.checkout.complete(orderNumber, grandTotal);
+
+      // Set flags BEFORE any other operations to prevent cart redirect useEffect from triggering
+      sessionStorage.setItem("orderJustPlaced", "true");
+      orderJustPlacedRef.current = true;
+      console.log("[CHECKOUT_REDIRECT] Set orderJustPlacedRef.current to true");
+
+      // Redirect to order tracking page immediately
+      console.log("[CHECKOUT_REDIRECT] Redirecting to /track-order/", orderNumber);
+      if (mounted.current && orderNumber && !hasRedirectedRef.current) {
+        hasRedirectedRef.current = true;
+        
+        // Clear cart and idempotency key
+        useCartStore.getState().clearCart();
+        localStorage.removeItem("checkout_idempotency_key");
+        console.log("[CHECKOUT_REDIRECT] Cart cleared and idempotency key removed");
+
+        // Perform redirect
+        router.push(`/track-order/${orderNumber}`);
+        console.log("[CHECKOUT_REDIRECT] Redirect initiated");
+
+        // Keep isProcessingOrderRef true to prevent any cart redirect during transition
+        // It will be reset when component unmounts
+      } else {
+        console.error("[CHECKOUT_REDIRECT] Cannot redirect:", {
+          mounted: mounted.current,
+          orderNumber,
+          hasRedirected: hasRedirectedRef.current,
+        });
+        isProcessingOrderRef.current = false; // Reset flag if redirect cannot happen
+      }
+    }
+    catch (error) {
       console.error("Order placement error:", error);
       toast.error("Échec de la commande. Veuillez réessayer.");
+      isProcessingOrderRef.current = false; // Reset flag on error
     } finally {
       setOrderLoading(false);
       setIsPlacingOrder(false);
+      // Reset submission lock after a delay to prevent rapid retries
+      setTimeout(() => {
+        isSubmittingRef.current = false;
+      }, 2000);
     }
   };
 
   const currentStepIndex = STEPS.indexOf(step);
+
+  // Prevent hydration mismatch by not rendering until mounted
+  if (!isMounted) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-surface page-enter">
@@ -383,7 +519,7 @@ export default function CheckoutPage() {
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Left: Step content */}
           <div className="lg:col-span-2">
-            <AnimatePresence mode="wait">
+            <AnimatePresence mode="sync">
               <motion.div
                 key={step}
                 initial={{ opacity: 0, x: 20 }}
@@ -406,20 +542,22 @@ export default function CheckoutPage() {
                     clientSecret={clientSecret}
                     paymentIntentId={paymentIntentId}
                     grandTotal={grandTotal}
+                    paymentCompleted={paymentCompleted}
                     onNext={() => {
                       if (!paymentMethod) {
                         toast.error("Please select a payment method");
                         return;
                       }
-                      if (paymentMethod === "STRIPE") {
+                      if (paymentMethod === "STRIPE" && !paymentCompleted) {
                         toast.error("Veuillez payer par carte avant de finaliser la commande.");
                         return;
                       }
                       setStep("Review");
                     }}
                     onStripeSuccess={() => {
-                      // Payment confirmed, now create the order
-                      placeOrder();
+                      // Payment confirmed, allow proceeding to review
+                      setPaymentCompleted(true);
+                      toast.success("Paiement réussi! Veuillez réviser votre commande.");
                     }}
                     onBack={() => setStep("Address")}
                     creatingPaymentIntent={creatingPaymentIntent}
@@ -431,6 +569,7 @@ export default function CheckoutPage() {
                     paymentMethod={paymentMethod}
                     grandTotal={grandTotal}
                     loading={orderLoading}
+                    isPlacingOrder={isPlacingOrder}
                     onBack={() => setStep("Payment")}
                     onPlace={() => placeOrder()}
                   />
@@ -459,7 +598,7 @@ export default function CheckoutPage() {
                   <div key={item.id} className="flex items-center gap-3">
                     <div className="relative w-14 h-14 rounded-xl overflow-hidden bg-muted flex-shrink-0">
                       <Image
-                        src={item.product.images[0] || "/placeholder.jpg"}
+                        src={item.product.images[0] || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='56'%3E%3Crect width='56' height='56' fill='%23e5e7eb'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%239ca3af' font-size='12'%3ENo Image%3C/text%3E%3C/svg%3E"}
                         alt={item.product.name}
                         fill
                         className="object-cover"
@@ -717,7 +856,7 @@ function AddressStep({ addresses, selected, onSelect, onNext }: AddressStepProps
   );
 }
 
-function PaymentStep({ method, onMethodChange, clientSecret, paymentIntentId, grandTotal, onNext, onStripeSuccess, onBack, creatingPaymentIntent }: PaymentStepProps) {
+function PaymentStep({ method, onMethodChange, clientSecret, paymentIntentId, grandTotal, paymentCompleted, onNext, onStripeSuccess, onBack, creatingPaymentIntent }: PaymentStepProps) {
   return (
     <div className="rounded-2xl border border-gold-200/30 dark:border-gold-800/20 bg-white dark:bg-card p-6 space-y-6">
       <div className="flex items-center gap-3">
@@ -753,11 +892,18 @@ function PaymentStep({ method, onMethodChange, clientSecret, paymentIntentId, gr
           <div className="mb-4 rounded-lg bg-background p-3 text-sm">
             <p className="font-semibold">Secure payment</p>
             <p className="text-muted-foreground">Amount due: {formatPrice(grandTotal)}</p>
+            {paymentCompleted && (
+              <p className="text-green-600 font-medium mt-1">✓ Payment completed</p>
+            )}
           </div>
           {creatingPaymentIntent ? (
             <div className="flex items-center justify-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-foreground"></div>
               <span className="ml-3 text-sm text-muted-foreground">Initializing payment...</span>
+            </div>
+          ) : paymentCompleted ? (
+            <div className="text-center py-8 text-green-600 text-sm font-medium">
+              Payment successful! You can now review your order.
             </div>
           ) : clientSecret ? (
             <Elements stripe={stripePromise} options={{ clientSecret }}>
@@ -783,14 +929,14 @@ function PaymentStep({ method, onMethodChange, clientSecret, paymentIntentId, gr
         <button 
           onClick={onNext} 
           className="btn btn-primary flex-1 justify-center"
-          disabled={creatingPaymentIntent || method === "STRIPE"}
+          disabled={creatingPaymentIntent || (method === "STRIPE" && !paymentCompleted)}
         >
           {creatingPaymentIntent ? (
             <span className="flex items-center gap-2">
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-background"></div>
               Processing...
             </span>
-          ) : method === "STRIPE" ? (
+          ) : method === "STRIPE" && !paymentCompleted ? (
             <span className="flex items-center gap-2">
               Pay with card above
             </span>
@@ -866,7 +1012,7 @@ function StripePaymentForm({ onSuccess, paymentIntentId, grandTotal }: StripePay
   );
 }
 
-function ReviewStep({ items, paymentMethod, grandTotal, loading, onBack, onPlace }: ReviewStepProps) {
+function ReviewStep({ items, paymentMethod, grandTotal, loading, isPlacingOrder, onBack, onPlace }: ReviewStepProps) {
   return (
     <div className="rounded-2xl border border-gold-200/30 dark:border-gold-800/20 bg-white dark:bg-card p-6 space-y-6">
       <div className="flex items-center gap-3">
@@ -878,7 +1024,7 @@ function ReviewStep({ items, paymentMethod, grandTotal, loading, onBack, onPlace
         {items.map((item: any) => (
           <div key={item.id} className="flex items-center gap-4 p-3 rounded-xl bg-muted/40">
             <div className="relative w-16 h-16 rounded-lg overflow-hidden flex-shrink-0">
-              <Image src={item.product.images[0] || "/placeholder.jpg"} alt={item.product.name} fill className="object-cover" sizes="64px" />
+              <Image src={item.product.images[0] || "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Crect width='64' height='64' fill='%23e5e7eb'/%3E%3Ctext x='50%25' y='50%25' text-anchor='middle' dy='.3em' fill='%239ca3af' font-size='12'%3ENo Image%3C/text%3E%3C/svg%3E"} alt={item.product.name} fill className="object-cover" sizes="64px" />
             </div>
             <div className="flex-1">
               <p className="font-medium text-sm">{item.product.name}</p>
@@ -905,8 +1051,8 @@ function ReviewStep({ items, paymentMethod, grandTotal, loading, onBack, onPlace
         </button>
         <button
           onClick={onPlace}
-          disabled={loading}
-          className={`btn btn-brand flex-1 justify-center ${loading ? "loading" : ""}`}
+          disabled={loading || isPlacingOrder}
+          className={`btn btn-brand flex-1 justify-center ${loading || isPlacingOrder ? "loading" : ""}`}
         >
           {loading ? (
             <span className="opacity-0 flex items-center gap-2">

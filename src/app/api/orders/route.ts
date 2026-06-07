@@ -8,6 +8,7 @@ import { generateOrderNumber } from "@/utils/format";
 import { getValidatedShippingCost } from "@/lib/shipping";
 import { z } from "zod";
 import type { Prisma } from "@prisma/client";
+import { withLock, LOCK_KEYS, publishEvent, PUBSUB_CHANNELS, incrementCounter, ANALYTICS_KEYS } from "@/lib/redis";
 
 const DEFAULT_CARRIER = "jibli";
 const DEFAULT_CITY = "Casablanca";
@@ -31,6 +32,7 @@ const createOrderSchema = z.object({
   shippingCost: z.number().min(0).optional(),
   notes: z.string().max(500).optional(),
   stripePaymentId: z.string().optional(),
+  idempotencyKey: z.string().optional(),
 });
 
 type Tx = Prisma.TransactionClient;
@@ -299,6 +301,10 @@ export async function POST(req: NextRequest) {
 
     parsedBody = validation.data;
     const body = parsedBody;
+
+    // Generate or use provided idempotency key for anti-duplicate order system
+    const idempotencyKey = body.idempotencyKey || crypto.randomUUID();
+
     logCheckout("zod.validation.passed", {
       addressId: body.addressId,
       paymentMethod: body.paymentMethod,
@@ -307,6 +313,7 @@ export async function POST(req: NextRequest) {
       shippingCarrierId: body.shippingCarrierId,
       shippingCost: body.shippingCost,
       couponCode: body.couponCode,
+      idempotencyKey,
     });
 
     logCheckout("incoming.items", {
@@ -337,7 +344,32 @@ export async function POST(req: NextRequest) {
     );
     logCheckout("shipping.context.resolved", { city, shippingCarrierId });
 
-    const order = await prisma.$transaction(async (tx) => {
+    // Anti-duplicate order system: Use Redis distributed lock
+    const lockResult = await withLock(
+      LOCK_KEYS.order(idempotencyKey),
+      async () => {
+        // Check if order with this idempotency key already exists
+        const existingOrder = await prisma.order.findUnique({
+          where: { idempotencyKey },
+        });
+
+        if (existingOrder) {
+          logCheckout("duplicate.order.detected", {
+            idempotencyKey,
+            existingOrderId: existingOrder.id,
+            existingOrderNumber: existingOrder.orderNumber,
+          });
+          throw new CheckoutError(
+            "Duplicate order detected",
+            "DUPLICATE_ORDER",
+            409,
+            { existingOrderNumber: existingOrder.orderNumber }
+          );
+        }
+
+        logCheckout("lock.acquired", { idempotencyKey });
+
+        const order = await prisma.$transaction(async (tx) => {
       // Cleanup invalid cart items before processing order
       const cleanupResult = await cleanupInvalidCartItems(tx, authUser.userId, organizationId);
       
@@ -776,9 +808,53 @@ export async function POST(req: NextRequest) {
         logCheckout("cart.clear.skipped", { userId: authUser.userId, source: "payload_fallback" });
       }
       return createdOrder;
-    });
+        });
 
-    return NextResponse.json({ success: true, order }, { status: 201 });
+        // Publish real-time order event
+        await publishEvent(PUBSUB_CHANNELS.orders, {
+          type: "order.created",
+          order: {
+            id: order.id,
+            orderNumber: order.orderNumber,
+            total: order.total,
+            userId: order.userId,
+            status: order.status,
+          },
+        });
+
+        // Update analytics counters
+        const today = new Date().toISOString().split('T')[0];
+        await Promise.all([
+          incrementCounter(ANALYTICS_KEYS.dailyRevenue(today), Math.round(order.total)),
+          incrementCounter(ANALYTICS_KEYS.dailyOrders(today)),
+        ]);
+
+        // Send Telegram notification
+        await notifyNewOrder({
+          orderNumber: order.orderNumber,
+          customerName: address.name,
+          total: order.total,
+          city: address.city,
+          itemCount: order.items.length,
+          orderId: order.id,
+        });
+
+        return order;
+      },
+      30 // Lock TTL in seconds
+    );
+
+    // Handle lock acquisition failure
+    if (!lockResult) {
+      logCheckout("lock.failed", { idempotencyKey });
+      throw new CheckoutError(
+        "Order processing in progress. Please wait.",
+        "ORDER_LOCK_FAILED",
+        429
+      );
+    }
+
+    return NextResponse.json({ success: true, order: lockResult }, { status: 201 });
   } catch (err: unknown) {
     logCheckoutError("post.failed", err, {
       authContext,

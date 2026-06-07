@@ -1,0 +1,254 @@
+{
+  "name": "Order Confirmation Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "order-confirmation",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [250, 300],
+      "webhookId": "order-confirmation-webhook"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n  o.*,\n  u.email,\n  u.name as customer_name,\n  u.phone,\n  a.line1,\n  a.line2,\n  a.city,\n  a.state,\n  a.country,\n  a.zip\nFROM \"Order\" o\nINNER JOIN \"User\" u ON o.\"userId\" = u.id\nINNER JOIN \"Address\" a ON o.\"addressId\" = a.id\nWHERE o.id = '{{ $json.order_id }}';",
+        "options": {}
+      },
+      "id": "postgres-get-order",
+      "name": "Get Order Details",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [450, 300],
+      "credentials": {
+        "postgres": {
+          "id": "postgres_credentials",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n  oi.*,\n  p.name as product_name,\n  p.slug as product_slug,\n  p.images\nFROM \"OrderItem\" oi\nINNER JOIN \"Product\" p ON oi.\"productId\" = p.id\nWHERE oi.\"orderId\" = '{{ $json.order_id }}';",
+        "options": {}
+      },
+      "id": "postgres-get-order-items",
+      "name": "Get Order Items",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [650, 300],
+      "credentials": {
+        "postgres": {
+          "id": "postgres_credentials",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Format order data for email\nconst order = $input.item.json;\nconst items = $input.item.json.items || [];\n\nlet itemsHtml = items.map(item => `\n  <div class=\"item\">\n    <img src=\"${item.images[0]}\" alt=\"${item.product_name}\">\n    <div class=\"item-details\">\n      <div class=\"item-name\">${item.product_name}</div>\n      <div class=\"item-quantity\">Qty: ${item.quantity}</div>\n      <div class=\"item-price\">${item.price * item.quantity} MAD</div>\n    </div>\n  </div>\n`).join('');\n\nreturn {\n  json: {\n    order_number: order.orderNumber,\n    customer_name: order.customer_name,\n    customer_email: order.email,\n    subtotal: order.subtotal,\n    discount: order.discount,\n    shipping: order.shipping,\n    tax: order.tax,\n    total: order.total,\n    payment_method: order.paymentMethod,\n    tracking_number: order.trackingNumber || 'Pending',\n    estimated_delivery: order.estimatedDelivery || 'Pending',\n    items_html: itemsHtml,\n    address: `${order.line1}, ${order.city}, ${order.country}`\n  }\n};"
+      },
+      "id": "function-format-order",
+      "name": "Format Order Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "fromEmail": "noreply@nexmart.ma",
+        "toEmail": "={{ $json.customer_email }}",
+        "subject": "Order Confirmed - #{{ $json.order_number }} 🎉",
+        "emailType": "html",
+        "message": "<!DOCTYPE html>\n<html>\n<head>\n  <style>\n    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }\n    .container { max-width: 600px; margin: 0 auto; padding: 20px; }\n    .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }\n    .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }\n    .order-number { font-size: 24px; font-weight: bold; margin: 20px 0; }\n    .item { display: flex; align-items: center; margin-bottom: 20px; padding: 15px; background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }\n    .item img { width: 80px; height: 80px; object-fit: cover; border-radius: 5px; margin-right: 15px; }\n    .item-details { flex: 1; }\n    .item-name { font-weight: bold; margin-bottom: 5px; }\n    .item-price { color: #667eea; font-weight: bold; }\n    .summary { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; }\n    .summary-row { display: flex; justify-content: space-between; margin-bottom: 10px; }\n    .total { font-size: 24px; font-weight: bold; color: #667eea; text-align: right; margin-top: 20px; }\n    .button { display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; text-align: center; }\n    .footer { text-align: center; margin-top: 30px; color: #666; font-size: 12px; }\n  </style>\n</head>\n<body>\n  <div class=\"container\">\n    <div class=\"header\">\n      <h1>Order Confirmed! 🎉</h1>\n      <p>Thank you for your purchase</p>\n    </div>\n    <div class=\"content\">\n      <p>Hi {{ $json.customer_name }},</p>\n      <p>Your order has been confirmed and is being processed.</p>\n      <div class=\"order-number\">Order #{{ $json.order_number }}</div>\n      {{ $json.items_html }}\n      <div class=\"summary\">\n        <div class=\"summary-row\"><span>Subtotal:</span><span>{{ $json.subtotal }} MAD</span></div>\n        <div class=\"summary-row\"><span>Discount:</span><span>-{{ $json.discount }} MAD</span></div>\n        <div class=\"summary-row\"><span>Shipping:</span><span>{{ $json.shipping }} MAD</span></div>\n        <div class=\"summary-row\"><span>Tax:</span><span>{{ $json.tax }} MAD</span></div>\n        <div class=\"total\">Total: {{ $json.total }} MAD</div>\n      </div>\n      <p><strong>Payment Method:</strong> {{ $json.payment_method }}</p>\n      <p><strong>Shipping Address:</strong> {{ $json.address }}</p>\n      <div style=\"text-align: center;\">\n        <a href=\"https://nexmart.ma/orders/{{ $json.order_number }}\" class=\"button\">Track Your Order</a>\n      </div>\n    </div>\n    <div class=\"footer\">\n      <p>NexMart - Your Premium Moroccan Marketplace</p>\n    </div>\n  </div>\n</body>\n</html>",
+        "options": {}
+      },
+      "id": "email-send-confirmation",
+      "name": "Send Confirmation Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [1050, 300],
+      "credentials": {
+        "smtp": {
+          "id": "gmail_smtp_credentials",
+          "name": "Gmail SMTP"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $env.TELEGRAM_ADMIN_CHAT_ID }}",
+        "text": "🛒 **New Order**\n\n**Order:** #{{ $json.order_number }}\n**Customer:** {{ $json.customer_name }}\n**Email:** {{ $json.customer_email }}\n**Total:** {{ $json.total }} MAD\n**Payment:** {{ $json.payment_method }}\n\n**Items:** {{ $json.items_html }}\n\n**Address:** {{ $json.address }}",
+        "options": {
+          "parseMode": "markdown"
+        }
+      },
+      "id": "telegram-admin-notification",
+      "name": "Send Telegram Admin Alert",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1250, 200],
+      "credentials": {
+        "telegramApi": {
+          "id": "telegram_credentials",
+          "name": "Telegram API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO \"NotificationLog\" (\n  \"orderId\",\n  \"type\",\n  \"channel\",\n  \"recipient\",\n  \"subject\",\n  \"content\",\n  \"status\",\n  \"sentAt\",\n  \"metadata\"\n) VALUES (\n  '{{ $json.order_id }}',\n  'ORDER_UPDATE',\n  'EMAIL',\n  '{{ $json.customer_email }}',\n  'Order Confirmed',\n  'Order confirmation email sent',\n  'SENT',\n  NOW(),\n  '{\"order_number\": \"{{ $json.order_number }}\", \"total\": {{ $json.total }}}'::jsonb\n);",
+        "options": {}
+      },
+      "id": "postgres-log-notification",
+      "name": "Log Notification",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [1450, 300],
+      "credentials": {
+        "postgres": {
+          "id": "postgres_credentials",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "command": "set",
+        "key": "email:sent:{{ $json.customer_email }}:order-confirm:{{ $json.order_number }}",
+        "value": "={{ $now.toISO() }}",
+        "options": {
+          "ttl": 604800
+        }
+      },
+      "id": "redis-set-dedup",
+      "name": "Set Redis Deduplication",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [1650, 300],
+      "credentials": {
+        "redis": {
+          "id": "redis_credentials",
+          "name": "Redis"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ {\"success\": true, \"message\": \"Order confirmation sent\"} }}"
+      },
+      "id": "respond-to-webhook",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1850, 300]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get Order Details",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Order Details": {
+      "main": [
+        [
+          {
+            "node": "Get Order Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Order Items": {
+      "main": [
+        [
+          {
+            "node": "Format Order Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Order Data": {
+      "main": [
+        [
+          {
+            "node": "Send Confirmation Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Confirmation Email": {
+      "main": [
+        [
+          {
+            "node": "Send Telegram Admin Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Telegram Admin Alert": {
+      "main": [
+        [
+          {
+            "node": "Log Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Notification": {
+      "main": [
+        [
+          {
+            "node": "Set Redis Deduplication",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Redis Deduplication": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 1,
+  "updatedAt": "2024-06-07T00:00:00.000Z",
+  "versionId": "1"
+}

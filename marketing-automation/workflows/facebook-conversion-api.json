@@ -1,0 +1,263 @@
+{
+  "name": "Facebook Conversion API Integration",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "facebook-event",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [250, 300],
+      "webhookId": "facebook-event-webhook"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract and validate event data\nconst eventData = $input.item.json;\nconst eventType = eventData.event_type || 'ViewContent';\nconst userId = eventData.user_id || null;\nconst productId = eventData.product_id || null;\nconst orderId = eventData.order_id || null;\nconst value = eventData.value || 0;\nconst currency = eventData.currency || 'MAD';\n\n// Generate unique event ID\nconst eventId = `nexmart_${eventType}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;\n\nreturn {\n  json: {\n    event_type: eventType,\n    user_id: userId,\n    product_id: productId,\n    order_id: orderId,\n    value,\n    currency,\n    event_id: eventId,\n    event_time: Math.floor(Date.now() / 1000),\n    event_source: 'website'\n  }\n};"
+      },
+      "id": "function-extract-event",
+      "name": "Extract Event Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "command": "get",
+        "key": "fb:event:{{ $json.event_id }}",
+        "options": {}
+      },
+      "id": "redis-check-dedup",
+      "name": "Check Event Already Sent",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [650, 300],
+      "credentials": {
+        "redis": {
+          "id": "redis_credentials",
+          "name": "Redis"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition-1",
+              "leftValue": "={{$json}}",
+              "rightValue": "",
+              "operator": {
+                "type": "null",
+                "operation": "isNull"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "condition-should-send",
+      "name": "Should Send Event?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Format event for Facebook CAPI\nconst data = $input.item.json;\n\nlet userData = {};\nif (data.user_id) {\n  userData = {\n    external_id: data.user_id\n  };\n}\n\nlet customData = {};\nif (data.value > 0) {\n  customData.value = data.value;\n  customData.currency = data.currency;\n}\nif (data.product_id) {\n  customData.content_ids = [data.product_id];\n}\nif (data.order_id) {\n  customData.order_id = data.order_id;\n}\n\nconst fbEvent = {\n  event_name: data.event_type,\n  event_time: data.event_time,\n  event_source_url: 'https://nexmart.ma',\n  action_source: 'website',\n  user_data: userData,\n  custom_data: customData\n};\n\nreturn {\n  json: {\n    data: [fbEvent],\n    access_token: '={{ $env.FACEBOOK_ACCESS_TOKEN }}',\n    pixel_id: '={{ $env.FACEBOOK_PIXEL_ID }}'\n  }\n};"
+      },
+      "id": "function-format-facebook",
+      "name": "Format for Facebook CAPI",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1050, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://graph.facebook.com/v18.0/{{ $env.FACEBOOK_PIXEL_ID }}/events",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "facebookGraphApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "id": "http-facebook-capi",
+      "name": "Send to Facebook CAPI",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1250, 300],
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "facebook_credentials",
+          "name": "Facebook Graph API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO \"FacebookConversionEvent\" (\n  \"organizationId\",\n  eventType,\n  eventId,\n  \"userId\",\n  \"orderId\",\n  \"productId\",\n  value,\n  currency,\n  payload,\n  sentAt,\n  response\n) VALUES (\n  (SELECT id FROM \"Organization\" LIMIT 1),\n  '{{ $json.event_type }}',\n  '{{ $json.event_id }}',\n  '{{ $json.user_id || \"\" }}',\n  '{{ $json.order_id || \"\" }}',\n  '{{ $json.product_id || \"\" }}',\n  {{ $json.value || 0 }},\n  '{{ $json.currency }}',\n  '{{ JSON.stringify($json) }}'::jsonb,\n  NOW(),\n  '{{ JSON.stringify($json.response) }}'::jsonb\n);",
+        "options": {}
+      },
+      "id": "postgres-log-event",
+      "name": "Log Event to Database",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [1450, 300],
+      "credentials": {
+        "postgres": {
+          "id": "postgres_credentials",
+          "name": "PostgreSQL"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "command": "set",
+        "key": "fb:event:{{ $json.event_id }}",
+        "value": "={{ $now.toISO() }}",
+        "options": {
+          "ttl": 604800
+        }
+      },
+      "id": "redis-set-dedup",
+      "name": "Set Event Deduplication",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [1650, 300],
+      "credentials": {
+        "redis": {
+          "id": "redis_credentials",
+          "name": "Redis"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ {\"success\": true, \"event_id\": $json.event_id} }}"
+      },
+      "id": "respond-to-webhook",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1850, 300]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Extract Event Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Event Data": {
+      "main": [
+        [
+          {
+            "node": "Check Event Already Sent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Event Already Sent": {
+      "main": [
+        [
+          {
+            "node": "Should Send Event?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Should Send Event?": {
+      "main": [
+        [
+          {
+            "node": "Format for Facebook CAPI",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format for Facebook CAPI": {
+      "main": [
+        [
+          {
+            "node": "Send to Facebook CAPI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send to Facebook CAPI": {
+      "main": [
+        [
+          {
+            "node": "Log Event to Database",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Event to Database": {
+      "main": [
+        [
+          {
+            "node": "Set Event Deduplication",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Event Deduplication": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 1,
+  "updatedAt": "2024-06-07T00:00:00.000Z",
+  "versionId": "1"
+}
