@@ -28,6 +28,13 @@ class ClientAuditSDK {
 
   /**
    * Initialize audit session
+   * 
+   * Production-grade validation:
+   * - Validates response structure
+   * - Handles non-JSON responses
+   * - Checks HTTP status codes
+   * - Validates content-type
+   * - Never assumes sessionId exists
    */
   async initSession(organizationId?: string, userId?: string) {
     this.organizationId = organizationId || this.getFromStorage("organizationId");
@@ -37,25 +44,97 @@ class ClientAuditSDK {
     this.sessionId = this.getFromStorage("auditSessionId");
 
     if (!this.sessionId) {
-      const response = await fetch("/api/audit/session", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          organizationId: this.organizationId || "",
-          userId: this.userId || "",
-          userAgent: navigator.userAgent,
-          referrer: document.referrer,
-        }),
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        if (data.session?.id) {
-          this.sessionId = data.session.id;
-          this.setToStorage("auditSessionId", this.sessionId);
-        } else {
-          console.error("[AUDIT] Session creation failed: no session ID in response", data);
+      try {
+        // Don't send empty organizationId - if not available, skip session creation
+        if (!this.organizationId) {
+          console.warn("[AUDIT CLIENT] No organizationId available, skipping session creation");
+          this.startFlushInterval();
+          return null;
         }
+
+        const response = await fetch("/api/audit/session", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            organizationId: this.organizationId,
+            userId: this.userId || undefined,
+            userAgent: navigator.userAgent,
+            referrer: document.referrer,
+          }),
+        });
+
+        // Log raw response in development
+        if (process.env.NODE_ENV === "development") {
+          console.log("[AUDIT CLIENT] raw response:", {
+            ok: response.ok,
+            status: response.status,
+            statusText: response.statusText,
+            contentType: response.headers.get("content-type"),
+          });
+        }
+
+        // Check HTTP status
+        if (!response.ok) {
+          console.error("[AUDIT CLIENT] Session creation failed: HTTP", response.status);
+          // If database is down (503), continue without audit - don't break the app
+          if (response.status === 503) {
+            console.warn("[AUDIT CLIENT] Database unavailable, continuing without audit");
+          }
+          return null;
+        }
+
+        // Validate content-type is JSON
+        const contentType = response.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+          console.error("[AUDIT CLIENT] Session creation failed: Invalid content-type", contentType);
+          return null;
+        }
+
+        // Parse JSON safely
+        let data;
+        try {
+          data = await response.json();
+        } catch (parseError) {
+          console.error("[AUDIT CLIENT] Session creation failed: Invalid JSON", parseError);
+          return null;
+        }
+
+        // Log parsed response in development
+        if (process.env.NODE_ENV === "development") {
+          console.log("[AUDIT CLIENT] parsed response:", data);
+        }
+
+        // Validate response structure
+        if (!data || typeof data !== "object") {
+          console.error("[AUDIT CLIENT] Session creation failed: Invalid response structure", data);
+          return null;
+        }
+
+        // Check for success flag
+        if (data.success === false) {
+          console.error("[AUDIT CLIENT] Session creation failed: API returned error", {
+            error: data.error,
+            code: data.code,
+          });
+          return null;
+        }
+
+        // Validate sessionId exists
+        if (!data.sessionId || typeof data.sessionId !== "string") {
+          console.error("[AUDIT CLIENT] Session creation failed: no valid sessionId in response", data);
+          return null;
+        }
+
+        // Success - set sessionId
+        this.sessionId = data.sessionId;
+        if (this.sessionId) {
+          this.setToStorage("auditSessionId", this.sessionId);
+        }
+        console.log("[AUDIT CLIENT] Session initialized:", this.sessionId);
+
+      } catch (error) {
+        console.error("[AUDIT CLIENT] Session creation failed: Network error", error);
+        return null;
       }
     }
 
@@ -139,16 +218,25 @@ class ClientAuditSDK {
   async completeSession(conversionValue?: number) {
     if (!this.sessionId) return;
 
-    await fetch("/api/audit/session/complete", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        sessionId: this.sessionId,
-        conversionValue,
-      }),
-    });
+    try {
+      const response = await fetch("/api/audit/session/complete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sessionId: this.sessionId,
+          conversionValue,
+        }),
+      });
 
-    // Clear session from storage
+      // If database is down, log warning but don't break the app
+      if (!response.ok) {
+        console.warn("[AUDIT CLIENT] Failed to complete session:", response.status);
+      }
+    } catch (error) {
+      console.warn("[AUDIT CLIENT] Error completing session:", error);
+    }
+
+    // Clear session from storage regardless of API success
     this.removeFromStorage("auditSessionId");
     this.sessionId = null;
   }
@@ -159,11 +247,20 @@ class ClientAuditSDK {
   async markAbandoned() {
     if (!this.sessionId) return;
 
-    await fetch("/api/audit/session/abandon", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ sessionId: this.sessionId }),
-    });
+    try {
+      const response = await fetch("/api/audit/session/abandon", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sessionId: this.sessionId }),
+      });
+
+      // If database is down, log warning but don't break the app
+      if (!response.ok) {
+        console.warn("[AUDIT CLIENT] Failed to mark session as abandoned:", response.status);
+      }
+    } catch (error) {
+      console.warn("[AUDIT CLIENT] Error marking session as abandoned:", error);
+    }
 
     this.removeFromStorage("auditSessionId");
     this.sessionId = null;
@@ -179,7 +276,7 @@ class ClientAuditSDK {
     this.eventQueue = [];
 
     try {
-      await fetch("/api/audit/events/batch", {
+      const response = await fetch("/api/audit/events/batch", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -189,10 +286,14 @@ class ClientAuditSDK {
           events,
         }),
       });
+
+      // If database is down, log warning but don't re-queue (avoid memory leak)
+      if (!response.ok) {
+        console.warn("[AUDIT CLIENT] Failed to flush events:", response.status);
+      }
     } catch (error) {
-      console.error("[AUDIT] Failed to flush events:", error);
-      // Re-queue failed events
-      this.eventQueue.unshift(...events);
+      console.warn("[AUDIT CLIENT] Error flushing events:", error);
+      // Don't re-queue failed events to avoid memory leak when database is down
     }
   }
 

@@ -1,106 +1,47 @@
 // src/app/api/admin/analytics/route.ts
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getAuthFromRequest } from "@/lib/auth";
-import { getOrganizationIdForUser } from "@/lib/tenant";
-import { ok, forbidden, handleApiError } from "@/lib/api";
+import { withAdmin } from "@/lib/withApi";
+import { ok } from "@/lib/api-response";
+import { requireAdmin } from "@/lib/auth-api";
 import { getCache, setCache, CACHE_TTL } from "@/lib/redis";
 import { subDays, startOfDay, format } from "date-fns";
+import { getExecutiveMetrics, getInventoryMetrics } from "@/lib/services/executive-analytics.service";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(req: NextRequest) {
-  try {
-    const payload = await getAuthFromRequest(req);
-    if (!payload || (payload.role !== "ADMIN" && payload.role !== "SUPER_ADMIN")) {
-      return forbidden();
-    }
-    const organizationId = await getOrganizationIdForUser(payload);
+export const GET = withAdmin(async ({ req }) => {
+  const { organizationId } = await requireAdmin();
 
-    const range = parseInt(req.nextUrl.searchParams.get("range") || "30");
-    const cacheKey = `analytics:dashboard:${organizationId}:${range}`;
+  const range = parseInt(req.nextUrl.searchParams.get("range") || "30");
+  const cacheKey = `analytics:dashboard:${organizationId}:${range}`;
 
-    const cached = await getCache(cacheKey);
-    if (cached) return ok(cached);
+  const cached = await getCache(cacheKey);
+  if (cached) return ok(cached);
 
     const now = new Date();
     const startDate = startOfDay(subDays(now, range));
     const prevStart = startOfDay(subDays(now, range * 2));
     const prevEnd = startOfDay(subDays(now, range));
 
-    // Parallel queries for performance
-    const [
-      currentRevenue,
-      prevRevenue,
-      currentOrders,
-      prevOrders,
-      currentUsers,
-      prevUsers,
-      totalProducts,
-      lowStockProducts,
-      revenueByDay,
-      topProducts,
-      ordersByStatus,
-      recentOrders,
-    ] = await Promise.all([
-      // Current period revenue
-      prisma.order.aggregate({
-        where: { organizationId, createdAt: { gte: startDate }, paymentStatus: "PAID" },
-        _sum: { total: true },
-      }),
-      // Previous period revenue
-      prisma.order.aggregate({
-        where: { organizationId, createdAt: { gte: prevStart, lt: prevEnd }, paymentStatus: "PAID" },
-        _sum: { total: true },
-      }),
-      // Current orders
-      prisma.order.count({ where: { organizationId, createdAt: { gte: startDate } } }),
-      // Previous orders
-      prisma.order.count({ where: { organizationId, createdAt: { gte: prevStart, lt: prevEnd } } }),
-      // New users
-      prisma.membership.count({ where: { organizationId, createdAt: { gte: startDate } } }),
-      // Previous users
-      prisma.membership.count({ where: { organizationId, createdAt: { gte: prevStart, lt: prevEnd } } }),
-      // Products
-      prisma.product.count({ where: { organizationId, published: true } }),
-      // Low stock
-      prisma.product.count({ where: { organizationId, published: true, stock: { lte: 5, gt: 0 } } }),
-      // Revenue by day
-      prisma.order.findMany({
-        where: { organizationId, createdAt: { gte: startDate }, paymentStatus: "PAID" },
-        select: { total: true, createdAt: true },
-        orderBy: { createdAt: "asc" },
-      }),
-      // Top products
-      prisma.product.findMany({
-        where: { organizationId, published: true },
-        orderBy: { soldCount: "desc" },
-        take: 10,
-        select: { id: true, name: true, images: true, soldCount: true, price: true },
-      }),
-      // Orders by status
-      prisma.order.groupBy({
-        by: ["status"],
-        _count: { status: true },
-        where: { organizationId, createdAt: { gte: startDate } },
-      }),
-      // Recent orders
-      prisma.order.findMany({
-        where: { organizationId },
-        take: 10,
-        orderBy: { createdAt: "desc" },
-        include: {
-          user: { select: { name: true, email: true, avatar: true } },
-          items: { take: 1, include: { product: { select: { name: true } } } },
-        },
-      }),
-    ]);
+    // Get executive metrics
+    const executiveMetrics = await getExecutiveMetrics({
+      organizationId,
+      startDate,
+      endDate: now,
+      previousStartDate: prevStart,
+      previousEndDate: prevEnd,
+    });
 
-    const currRev = currentRevenue._sum.total || 0;
-    const prevRev = prevRevenue._sum.total || 0;
-    const revenueChange = prevRev ? ((currRev - prevRev) / prevRev) * 100 : 100;
-    const ordersChange = prevOrders ? ((currentOrders - prevOrders) / prevOrders) * 100 : 100;
-    const usersChange = prevUsers ? ((currentUsers - prevUsers) / prevUsers) * 100 : 100;
+    // Get inventory metrics
+    const inventoryMetrics = await getInventoryMetrics(organizationId);
+
+    // Get chart data
+    const revenueByDay = await prisma.order.findMany({
+      where: { organizationId, createdAt: { gte: startDate }, paymentStatus: "PAID" },
+      select: { total: true, createdAt: true },
+      orderBy: { createdAt: "asc" },
+    });
 
     // Build daily revenue chart data
     const dailyData: Record<string, { revenue: number; orders: number }> = {};
@@ -122,12 +63,45 @@ export async function GET(req: NextRequest) {
       orders: data.orders,
     }));
 
+    // Get top products
+    const topProducts = await prisma.product.findMany({
+      where: { organizationId, published: true },
+      orderBy: { soldCount: "desc" },
+      take: 10,
+      select: { id: true, name: true, images: true, soldCount: true, price: true },
+    });
+
+    // Get orders by status
+    const ordersByStatus = await prisma.order.groupBy({
+      by: ["status"],
+      _count: { status: true },
+      where: { organizationId, createdAt: { gte: startDate } },
+    });
+
+    // Get recent orders
+    const recentOrders = await prisma.order.findMany({
+      where: { organizationId },
+      take: 10,
+      orderBy: { createdAt: "desc" },
+      include: {
+        user: { select: { name: true, email: true, avatar: true } },
+        items: { take: 1, include: { product: { select: { name: true } } } },
+      },
+    });
+
     const result = {
       summary: {
-        revenue: { total: currRev, change: Math.round(revenueChange * 10) / 10 },
-        orders: { total: currentOrders, change: Math.round(ordersChange * 10) / 10 },
-        users: { total: currentUsers, change: Math.round(usersChange * 10) / 10 },
-        products: { total: totalProducts, lowStock: lowStockProducts },
+        revenue: executiveMetrics.revenue,
+        orders: executiveMetrics.orders,
+        customers: executiveMetrics.customers,
+        profit: executiveMetrics.profit,
+        inventory: {
+          totalValue: inventoryMetrics.totalValue,
+          outOfStock: inventoryMetrics.outOfStock,
+          lowStock: inventoryMetrics.lowStock,
+          overstocked: inventoryMetrics.overstocked,
+        },
+        conversion: executiveMetrics.conversion,
       },
       chartData,
       topProducts: topProducts.map((p) => ({
@@ -141,9 +115,6 @@ export async function GET(req: NextRequest) {
       recentOrders,
     };
 
-    await setCache(cacheKey, result, CACHE_TTL.SHORT);
-    return ok(result);
-  } catch (err) {
-    return handleApiError(err);
-  }
-}
+  await setCache(cacheKey, result, CACHE_TTL.SHORT);
+  return ok(result);
+});

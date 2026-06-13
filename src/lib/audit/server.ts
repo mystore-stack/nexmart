@@ -48,20 +48,25 @@ class AuditSDK {
       // Perform anomaly detection
       const anomalyResult = await this.detectAnomaly(input);
 
+      const eventData: any = {
+        eventType: input.eventType,
+        userId: input.userId,
+        organizationId: input.organizationId,
+        orderId: input.orderId,
+        cartSnapshot: input.cartSnapshot,
+        metadata: input.metadata,
+        ipAddress: input.ipAddress,
+        userAgent: input.userAgent,
+        fraudScore: fraudResult.score,
+        anomalyFlags: anomalyResult.isAnomalous ? [anomalyResult.anomalyType] : [],
+      };
+
+      if (input.sessionId) {
+        eventData.sessionId = input.sessionId;
+      }
+
       const event = await prisma.auditEvent.create({
-        data: {
-          sessionId: input.sessionId,
-          eventType: input.eventType,
-          userId: input.userId,
-          organizationId: input.organizationId,
-          orderId: input.orderId,
-          cartSnapshot: input.cartSnapshot,
-          metadata: input.metadata,
-          ipAddress: input.ipAddress,
-          userAgent: input.userAgent,
-          fraudScore: fraudResult.score,
-          anomalyFlags: anomalyResult.isAnomalous ? [anomalyResult.anomalyType] : [],
-        },
+        data: eventData,
       });
 
       // Update session event count

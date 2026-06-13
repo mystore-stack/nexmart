@@ -1,8 +1,9 @@
 // src/app/api/notifications/telegram/route.ts
 // إرسال إشعارات Telegram يدوياً أو من cron
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getAuthFromRequest } from "@/lib/auth";
+import { withAdmin } from "@/lib/withApi";
+import { ok } from "@/lib/api-response";
 import {
   sendDailyReport,
   notifyLowStock,
@@ -11,15 +12,13 @@ import {
 
 export const dynamic = "force-dynamic";
 
-export async function POST(req: NextRequest) {
-  try {
-    const user = await getAuthFromRequest(req);
-    const isCron = req.headers.get("x-cron-secret") === process.env.CRON_SECRET;
-    const isAdmin = user?.role === "ADMIN" || user?.role === "SUPER_ADMIN";
+export const POST = withAdmin(async ({ req }) => {
+  const isCron = req.headers.get("x-cron-secret") === process.env.CRON_SECRET;
 
-    if (!isCron && !isAdmin) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+  if (!isCron) {
+    // withAdmin already handles auth, so we just need to check cron
+    throw new Error("Unauthorized: Cron secret required");
+  }
 
     const { type } = await req.json();
 
@@ -62,7 +61,7 @@ export async function POST(req: NextRequest) {
           topProduct,
         });
 
-        return NextResponse.json({ success: true, type: "daily_report" });
+        return ok({ type: "daily_report" });
       }
 
       // ─── تنبيه مخزون ناقص ────────────────────────
@@ -89,24 +88,20 @@ export async function POST(req: NextRequest) {
           }
         }
 
-        return NextResponse.json({ success: true, count: products.length });
+        return ok({ count: products.length });
       }
 
       // ─── رسالة مخصصة ─────────────────────────────
       case "custom": {
         const { message } = await req.json().catch(() => ({ message: "" }));
         if (!message) {
-          return NextResponse.json({ error: "Message required" }, { status: 400 });
+          throw new Error("Message required");
         }
         await sendTelegramMessage(message);
-        return NextResponse.json({ success: true });
+        return ok({ success: true });
       }
 
       default:
-        return NextResponse.json({ error: "Unknown type" }, { status: 400 });
+        throw new Error("Unknown type");
     }
-  } catch (e: unknown) {
-    const msg = e instanceof Error ? e.message : "Server error";
-    return NextResponse.json({ error: msg }, { status: 500 });
-  }
-}
+});

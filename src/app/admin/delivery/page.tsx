@@ -22,11 +22,31 @@ export default function AdminDeliveryPage() {
     fetch("/api/admin/orders?status=SHIPPED&limit=50", { credentials: "include" })
       .then((r) => r.json())
       .then((d) => {
-        const list = d.success ? d.data?.orders || d.orders || [] : [];
+        // Handle nested response structure: { success: true, data: { data: [...], pagination: {...} } }
+        const responseData = d.data;
+        const list = d.success ? (Array.isArray(responseData?.data) ? responseData.data : Array.isArray(d.data) ? d.data : []) : [];
+
+        console.log("========== FULL DELIVERY API RESPONSE ==========");
+        console.log(JSON.stringify(d, null, 2));
+        console.log("success =", d.success);
+        console.log("data =", d.data);
+        console.log("responseData =", responseData);
+        console.log("responseData.data =", responseData?.data);
+        console.log("isArray(responseData.data) =", Array.isArray(responseData?.data));
+        console.log("orders length =", list.length);
+
+        console.log("BEFORE setOrders");
+        console.log("orders passed to state =", list?.length);
+
         setOrders(list);
       })
       .finally(() => setLoading(false));
   }, []);
+
+  // Log state changes
+  useEffect(() => {
+    console.log("STATE delivery orders changed:", orders.length);
+  }, [orders]);
 
   const updateStatus = async (id: string, status: string) => {
     await fetch(`/api/admin/orders/${id}`, {

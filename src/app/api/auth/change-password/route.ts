@@ -3,7 +3,7 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
-import { getAuthFromRequest } from "@/lib/auth";
+import { requireAuth } from "@/lib/auth-api";
 import { ok, unauthorized, error, handleApiError } from "@/lib/api";
 
 const schema = z.object({
@@ -13,20 +13,19 @@ const schema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    const payload = await getAuthFromRequest(req);
-    if (!payload) return unauthorized();
+    const session = await requireAuth();
 
     const body = await req.json();
     const { currentPassword, newPassword } = schema.parse(body);
 
-    const user = await prisma.user.findUnique({ where: { id: payload.userId } });
+    const user = await prisma.user.findUnique({ where: { id: session.userId } });
     if (!user) return unauthorized();
 
     const valid = await bcrypt.compare(currentPassword, user.password);
     if (!valid) return error("Current password is incorrect", 400);
 
     const hashed = await bcrypt.hash(newPassword, 12);
-    await prisma.user.update({ where: { id: payload.userId }, data: { password: hashed } });
+    await prisma.user.update({ where: { id: session.userId }, data: { password: hashed } });
 
     return ok({ message: "Password updated successfully" });
   } catch (err) {

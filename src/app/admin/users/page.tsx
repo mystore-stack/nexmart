@@ -19,12 +19,32 @@ export default function AdminUsersPage() {
     const params = new URLSearchParams({ page: String(page), limit: "20" });
     if (search) params.set("search", search);
     try {
-      const res = await fetch(`/api/admin/users?${params}`);
+      const res = await fetch(`/api/admin/users?${params}`, {
+        credentials: "include",
+      });
       const data = await res.json();
       if (data?.success) {
-        setUsers(Array.isArray(data.data) ? data.data : []);
-        setTotal(data?.pagination?.total ?? 0);
-        setTotalPages(data?.pagination?.totalPages ?? 1);
+        // Handle nested response structure: { success: true, data: { data: [...], pagination: {...} } }
+        const responseData = data.data;
+        const usersArray = Array.isArray(responseData?.data) ? responseData.data : Array.isArray(data.data) ? data.data : [];
+        const pagination = responseData?.pagination || data.pagination;
+
+        console.log("========== FULL USERS API RESPONSE ==========");
+        console.log(JSON.stringify(data, null, 2));
+        console.log("success =", data.success);
+        console.log("data =", data.data);
+        console.log("responseData =", responseData);
+        console.log("responseData.data =", responseData?.data);
+        console.log("responseData.pagination =", responseData?.pagination);
+        console.log("isArray(responseData.data) =", Array.isArray(responseData?.data));
+        console.log("users length =", usersArray.length);
+
+        console.log("BEFORE setUsers");
+        console.log("users passed to state =", usersArray?.length);
+
+        setUsers(usersArray);
+        setTotal(pagination?.total ?? 0);
+        setTotalPages(pagination?.totalPages ?? 1);
       }
     } finally {
       setLoading(false);
@@ -34,11 +54,17 @@ export default function AdminUsersPage() {
   useEffect(() => { fetchUsers(); }, [fetchUsers]);
   useEffect(() => { setPage(1); }, [search]);
 
+  // Log state changes
+  useEffect(() => {
+    console.log("STATE users changed:", users.length);
+  }, [users]);
+
   const promoteToAdmin = async (userId: string) => {
     if (!confirm("Promote this user to admin?")) return;
     const res = await fetch(`/api/admin/users/${userId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
+      credentials: "include",
       body: JSON.stringify({ role: "ADMIN" }),
     });
     if (res.ok) {

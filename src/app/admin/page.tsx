@@ -1,6 +1,6 @@
 // src/app/admin/page.tsx
 "use client";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { motion } from "framer-motion";
@@ -108,9 +108,11 @@ export default function AdminDashboard() {
   const [isConnected, setIsConnected] = useState(false);
   const eventSourceRef = useRef<EventSource | null>(null);
 
-  useEffect(() => {
+  const fetchAnalytics = useCallback(() => {
     setLoading(true);
-    fetch(`/api/admin/analytics?range=${range}`)
+    fetch(`/api/admin/analytics?range=${range}`, {
+      credentials: "include",
+    })
       .then((r) => r.json())
       .then((d) => {
         setData(d.data);
@@ -118,6 +120,10 @@ export default function AdminDashboard() {
       })
       .catch(() => setLoading(false));
   }, [range]);
+
+  useEffect(() => {
+    fetchAnalytics();
+  }, [fetchAnalytics]);
 
   // SSE connection for real-time updates
   useEffect(() => {
@@ -173,22 +179,11 @@ export default function AdminDashboard() {
       }
     });
 
-    const fetchAnalytics = () => {
-      setLoading(true);
-      fetch(`/api/admin/analytics?range=${range}`)
-        .then((r) => r.json())
-        .then((d) => {
-          setData(d.data);
-          setLoading(false);
-        })
-        .catch(() => setLoading(false));
-    };
-
     return () => {
       eventSource.close();
       eventSourceRef.current = null;
     };
-  }, [range]);
+  }, [fetchAnalytics]);
 
   const metrics = data?.summary;
   const ordersByStatus = Object.entries(data?.ordersByStatus || {}).map(([name, value]) => ({ name, value }));
@@ -241,7 +236,9 @@ export default function AdminDashboard() {
           <button
             onClick={() => {
               setLoading(true);
-              fetch(`/api/admin/analytics?range=${range}`)
+              fetch(`/api/admin/analytics?range=${range}`, {
+                credentials: "include",
+              })
                 .then((r) => r.json())
                 .then((d) => {
                   setData(d.data);
@@ -271,13 +268,13 @@ export default function AdminDashboard() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard icon={DollarSign} label="Revenue" prefix="DH" value={metrics?.revenue.total || 0} change={metrics?.revenue.change || 0} tone="revenue" loading={loading} />
-        <StatCard icon={ShoppingCart} label="Orders" value={metrics?.orders.total || 0} change={metrics?.orders.change || 0} tone="orders" loading={loading} />
-        <StatCard icon={Users} label="New Users" value={metrics?.users.total || 0} change={metrics?.users.change || 0} tone="users" loading={loading} />
-        <StatCard icon={Package} label="Products" value={metrics?.products.total || 0} change={0} tone="products" loading={loading} />
+        <StatCard icon={DollarSign} label="Revenue" prefix="DH" value={metrics?.revenue?.total || 0} change={metrics?.revenue?.change || 0} tone="revenue" loading={loading} />
+        <StatCard icon={ShoppingCart} label="Orders" value={metrics?.orders?.total || 0} change={metrics?.orders?.change || 0} tone="orders" loading={loading} />
+        <StatCard icon={Users} label="New Users" value={metrics?.users?.total || 0} change={metrics?.users?.change || 0} tone="users" loading={loading} />
+        <StatCard icon={Package} label="Products" value={metrics?.products?.total || 0} change={0} tone="products" loading={loading} />
       </div>
 
-      {metrics?.products.lowStock > 0 && (
+      {metrics?.products?.lowStock > 0 && (
         <motion.div
           initial={{ opacity: 0, x: -16 }}
           animate={{ opacity: 1, x: 0 }}
@@ -286,7 +283,7 @@ export default function AdminDashboard() {
           <div className="flex items-center gap-3">
             <AlertTriangle className="h-5 w-5 text-amber-500" />
             <div>
-              <p className="text-sm font-black text-amber-700 dark:text-amber-300">{metrics.products.lowStock} products are running low on stock</p>
+              <p className="text-sm font-black text-amber-700 dark:text-amber-300">{metrics?.products?.lowStock} products are running low on stock</p>
               <p className="text-xs text-amber-700/70 dark:text-amber-300/70">Review inventory to avoid stockouts on high-intent items.</p>
             </div>
           </div>

@@ -2,6 +2,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getDefaultOrganizationId } from "@/lib/tenant";
+import { getOrganizationIdForUser } from "@/lib/tenant";
+import { getSession } from "@/lib/auth-api";
 import { CACHE_TTL, getCache, setCache } from "@/lib/redis";
 import { z } from "zod";
 
@@ -49,7 +51,15 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: true, ...cached, cached: true });
     }
 
-    const organizationId = await getDefaultOrganizationId();
+    const session = await getSession();
+    let organizationId;
+    if (session) {
+      organizationId = await getOrganizationIdForUser({ userId: session.userId });
+    } else {
+      organizationId = await getDefaultOrganizationId();
+    }
+
+    console.log("[PRODUCTS API] session:", session?.userId, "organizationId:", organizationId);
 
     const where: any = {
       organizationId,
@@ -69,6 +79,8 @@ export async function GET(req: NextRequest) {
         ],
       }),
     };
+
+    console.log("[PRODUCTS API] where clause:", JSON.stringify(where, null, 2));
 
     const orderBy: any =
       sort === "price_asc"  ? { price: "asc" }      :
@@ -92,6 +104,8 @@ export async function GET(req: NextRequest) {
       }),
       prisma.product.count({ where }),
     ]);
+
+    console.log("[PRODUCTS API] Products found:", products.length, "Total:", total);
 
     const payload = {
       products,

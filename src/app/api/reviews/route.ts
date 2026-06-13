@@ -1,8 +1,7 @@
 // src/app/api/reviews/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/auth";
-import { getDefaultOrganizationId, getOrganizationIdForUser } from "@/lib/tenant";
+import { requireAuth } from "@/lib/auth-api";
 import { z } from "zod";
 
 export const dynamic = "force-dynamic";
@@ -41,8 +40,8 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const user   = await requireAuth();
-    const organizationId = await getOrganizationIdForUser(user);
+    const session = await requireAuth();
+    const organizationId = session.organizationId;
     const body   = schema.parse(await req.json());
 
     const product = await prisma.product.findFirst({

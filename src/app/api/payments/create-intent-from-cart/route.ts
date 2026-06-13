@@ -1,8 +1,7 @@
 // src/app/api/payments/create-intent-from-cart/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
-import { requireAuthFromRequest } from "@/lib/auth";
-import { getOrganizationIdForUser } from "@/lib/tenant";
+import { requireAuth } from "@/lib/auth-api";
 import { z } from "zod";
 
 const schema = z.object({
@@ -13,8 +12,8 @@ const schema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    const user = await requireAuthFromRequest(req);
-    const organizationId = await getOrganizationIdForUser(user);
+    const session = await requireAuth();
+    const organizationId = session.organizationId;
     const { amount, currency, metadata = {} } = schema.parse(await req.json());
 
     const amountCents = Math.round(amount * 100);
@@ -26,7 +25,7 @@ export async function POST(req: NextRequest) {
       amount: amountCents,
       currency,
       metadata: {
-        userId: user.userId,
+        userId: session.userId,
         organizationId,
         ...metadata,
       },

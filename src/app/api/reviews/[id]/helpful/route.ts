@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { getAuthFromRequest } from "@/lib/auth";
+import { requireAuth } from "@/lib/auth-api";
 import { ok, unauthorized, notFound, error, handleApiError, rateLimit } from "@/lib/api";
 
 const paramsSchema = z.object({ id: z.string().uuid() });
@@ -13,10 +13,9 @@ export async function POST(
   { params }: { params: { id: string } }
 ) {
   try {
-    const payload = await getAuthFromRequest(req);
-    if (!payload) return unauthorized();
+    const session = await requireAuth();
 
-    const rl = await rateLimit(`review-helpful:${payload.userId}`, 30, 60 * 60 * 1000);
+    const rl = await rateLimit(`review-helpful:${session.userId}`, 30, 60 * 60 * 1000);
     if (!rl.success) {
       return error("Rate limit exceeded", 429);
     }
@@ -27,7 +26,7 @@ export async function POST(
 
     await prisma.review.update({
       where: { id },
-      data: { helpful: { increment: 1 } },
+      data: { helpfulCount: { increment: 1 } },
     });
 
     return ok({ message: "Marked as helpful" });

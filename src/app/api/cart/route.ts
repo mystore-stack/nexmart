@@ -2,8 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAuth, requireAuthFromRequest } from "@/lib/auth";
-import { getOrganizationIdForUser } from "@/lib/tenant";
+import { requireAuth } from "@/lib/auth-api";
 
 const cartItemSchema = z.object({
   productId: z.string().min(1),
@@ -15,23 +14,36 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const user = await requireAuth();
-    const organizationId = await getOrganizationIdForUser(user);
+    const session = await requireAuth();
+    const organizationId = session.organizationId;
+    
+    console.log("[CART API] GET request for user:", {
+      userId: session.userId,
+      organizationId,
+    });
+    
     const items = await prisma.cartItem.findMany({
-      where: { userId: user.userId, product: { organizationId } },
+      where: { userId: session.userId, product: { organizationId } },
       include: { product: { include: { category: true, variants: true } }, variant: true },
     });
+    
+    console.log("[CART API] Retrieved items:", {
+      itemCount: items.length,
+      items: items.map(i => ({ productId: i.productId, quantity: i.quantity })),
+    });
+    
     return NextResponse.json({ success: true, items });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Unauthorized";
+    console.error("[CART API] GET error:", message);
     return NextResponse.json({ success: false, error: message }, { status: 401 });
   }
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const user = await requireAuthFromRequest(req);
-    const organizationId = await getOrganizationIdForUser(user);
+    const session = await requireAuth();
+    const organizationId = session.organizationId;
     const { productId, variantId, quantity } = cartItemSchema.parse(await req.json());
 
     const product = await prisma.product.findFirst({
@@ -44,7 +56,7 @@ export async function POST(req: NextRequest) {
 
     const existing = await prisma.cartItem.findFirst({
       where: {
-        userId: user.userId,
+        userId: session.userId,
         productId,
         variantId: variantId ?? null,
       },
@@ -58,7 +70,7 @@ export async function POST(req: NextRequest) {
         })
       : await prisma.cartItem.create({
           data: {
-            userId: user.userId,
+            userId: session.userId,
             productId,
             variantId: variantId ?? undefined,
             quantity,
@@ -76,12 +88,12 @@ export async function POST(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
-    const user = await requireAuthFromRequest(req);
-    const organizationId = await getOrganizationIdForUser(user);
+    const session = await requireAuth();
+    const organizationId = session.organizationId;
 
     // Get all cart items for the user
     const cartItems = await prisma.cartItem.findMany({
-      where: { userId: user.userId },
+      where: { userId: session.userId },
       select: { id: true, productId: true },
     });
 
@@ -122,7 +134,7 @@ export async function DELETE(req: NextRequest) {
     }));
 
     console.log("[CART CLEANUP] Removed invalid cart items:", {
-      userId: user.userId,
+      userId: session.userId,
       removedCount: deleteResult.count,
       details: cleanupDetails,
     });

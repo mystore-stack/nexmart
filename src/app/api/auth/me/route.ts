@@ -2,16 +2,16 @@
 import { NextRequest, NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
-import { getSessionFromRequest } from "@/lib/session";
+import { auth } from "@/lib/next-auth.config";
 import { prisma } from "@/lib/prisma";
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await getSessionFromRequest(req);
-    if (!session?.userId) {
+    const session = await auth();
+    if (!session?.user?.id) {
       return NextResponse.json({ success: false, error: "Non authentifié" }, { status: 401 });
     }
-    const userId = session.userId;
+    const userId = session.user.id;
 
     const user = await prisma.user.findUnique({
       where: { id: userId },

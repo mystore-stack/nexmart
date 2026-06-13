@@ -1,6 +1,6 @@
 // src/app/api/upload/route.ts
 import { NextRequest } from "next/server";
-import { getAuthFromRequest } from "@/lib/auth";
+import { requireAuth } from "@/lib/auth-api";
 import { uploadImage } from "@/lib/cloudinary";
 import { ok, unauthorized, error, handleApiError } from "@/lib/api";
 
@@ -17,8 +17,7 @@ export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
   try {
-    const payload = await getAuthFromRequest(req);
-    if (!payload) return unauthorized();
+    const session = await requireAuth();
 
     const formData = await req.formData();
     const file = formData.get("file") as File | null;

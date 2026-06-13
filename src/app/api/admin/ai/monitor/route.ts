@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAdminFromRequest } from "@/lib/auth";
-import { getOrganizationIdForUser } from "@/lib/tenant";
+import { requireAdmin } from "@/lib/auth-api";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
   try {
-    const user = await requireAdminFromRequest(req);
-    const organizationId = await getOrganizationIdForUser(user);
+    const session = await requireAdmin();
+    const organizationId = session.organizationId;
     const take = Math.min(50, Number(req.nextUrl.searchParams.get("take") || 20));
 
     const [conversations, messageCount, blockedCount, embeddingCount, events] = await Promise.all([
