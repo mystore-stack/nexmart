@@ -1,6 +1,6 @@
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
-import { headers } from "next/headers"
+import { NextRequest } from "next/server"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -8,14 +8,13 @@ export function cn(...inputs: ClassValue[]) {
 
 /**
  * Get client IP address from request headers
+ * @param req - NextRequest object
  * @returns Client IP address or fallback to unknown
  */
-export function getClientIp(): string {
-  const headersList = headers()
-  
-  const forwarded = headersList.get('x-forwarded-for')
-  const realIp = headersList.get('x-real-ip')
-  const cfConnectingIp = headersList.get('cf-connecting-ip')
+export function getClientIp(req: NextRequest): string {
+  const forwarded = req.headers.get('x-forwarded-for')
+  const realIp = req.headers.get('x-real-ip')
+  const cfConnectingIp = req.headers.get('cf-connecting-ip')
   
   if (forwarded) {
     return forwarded.split(',')[0].trim()
