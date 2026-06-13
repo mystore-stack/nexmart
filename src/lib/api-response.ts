@@ -294,3 +294,15 @@ export function buildPaginationMeta(
     hasPrev: page > 1,
   };
 }
+
+// ─── Error Handler Wrapper ───────────────────────────────────────────
+
+/**
+ * Handle API errors with proper error-to-response conversion
+ * This is an alias for errorToResponse for backward compatibility
+ * @param err - Error to handle
+ * @returns NextResponse with appropriate error response
+ */
+export function handleApiError(err: unknown): NextResponse<ApiError> {
+  return errorToResponse(err);
+}
