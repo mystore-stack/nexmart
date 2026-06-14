@@ -5,8 +5,8 @@ export const DEFAULT_ORGANIZATION_SLUG =
   process.env.DEFAULT_ORGANIZATION_SLUG || "nexmart";
 
 /**
- * Get the default organization ID with auto-bootstrap fallback
- * This ensures the app can start even if organization data is missing
+ * Get the default organization ID
+ * Throws error if no organization exists - requires database seeding
  */
 export async function getDefaultOrganizationId(): Promise<string> {
   try {
@@ -31,25 +31,18 @@ export async function getDefaultOrganizationId(): Promise<string> {
       return fallbackOrganization.id;
     }
 
-    // Auto-bootstrap: Create default organization if none exists
-    // This is a safety mechanism for production environments
-    console.warn("[TENANT] No organization found, attempting auto-bootstrap...");
-    const newOrganization = await prisma.organization.create({
-      data: {
-        slug: DEFAULT_ORGANIZATION_SLUG,
-        name: "NexMart",
-        ownerId: "system", // Will be updated when first admin user is created
-      },
-      select: { id: true },
-    });
+    console.error("[TENANT] No organization found in database");
+    console.error("[TENANT] DEFAULT_ORGANIZATION_SLUG:", DEFAULT_ORGANIZATION_SLUG);
+    console.error("[TENANT] Action: Run 'npm run db:seed' to populate the database");
 
-    console.log(`[TENANT] Auto-bootstrapped organization: ${newOrganization.id}`);
-    return newOrganization.id;
+    throw new Error(
+      `No organization found. Run "npm run db:seed" or create an organization before loading tenant-scoped pages.`
+    );
   } catch (error) {
     console.error("[TENANT] Critical error in getDefaultOrganizationId:", error);
     // Re-throw with context for error boundaries
     throw new Error(
-      `Failed to get or create organization: ${error instanceof Error ? error.message : 'Unknown error'}`
+      `Failed to get organization: ${error instanceof Error ? error.message : 'Unknown error'}`
     );
   }
 }
