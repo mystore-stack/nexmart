@@ -5,6 +5,7 @@ import { NextRequest } from "next/server";
 import type { AuthSession, JwtPayload } from "@/types";
 import { AUTH_COOKIE, verifyAccessToken } from "./auth";
 import { getNextAuthSecret } from "./env";
+import { cacheUserValidation, getCachedUserValidation } from "./auth-cache";
 
 const sessionSecret = () => getNextAuthSecret();
 
@@ -50,19 +51,31 @@ async function legacyFromRequest(req: NextRequest): Promise<AuthSession | null> 
       const payload = await verifyAccessToken(authHeader.slice(7));
       const session = jwtToSession(payload);
       
-      // PRODUCTION PROTECTION: Verify user exists in database
+      // PRODUCTION PROTECTION: Verify user exists in database with caching
       if (session?.userId) {
+        const cached = getCachedUserValidation(session.userId);
+        if (cached) {
+          if (!cached.exists) {
+            console.error("[SESSION] Legacy auth token valid but user does not exist (cached):", session.userId);
+            return null;
+          }
+          console.log("[SESSION] User verified for legacy auth (cached):", session.userId);
+          return { ...session, role: cached.role };
+        }
+        
         const { prisma } = await import("@/lib/prisma");
         const user = await prisma.user.findUnique({
           where: { id: session.userId },
-          select: { id: true },
+          select: { id: true, role: true },
         });
         
         if (!user) {
           console.error("[SESSION] Legacy auth token valid but user does not exist in database:", session.userId);
+          cacheUserValidation(session.userId, false, "USER");
           return null;
         }
         
+        cacheUserValidation(session.userId, true, user.role);
         console.log("[SESSION] User verified for legacy auth:", session.userId);
       }
       
@@ -79,19 +92,31 @@ async function legacyFromRequest(req: NextRequest): Promise<AuthSession | null> 
       const payload = await verifyAccessToken(cookieToken);
       const session = jwtToSession(payload);
       
-      // PRODUCTION PROTECTION: Verify user exists in database
+      // PRODUCTION PROTECTION: Verify user exists in database with caching
       if (session?.userId) {
+        const cached = getCachedUserValidation(session.userId);
+        if (cached) {
+          if (!cached.exists) {
+            console.error("[SESSION] Legacy auth cookie valid but user does not exist (cached):", session.userId);
+            return null;
+          }
+          console.log("[SESSION] User verified for legacy auth cookie (cached):", session.userId);
+          return { ...session, role: cached.role };
+        }
+        
         const { prisma } = await import("@/lib/prisma");
         const user = await prisma.user.findUnique({
           where: { id: session.userId },
-          select: { id: true },
+          select: { id: true, role: true },
         });
         
         if (!user) {
           console.error("[SESSION] Legacy auth cookie valid but user does not exist in database:", session.userId);
+          cacheUserValidation(session.userId, false, "USER");
           return null;
         }
         
+        cacheUserValidation(session.userId, true, user.role);
         console.log("[SESSION] User verified for legacy auth cookie:", session.userId);
       }
       
@@ -116,19 +141,31 @@ async function legacyFromCookies(): Promise<AuthSession | null> {
       const payload = await verifyAccessToken(cookieToken);
       const session = jwtToSession(payload);
       
-      // PRODUCTION PROTECTION: Verify user exists in database
+      // PRODUCTION PROTECTION: Verify user exists in database with caching
       if (session?.userId) {
+        const cached = getCachedUserValidation(session.userId);
+        if (cached) {
+          if (!cached.exists) {
+            console.error("[SESSION] Legacy auth cookie valid but user does not exist (cached):", session.userId);
+            return null;
+          }
+          console.log("[SESSION] User verified for legacy auth cookie (cached):", session.userId);
+          return { ...session, role: cached.role };
+        }
+        
         const { prisma } = await import("@/lib/prisma");
         const user = await prisma.user.findUnique({
           where: { id: session.userId },
-          select: { id: true },
+          select: { id: true, role: true },
         });
         
         if (!user) {
           console.error("[SESSION] Legacy auth cookie valid but user does not exist in database:", session.userId);
+          cacheUserValidation(session.userId, false, "USER");
           return null;
         }
         
+        cacheUserValidation(session.userId, true, user.role);
         console.log("[SESSION] User verified for legacy auth cookie:", session.userId);
       }
       
@@ -156,6 +193,33 @@ export async function getSessionFromRequest(req: NextRequest): Promise<AuthSessi
       console.error("[SESSION] tokenToPayload returned null, rejecting session");
       return null;
     }
+    
+    // PRODUCTION PROTECTION: Verify user exists in database with caching
+    const cached = getCachedUserValidation(payload.userId);
+    if (cached) {
+      if (!cached.exists) {
+        console.error("[SESSION] NextAuth token valid but user does not exist (cached):", payload.userId);
+        return null;
+      }
+      console.log("[SESSION] User verified for NextAuth token (cached):", payload.userId);
+      return { ...payload, role: cached.role };
+    }
+    
+    const { prisma } = await import("@/lib/prisma");
+    const user = await prisma.user.findUnique({
+      where: { id: payload.userId },
+      select: { id: true, role: true },
+    });
+    
+    if (!user) {
+      console.error("[SESSION] NextAuth token valid but user does not exist in database:", payload.userId);
+      cacheUserValidation(payload.userId, false, "USER");
+      return null;
+    }
+    
+    cacheUserValidation(payload.userId, true, user.role);
+    payload.role = normalizeRole(user.role);
+    
     return payload;
   }
   console.log("[SESSION] No NextAuth token, falling back to legacy auth");
@@ -172,11 +236,40 @@ export async function getSession(): Promise<AuthSession | null> {
       console.error("[SESSION] NextAuth session has no userId, rejecting session");
       return null;
     }
-    console.log("[SESSION] NextAuth session found:", { userId: u.id, email: u.email, role: u.role });
+    
+    // PRODUCTION PROTECTION: Verify user exists in database with caching
+    const cached = getCachedUserValidation(u.id);
+    if (cached) {
+      if (!cached.exists) {
+        console.error("[SESSION] NextAuth session valid but user does not exist (cached):", u.id);
+        return null;
+      }
+      console.log("[SESSION] NextAuth session found and user verified (cached):", { userId: u.id, email: u.email, role: cached.role });
+      return {
+        userId: u.id,
+        email: u.email ?? "",
+        role: cached.role,
+      };
+    }
+    
+    const { prisma } = await import("@/lib/prisma");
+    const user = await prisma.user.findUnique({
+      where: { id: u.id },
+      select: { id: true, role: true },
+    });
+    
+    if (!user) {
+      console.error("[SESSION] NextAuth session valid but user does not exist in database:", u.id);
+      cacheUserValidation(u.id, false, "USER");
+      return null;
+    }
+    
+    cacheUserValidation(u.id, true, user.role);
+    console.log("[SESSION] NextAuth session found and user verified:", { userId: u.id, email: u.email, role: user.role });
     return {
       userId: u.id,
       email: u.email ?? "",
-      role: normalizeRole(u.role),
+      role: normalizeRole(user.role),
     };
   }
 

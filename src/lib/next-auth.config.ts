@@ -166,6 +166,31 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         console.log("[NEXTAUTH] JWT token updated via trigger:", { trigger });
       }
 
+      // PRODUCTION PROTECTION: Validate user exists in database on every token refresh
+      // This prevents sessions from remaining valid after user deletion
+      if (token.userId && (trigger === "session" || !user)) {
+        try {
+          const dbUser = await prisma.user.findUnique({
+            where: { id: token.userId as string },
+            select: { id: true, role: true },
+          });
+          
+          if (!dbUser) {
+            console.error("[NEXTAUTH] JWT callback: User no longer exists in database, invalidating token:", token.userId);
+            // Return empty token to invalidate session
+            return { userId: null, role: null, provider: null };
+          }
+          
+          // Update token with latest role from database
+          token.role = dbUser.role;
+          console.log("[NEXTAUTH] JWT callback: User validated in database:", { userId: token.userId, role: token.role });
+        } catch (error) {
+          console.error("[NEXTAUTH] JWT callback: Database validation failed, invalidating token:", error);
+          // Return empty token to invalidate session on database errors
+          return { userId: null, role: null, provider: null };
+        }
+      }
+
       console.log("[NEXTAUTH] JWT token final state:", {
         userId: token.userId,
         role: token.role,
@@ -181,6 +206,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         hasTokenUserId: !!token.userId,
         tokenUserId: token.userId 
       });
+      
+      // PRODUCTION PROTECTION: Reject session if userId is null (user was deleted)
+      if (!token.userId) {
+        console.error("[NEXTAUTH] Session callback: token.userId is null, user was likely deleted, rejecting session");
+        // Return session with undefined user to invalidate
+        return { ...session, user: undefined };
+      }
       
       if (session.user && token.userId) {
         session.user.id = token.userId as string;
@@ -198,6 +230,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           hasSessionUser: !!session.user,
           hasTokenUserId: !!token.userId,
         });
+        return { ...session, user: undefined };
       }
       
       return session;
