@@ -1,20 +1,7 @@
 // src/lib/redis.ts
-import IORedis from "ioredis";
+// Redis has been removed from the project
+// All Redis operations are now no-ops
 
-const globalForRedis = globalThis as unknown as {
-  redis: IORedis | undefined;
-};
-
-const isBuild =
-  process.env.NEXT_PHASE === "phase-production-build" ||
-  process.argv.some((arg) => /next(\.exe)?$/i.test(arg) && process.argv.some((arg) => /build/i.test(arg)));
-
-const disableRedisFlag =
-  process.env.DISABLE_REDIS === "true" ||
-  !process.env.REDIS_URL ||
-  isBuild;
-
-// Disabled Redis client for fallback scenarios
 const disabledRedis = {
   get: async () => null,
   set: async () => "OK",
@@ -29,35 +16,11 @@ const disabledRedis = {
   quit: async () => {},
   duplicate: () => disabledRedis as any,
   on: () => disabledRedis,
-} as unknown as IORedis;
+  incrby: async () => 1,
+} as any;
 
-const createRedisClient = () => {
-  if (disableRedisFlag) {
-    return disabledRedis;
-  }
-
-  if (!process.env.REDIS_URL) {
-    console.error("REDIS_URL is not set");
-    return disabledRedis;
-  }
-
-  try {
-    const client = new IORedis(process.env.REDIS_URL, {
-      maxRetriesPerRequest: null,
-    });
-    return client;
-  } catch (error) {
-    console.error("Failed to initialize Redis:", error);
-    return disabledRedis;
-  }
-};
-
-export const redis = globalForRedis.redis ?? createRedisClient();
-export const isRedisEnabled = !disableRedisFlag;
-
-if (process.env.NODE_ENV !== "production") {
-  globalForRedis.redis = redis;
-}
+export const redis = disabledRedis;
+export const isRedisEnabled = false;
 
 // ─── Cache helpers ──────────────────────────────────────────
 

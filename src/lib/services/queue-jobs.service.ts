@@ -121,28 +121,14 @@ export async function retryJob(jobId: string) {
     },
   });
 
-  // Add job back to queue
+  // Add job back to queue (disabled - Redis removed)
   try {
-    const { QUEUES } = await import('../queue');
-    const queue = new Queue(job.queueName, {
-      connection: {
-        url: process.env.REDIS_URL,
-      },
-    });
-
-    await queue.add(job.name, job.data, {
-      jobId: job.jobId,
-      priority: job.priority,
-      attempts: job.maxAttempts,
-    });
-
-    await queue.close();
+    console.log('[Queue Jobs Service] Queue operations disabled - Redis removed');
+    return { success: true, jobId: job.jobId };
   } catch (error) {
     console.error('[Queue Jobs Service] Failed to retry job:', error);
     throw error;
   }
-
-  return { success: true, jobId: job.jobId };
 }
 
 /**
@@ -157,21 +143,9 @@ export async function deleteJob(jobId: string) {
     throw new Error('Job not found');
   }
 
-  // Remove from BullMQ queue
+  // Remove from BullMQ queue (disabled - Redis removed)
   try {
-    const { QUEUES } = await import('../queue');
-    const queue = new Queue(job.queueName, {
-      connection: {
-        url: process.env.REDIS_URL,
-      },
-    });
-
-    const bullJob = await queue.getJob(job.jobId);
-    if (bullJob) {
-      await bullJob.remove();
-    }
-
-    await queue.close();
+    console.log('[Queue Jobs Service] Queue operations disabled - Redis removed');
   } catch (error) {
     console.error('[Queue Jobs Service] Failed to remove job from queue:', error);
   }
@@ -216,58 +190,8 @@ export async function getQueueStatistics(queueName?: string) {
  */
 export async function syncQueueJobs(queueName: string) {
   try {
-    const { QUEUES } = await import('../queue');
-    const queue = new Queue(queueName, {
-      connection: {
-        url: process.env.REDIS_URL,
-      },
-    });
-
-    const [waiting, active, completed, failed, delayed] = await Promise.all([
-      queue.getWaiting(),
-      queue.getActive(),
-      queue.getCompleted(),
-      queue.getFailed(),
-      queue.getDelayed(),
-    ]);
-
-    const allJobs = [...waiting, ...active, ...completed, ...failed, ...delayed];
-
-    for (const job of allJobs) {
-      const existingJob = await prisma.queueJob.findUnique({
-        where: { jobId: job.id! },
-      });
-
-      const jobData = {
-        jobId: job.id!,
-        queueName,
-        name: job.name,
-        data: job.data,
-        status: getJobStatusFromBullMQ(job),
-        priority: job.opts?.priority || 0,
-        attempts: job.attemptsMade,
-        maxAttempts: job.opts?.attempts || 3,
-        failedReason: job.failedReason || null,
-        stacktrace: job.stacktrace ? job.stacktrace.join('\n') : null,
-        processedOn: job.processedOn ? new Date(job.processedOn) : null,
-        finishedOn: job.finishedOn ? new Date(job.finishedOn) : null,
-      };
-
-      if (existingJob) {
-        await prisma.queueJob.update({
-          where: { id: existingJob.id },
-          data: jobData,
-        });
-      } else {
-        await prisma.queueJob.create({
-          data: jobData,
-        });
-      }
-    }
-
-    await queue.close();
-
-    return { synced: allJobs.length };
+    console.log('[Queue Jobs Service] Queue operations disabled - Redis removed');
+    return { synced: 0 };
   } catch (error) {
     console.error('[Queue Jobs Service] Failed to sync queue jobs:', error);
     throw error;

@@ -1,11 +1,27 @@
 // src/lib/queue.ts
-import { Queue, Worker, Job } from "bullmq";
+// BullMQ queues have been disabled (Redis removed)
+// All queue operations are now no-ops
 
-// Queue configuration - use REDIS_URL directly
+const disabledQueue = {
+  add: async () => null,
+  getWaiting: async () => [],
+  getActive: async () => [],
+  getCompleted: async () => [],
+  getFailed: async () => [],
+  getWaitingCount: async () => 0,
+  getActiveCount: async () => 0,
+  getCompletedCount: async () => 0,
+  getFailedCount: async () => 0,
+  close: async () => {},
+} as any;
+
+const disabledWorker = {
+  on: () => disabledWorker,
+  close: async () => {},
+} as any;
+
 const QUEUE_CONFIG = {
-  connection: {
-    url: process.env.REDIS_URL,
-  },
+  connection: {},
   defaultJobOptions: {
     attempts: 3,
     backoff: {
@@ -27,13 +43,13 @@ export const QUEUES = {
   ABANDONED_CART: "abandoned-cart-queue",
 } as const;
 
-// Create queues
-export const emailQueue = new Queue(QUEUES.EMAIL, QUEUE_CONFIG);
-export const analyticsQueue = new Queue(QUEUES.ANALYTICS, QUEUE_CONFIG);
-export const notificationsQueue = new Queue(QUEUES.NOTIFICATIONS, QUEUE_CONFIG);
-export const inventorySyncQueue = new Queue(QUEUES.INVENTORY_SYNC, QUEUE_CONFIG);
-export const aiScoringQueue = new Queue(QUEUES.AI_SCORING, QUEUE_CONFIG);
-export const abandonedCartQueue = new Queue(QUEUES.ABANDONED_CART, QUEUE_CONFIG);
+// Create disabled queues
+export const emailQueue = disabledQueue;
+export const analyticsQueue = disabledQueue;
+export const notificationsQueue = disabledQueue;
+export const inventorySyncQueue = disabledQueue;
+export const aiScoringQueue = disabledQueue;
+export const abandonedCartQueue = disabledQueue;
 
 // Job types
 export interface EmailJobData {
@@ -108,123 +124,22 @@ export async function addAbandonedCartJob(data: AbandonedCartJobData, options?: 
   });
 }
 
-// Worker setup (for production deployment)
+// Worker setup (disabled - Redis removed)
 export function createWorkers() {
-  // Email worker
-  const emailWorker = new Worker<EmailJobData>(
-    QUEUES.EMAIL,
-    async (job: Job<EmailJobData>) => {
-      console.log(`[EMAIL_WORKER] Processing job ${job.id}:`, job.data);
-      // TODO: Implement email sending logic
-      // await sendEmail(job.data.to, job.data.subject, job.data.template, job.data.data);
-    },
-    QUEUE_CONFIG
-  );
-
-  // Analytics worker
-  const analyticsWorker = new Worker<AnalyticsJobData>(
-    QUEUES.ANALYTICS,
-    async (job: Job<AnalyticsJobData>) => {
-      console.log(`[ANALYTICS_WORKER] Processing job ${job.id}:`, job.data);
-      // TODO: Implement analytics processing logic
-    },
-    QUEUE_CONFIG
-  );
-
-  // Notifications worker
-  const notificationsWorker = new Worker<NotificationJobData>(
-    QUEUES.NOTIFICATIONS,
-    async (job: Job<NotificationJobData>) => {
-      console.log(`[NOTIFICATIONS_WORKER] Processing job ${job.id}:`, job.data);
-      // TODO: Implement notification sending logic
-    },
-    QUEUE_CONFIG
-  );
-
-  // Inventory sync worker
-  const inventorySyncWorker = new Worker<InventorySyncJobData>(
-    QUEUES.INVENTORY_SYNC,
-    async (job: Job<InventorySyncJobData>) => {
-      console.log(`[INVENTORY_WORKER] Processing job ${job.id}:`, job.data);
-      // TODO: Implement inventory sync logic
-    },
-    QUEUE_CONFIG
-  );
-
-  // AI scoring worker
-  const aiScoringWorker = new Worker<AIScoringJobData>(
-    QUEUES.AI_SCORING,
-    async (job: Job<AIScoringJobData>) => {
-      console.log(`[AI_WORKER] Processing job ${job.id}:`, job.data);
-      // TODO: Implement AI scoring logic
-    },
-    QUEUE_CONFIG
-  );
-
-  // Abandoned cart worker
-  const abandonedCartWorker = new Worker<AbandonedCartJobData>(
-    QUEUES.ABANDONED_CART,
-    async (job: Job<AbandonedCartJobData>) => {
-      console.log(`[ABANDONED_CART_WORKER] Processing job ${job.id}:`, job.data);
-      // TODO: Implement abandoned cart recovery logic
-    },
-    QUEUE_CONFIG
-  );
-
-  // Error handling
-  const workers = [
-    emailWorker,
-    analyticsWorker,
-    notificationsWorker,
-    inventorySyncWorker,
-    aiScoringWorker,
-    abandonedCartWorker,
-  ];
-
-  workers.forEach((worker) => {
-    worker.on("failed", (job) => {
-      console.error(`[WORKER] Job ${job?.id} failed:`, job?.failedReason);
-    });
-
-    worker.on("completed", (job) => {
-      console.log(`[WORKER] Job ${job?.id} completed`);
-    });
-  });
-
-  return workers;
+  console.log("[Queue] Workers disabled - Redis removed from project");
+  return [disabledWorker, disabledWorker, disabledWorker, disabledWorker, disabledWorker, disabledWorker];
 }
 
-// Queue health check
+// Queue health check (disabled - Redis removed)
 export async function getQueueHealth() {
-  const queues = [
-    emailQueue,
-    analyticsQueue,
-    notificationsQueue,
-    inventorySyncQueue,
-    aiScoringQueue,
-    abandonedCartQueue,
+  return [
+    { name: "email-queue", waiting: 0, active: 0, completed: 0, failed: 0 },
+    { name: "analytics-queue", waiting: 0, active: 0, completed: 0, failed: 0 },
+    { name: "notifications-queue", waiting: 0, active: 0, completed: 0, failed: 0 },
+    { name: "inventory-sync-queue", waiting: 0, active: 0, completed: 0, failed: 0 },
+    { name: "ai-scoring-queue", waiting: 0, active: 0, completed: 0, failed: 0 },
+    { name: "abandoned-cart-queue", waiting: 0, active: 0, completed: 0, failed: 0 },
   ];
-
-  const health = await Promise.all(
-    queues.map(async (queue) => {
-      const [waiting, active, completed, failed] = await Promise.all([
-        queue.getWaitingCount(),
-        queue.getActiveCount(),
-        queue.getCompletedCount(),
-        queue.getFailedCount(),
-      ]);
-
-      return {
-        name: queue.name,
-        waiting,
-        active,
-        completed,
-        failed,
-      };
-    })
-  );
-
-  return health;
 }
 
 export default {
