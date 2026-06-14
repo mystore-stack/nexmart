@@ -14,20 +14,25 @@ export default async function DealsPage({
 }: {
   searchParams: Record<string, string | string[] | undefined>;
 }) {
-  const [categories, maxPrice] = await Promise.all([getCatalogCategories(), getCatalogMaxPrice()]);
+  try {
+    const [categories, maxPrice] = await Promise.all([getCatalogCategories(), getCatalogMaxPrice()]);
 
-  return (
-    <ProductListingShell
-      title="Promotions du jour"
-      description="Économisez sur une sélection de produits en promotion."
-      breadcrumbs={[
-        { label: "Accueil", href: "/" },
-        { label: "Promotions" },
-      ]}
-      categories={categories as never}
-      maxPrice={maxPrice}
-      searchParams={searchParams}
-      forcedParams={{ sort: "discount", sale: "true" }}
-    />
-  );
+    return (
+      <ProductListingShell
+        title="Promotions du jour"
+        description="Économisez sur une sélection de produits en promotion."
+        breadcrumbs={[
+          { label: "Accueil", href: "/" },
+          { label: "Promotions" },
+        ]}
+        categories={categories as never}
+        maxPrice={maxPrice}
+        searchParams={searchParams}
+        forcedParams={{ sort: "discount", sale: "true" }}
+      />
+    );
+  } catch (error) {
+    console.error("[DealsPage] Error loading deals:", error);
+    throw error;
+  }
 }

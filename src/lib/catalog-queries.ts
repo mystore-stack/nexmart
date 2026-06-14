@@ -2,18 +2,23 @@ import { prisma } from "@/lib/prisma";
 import { getDefaultOrganizationId } from "@/lib/tenant";
 
 export async function getCatalogCategories() {
-  const organizationId = await getDefaultOrganizationId();
-  return prisma.category.findMany({
-    where: { organizationId, parentId: null },
-    include: {
-      _count: { select: { products: { where: { organizationId, published: true } } } },
-      children: {
-        where: { organizationId },
-        include: { _count: { select: { products: { where: { organizationId, published: true } } } } },
+  try {
+    const organizationId = await getDefaultOrganizationId();
+    return prisma.category.findMany({
+      where: { organizationId, parentId: null },
+      include: {
+        _count: { select: { products: { where: { organizationId, published: true } } } },
+        children: {
+          where: { organizationId },
+          include: { _count: { select: { products: { where: { organizationId, published: true } } } } },
+        },
       },
-    },
-    orderBy: { name: "asc" },
-  });
+      orderBy: { name: "asc" },
+    });
+  } catch (error) {
+    console.error("[CATALOG] Error loading categories, returning empty array:", error);
+    return [];
+  }
 }
 
 export async function getCategoryBySlug(slug: string) {
@@ -31,12 +36,17 @@ export async function getCategoryBySlug(slug: string) {
 }
 
 export async function getCatalogMaxPrice() {
-  const organizationId = await getDefaultOrganizationId();
-  const agg = await prisma.product.aggregate({
-    _max: { price: true },
-    where: { organizationId, published: true },
-  });
-  return agg._max.price || 1000;
+  try {
+    const organizationId = await getDefaultOrganizationId();
+    const agg = await prisma.product.aggregate({
+      _max: { price: true },
+      where: { organizationId, published: true },
+    });
+    return agg._max.price || 1000;
+  } catch (error) {
+    console.error("[CATALOG] Error loading max price, returning default:", error);
+    return 1000;
+  }
 }
 
 export async function getBrandsFromTags() {

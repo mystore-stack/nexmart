@@ -5,23 +5,32 @@ export const DEFAULT_ORGANIZATION_SLUG =
   process.env.DEFAULT_ORGANIZATION_SLUG || "nexmart";
 
 export async function getDefaultOrganizationId() {
-  const organization = await prisma.organization.findUnique({
-    where: { slug: DEFAULT_ORGANIZATION_SLUG },
-    select: { id: true },
-  });
+  try {
+    const organization = await prisma.organization.findUnique({
+      where: { slug: DEFAULT_ORGANIZATION_SLUG },
+      select: { id: true },
+    });
 
-  if (organization) return organization.id;
+    if (organization) return organization.id;
 
-  const fallbackOrganization = await prisma.organization.findFirst({
-    select: { id: true },
-    orderBy: { createdAt: "asc" },
-  });
+    const fallbackOrganization = await prisma.organization.findFirst({
+      select: { id: true },
+      orderBy: { createdAt: "asc" },
+    });
 
-  if (fallbackOrganization) return fallbackOrganization.id;
+    if (fallbackOrganization) return fallbackOrganization.id;
 
-  throw new Error(
-    `No organization found. Run "npm run db:seed" or create an organization before loading tenant-scoped pages.`
-  );
+    console.error("[TENANT] No organization found in database");
+    console.error("[TENANT] DEFAULT_ORGANIZATION_SLUG:", DEFAULT_ORGANIZATION_SLUG);
+    console.error("[TENANT] Action: Run 'npm run db:seed' to populate the database");
+
+    throw new Error(
+      `No organization found. Run "npm run db:seed" or create an organization before loading tenant-scoped pages.`
+    );
+  } catch (error) {
+    console.error("[TENANT] Error in getDefaultOrganizationId:", error);
+    throw error;
+  }
 }
 
 export async function getOrganizationIdForUser(payload: Pick<AuthSession, "userId">) {
