@@ -4,32 +4,74 @@ import type { AuthSession } from "@/types";
 export const DEFAULT_ORGANIZATION_SLUG =
   process.env.DEFAULT_ORGANIZATION_SLUG || "nexmart";
 
-export async function getDefaultOrganizationId() {
+/**
+ * Get the default organization ID with auto-bootstrap fallback
+ * This ensures the app can start even if organization data is missing
+ */
+export async function getDefaultOrganizationId(): Promise<string> {
   try {
+    // Try to find the default organization by slug
     const organization = await prisma.organization.findUnique({
       where: { slug: DEFAULT_ORGANIZATION_SLUG },
       select: { id: true },
     });
 
-    if (organization) return organization.id;
+    if (organization) {
+      return organization.id;
+    }
 
+    // Fallback to any existing organization
     const fallbackOrganization = await prisma.organization.findFirst({
       select: { id: true },
       orderBy: { createdAt: "asc" },
     });
 
-    if (fallbackOrganization) return fallbackOrganization.id;
+    if (fallbackOrganization) {
+      console.warn(`[TENANT] Using fallback organization: ${fallbackOrganization.id} (default slug '${DEFAULT_ORGANIZATION_SLUG}' not found)`);
+      return fallbackOrganization.id;
+    }
 
-    console.error("[TENANT] No organization found in database");
-    console.error("[TENANT] DEFAULT_ORGANIZATION_SLUG:", DEFAULT_ORGANIZATION_SLUG);
-    console.error("[TENANT] Action: Run 'npm run db:seed' to populate the database");
+    // Auto-bootstrap: Create default organization if none exists
+    // This is a safety mechanism for production environments
+    console.warn("[TENANT] No organization found, attempting auto-bootstrap...");
+    const newOrganization = await prisma.organization.create({
+      data: {
+        slug: DEFAULT_ORGANIZATION_SLUG,
+        name: "NexMart",
+        ownerId: "system", // Will be updated when first admin user is created
+        settings: {},
+      },
+      select: { id: true },
+    });
 
-    throw new Error(
-      `No organization found. Run "npm run db:seed" or create an organization before loading tenant-scoped pages.`
-    );
+    console.log(`[TENANT] Auto-bootstrapped organization: ${newOrganization.id}`);
+    return newOrganization.id;
   } catch (error) {
-    console.error("[TENANT] Error in getDefaultOrganizationId:", error);
-    throw error;
+    console.error("[TENANT] Critical error in getDefaultOrganizationId:", error);
+    // Re-throw with context for error boundaries
+    throw new Error(
+      `Failed to get or create organization: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
+  }
+}
+
+/**
+ * Check if the application has valid organization data
+ * Use this for health checks and startup validation
+ */
+export async function validateOrganizationSetup(): Promise<{
+  valid: boolean;
+  organizationId?: string;
+  error?: string;
+}> {
+  try {
+    const organizationId = await getDefaultOrganizationId();
+    return { valid: true, organizationId };
+  } catch (error) {
+    return {
+      valid: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    };
   }
 }
 

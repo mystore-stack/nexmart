@@ -1,6 +1,10 @@
 import { prisma } from "@/lib/prisma";
 import { getDefaultOrganizationId } from "@/lib/tenant";
 
+/**
+ * Get catalog categories with safety layer
+ * Returns empty array on error instead of crashing
+ */
 export async function getCatalogCategories() {
   try {
     const organizationId = await getDefaultOrganizationId();
@@ -21,20 +25,33 @@ export async function getCatalogCategories() {
   }
 }
 
+/**
+ * Get category by slug with safety layer
+ * Returns null on error instead of crashing
+ */
 export async function getCategoryBySlug(slug: string) {
-  const organizationId = await getDefaultOrganizationId();
-  return prisma.category.findFirst({
-    where: { organizationId, slug },
-    include: {
-      _count: { select: { products: { where: { organizationId, published: true } } } },
-      children: {
-        where: { organizationId },
-        include: { _count: { select: { products: { where: { organizationId, published: true } } } } },
+  try {
+    const organizationId = await getDefaultOrganizationId();
+    return prisma.category.findFirst({
+      where: { organizationId, slug },
+      include: {
+        _count: { select: { products: { where: { organizationId, published: true } } } },
+        children: {
+          where: { organizationId },
+          include: { _count: { select: { products: { where: { organizationId, published: true } } } } },
+        },
       },
-    },
-  });
+    });
+  } catch (error) {
+    console.error("[CATALOG] Error loading category by slug:", error);
+    return null;
+  }
 }
 
+/**
+ * Get catalog max price with safety layer
+ * Returns default value on error instead of crashing
+ */
 export async function getCatalogMaxPrice() {
   try {
     const organizationId = await getDefaultOrganizationId();
@@ -49,21 +66,30 @@ export async function getCatalogMaxPrice() {
   }
 }
 
+/**
+ * Get brands from tags with safety layer
+ * Returns empty array on error instead of crashing
+ */
 export async function getBrandsFromTags() {
-  const organizationId = await getDefaultOrganizationId();
-  const products = await prisma.product.findMany({
-    where: { organizationId, published: true },
-    select: { tags: true },
-  });
-  const counts = new Map<string, number>();
-  for (const p of products) {
-    for (const tag of p.tags) {
-      const key = tag.trim();
-      if (!key) continue;
-      counts.set(key, (counts.get(key) || 0) + 1);
+  try {
+    const organizationId = await getDefaultOrganizationId();
+    const products = await prisma.product.findMany({
+      where: { organizationId, published: true },
+      select: { tags: true },
+    });
+    const counts = new Map<string, number>();
+    for (const p of products) {
+      for (const tag of p.tags) {
+        const key = tag.trim();
+        if (!key) continue;
+        counts.set(key, (counts.get(key) || 0) + 1);
+      }
     }
+    return Array.from(counts.entries())
+      .map(([name, count]) => ({ name, slug: name.toLowerCase().replace(/\s+/g, "-"), count }))
+      .sort((a, b) => b.count - a.count);
+  } catch (error) {
+    console.error("[CATALOG] Error loading brands from tags, returning empty array:", error);
+    return [];
   }
-  return Array.from(counts.entries())
-    .map(([name, count]) => ({ name, slug: name.toLowerCase().replace(/\s+/g, "-"), count }))
-    .sort((a, b) => b.count - a.count);
 }
