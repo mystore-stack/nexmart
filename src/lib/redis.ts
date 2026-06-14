@@ -1,13 +1,15 @@
 // src/lib/redis.ts
 import Redis from "ioredis";
+import { Redis as UpstashRedis } from "@upstash/redis";
 
 const globalForRedis = globalThis as unknown as {
-  redis: Redis | undefined;
+  redis: Redis | UpstashRedis | undefined;
 };
 
 const isBuild =
   process.env.NEXT_PHASE === "phase-production-build" ||
   process.argv.some((arg) => /next(\.exe)?$/i.test(arg) && process.argv.some((arg) => /build/i.test(arg)));
+
 /** Strip accidental `redis-cli -u` prefix from REDIS_URL */
 function normalizeRedisUrl(raw: string | undefined): string | undefined {
   if (!raw || typeof raw !== "string") return undefined;
@@ -20,10 +22,14 @@ function normalizeRedisUrl(raw: string | undefined): string | undefined {
 
 const redisUrl = normalizeRedisUrl(process.env.REDIS_URL);
 const hasValidRedisUrl = Boolean(redisUrl);
+const hasUpstashConfig = Boolean(
+  process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN
+);
+
 const disableRedisFlag =
   process.env.DISABLE_REDIS === "true" ||
   process.env.REDIS_URL?.includes("redis-cli") ||
-  !hasValidRedisUrl ||
+  (!hasValidRedisUrl && !hasUpstashConfig) ||
   isBuild;
 
 const disabledRedis = {
@@ -34,13 +40,34 @@ const disabledRedis = {
   incr: async () => 1,
   expire: async () => 1,
   on: () => disabledRedis,
-} as unknown as Redis;
+  set: async () => "OK",
+  publish: async () => 0,
+  subscribe: async () => {},
+  unsubscribe: async () => {},
+  quit: async () => {},
+  duplicate: () => disabledRedis as any,
+} as unknown as Redis | UpstashRedis;
 
 const createRedisClient = () => {
   if (disableRedisFlag) {
     return disabledRedis;
   }
 
+  // Use Upstash Redis if configured
+  if (hasUpstashConfig) {
+    try {
+      const upstashRedis = new UpstashRedis({
+        url: process.env.UPSTASH_REDIS_REST_URL!,
+        token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+      });
+      return upstashRedis as any;
+    } catch (error) {
+      console.error("Failed to initialize Upstash Redis:", error);
+      return disabledRedis;
+    }
+  }
+
+  // Fallback to regular Redis
   const client = new Redis(redisUrl || "redis://localhost:6379", {
     maxRetriesPerRequest: 3,
     enableReadyCheck: false,
