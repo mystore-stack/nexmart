@@ -39,7 +39,6 @@ export async function getDefaultOrganizationId(): Promise<string> {
         slug: DEFAULT_ORGANIZATION_SLUG,
         name: "NexMart",
         ownerId: "system", // Will be updated when first admin user is created
-        settings: {},
       },
       select: { id: true },
     });
