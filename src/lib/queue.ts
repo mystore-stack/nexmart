@@ -1,12 +1,10 @@
 // src/lib/queue.ts
 import { Queue, Worker, Job } from "bullmq";
-import { redis } from "./redis";
 
-// Queue configuration
+// Queue configuration - use REDIS_URL directly
 const QUEUE_CONFIG = {
   connection: {
-    host: process.env.REDIS_HOST || "localhost",
-    port: parseInt(process.env.REDIS_PORT || "6379"),
+    url: process.env.REDIS_URL,
   },
   defaultJobOptions: {
     attempts: 3,

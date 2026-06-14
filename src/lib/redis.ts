@@ -1,21 +1,17 @@
 // src/lib/redis.ts
-import { Redis } from "@upstash/redis";
+import IORedis from "ioredis";
 
 const globalForRedis = globalThis as unknown as {
-  redis: Redis | undefined;
+  redis: IORedis | undefined;
 };
 
 const isBuild =
   process.env.NEXT_PHASE === "phase-production-build" ||
   process.argv.some((arg) => /next(\.exe)?$/i.test(arg) && process.argv.some((arg) => /build/i.test(arg)));
 
-const hasUpstashConfig = Boolean(
-  process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN
-);
-
 const disableRedisFlag =
   process.env.DISABLE_REDIS === "true" ||
-  !hasUpstashConfig ||
+  !process.env.REDIS_URL ||
   isBuild;
 
 // Disabled Redis client for fallback scenarios
@@ -25,19 +21,33 @@ const disabledRedis = {
   del: async () => 0,
   incr: async () => 1,
   expire: async () => 1,
-} as unknown as Redis;
+  setex: async () => "OK",
+  keys: async () => [],
+  publish: async () => 0,
+  subscribe: async () => {},
+  unsubscribe: async () => {},
+  quit: async () => {},
+  duplicate: () => disabledRedis as any,
+  on: () => disabledRedis,
+} as unknown as IORedis;
 
 const createRedisClient = () => {
   if (disableRedisFlag) {
     return disabledRedis;
   }
 
+  if (!process.env.REDIS_URL) {
+    console.error("REDIS_URL is not set");
+    return disabledRedis;
+  }
+
   try {
-    const upstashRedis = Redis.fromEnv();
-    return upstashRedis;
+    const client = new IORedis(process.env.REDIS_URL, {
+      maxRetriesPerRequest: null,
+    });
+    return client;
   } catch (error) {
-    console.error("Failed to initialize Upstash Redis:", error);
-    console.error("Ensure UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN are set");
+    console.error("Failed to initialize Redis:", error);
     return disabledRedis;
   }
 };
@@ -90,7 +100,7 @@ export async function setCache<T>(
   ttl: number = CACHE_TTL.MEDIUM
 ): Promise<void> {
   try {
-    await redis.set(key, JSON.stringify(value), { ex: ttl });
+    await redis.setex(key, ttl, JSON.stringify(value));
   } catch {
     // Silently fail cache writes
   }
@@ -98,24 +108,23 @@ export async function setCache<T>(
 
 export async function deleteCache(pattern: string): Promise<void> {
   try {
-    // Upstash doesn't support KEYS command for performance reasons
-    // Delete specific keys instead of pattern matching
-    // This is a no-op for Upstash - use explicit key deletion
-    console.warn("deleteCache with pattern not supported in Upstash, use explicit key deletion");
+    const keys = await redis.keys(pattern);
+    if (keys.length > 0) {
+      await redis.del(...keys);
+    }
   } catch {
     // Silently fail
   }
 }
 
 export async function invalidateProductCache(productId: string): Promise<void> {
-  try {
-    // Delete specific product cache
-    await redis.del(CACHE_KEYS.product(productId));
-    // Note: Pattern-based cache invalidation not supported in Upstash
-    // Consider using a cache versioning strategy instead
-  } catch {
-    // Silently fail
-  }
+  await Promise.all([
+    deleteCache(CACHE_KEYS.product(productId)),
+    deleteCache("products:*"),
+    deleteCache("products:featured"),
+    deleteCache("products:trending"),
+    deleteCache(`${CACHE_KEYS.featured()}:home:*`),
+  ]);
 }
 
 // ─── Distributed Locks (Anti-duplicate orders) ──────────────────
@@ -135,7 +144,7 @@ export async function acquireLock(
   ttl: number = 30
 ): Promise<boolean> {
   try {
-    const result = await redis.set(key, "1", { ex: ttl, nx: true });
+    const result = await redis.set(key, "1", "EX", ttl, "NX");
     return result === "OK";
   } catch {
     return false;
@@ -173,12 +182,6 @@ export async function withLock<T>(
 }
 
 // ─── Redis Pub/Sub (Real-time events) ───────────────────────────
-// NOTE: Upstash REST API doesn't support pub/sub
-// For real-time features, consider using:
-// - Server-Sent Events (SSE)
-// - WebSockets
-// - Upstash Queues (for async processing)
-// - Webhooks
 
 export const PUBSUB_CHANNELS = {
   orders: "channel:orders",
@@ -190,29 +193,50 @@ export const PUBSUB_CHANNELS = {
 
 /**
  * Publish an event to a Redis channel
- * NOTE: Not supported in Upstash REST API - this is a no-op
  */
 export async function publishEvent(
   channel: string,
   event: Record<string, any>
 ): Promise<void> {
-  // Pub/sub not supported in Upstash REST API
-  // Consider using Upstash Queues or alternative real-time solutions
-  console.warn("publishEvent not supported in Upstash REST API");
+  try {
+    await redis.publish(channel, JSON.stringify(event));
+  } catch {
+    // Silently fail pub/sub errors
+  }
 }
 
 /**
  * Subscribe to a Redis channel
- * NOTE: Not supported in Upstash REST API - this returns a no-op
+ * Returns a function to unsubscribe
  */
 export function subscribeToChannel(
   channel: string,
   callback: (message: any) => void
 ): () => void {
-  // Pub/sub not supported in Upstash REST API
-  // Consider using Server-Sent Events or WebSockets
-  console.warn("subscribeToChannel not supported in Upstash REST API");
-  return () => {};
+  const subscriber = redis.duplicate();
+
+  subscriber.subscribe(channel, (err) => {
+    if (err && process.env.NODE_ENV !== "production") {
+      console.error(`Redis subscribe error for ${channel}:`, err);
+    }
+  });
+
+  subscriber.on("message", (receivedChannel, message) => {
+    if (receivedChannel === channel) {
+      try {
+        const data = JSON.parse(message);
+        callback(data);
+      } catch (err) {
+        console.error(`Failed to parse message from ${channel}:`, err);
+      }
+    }
+  });
+
+  // Return unsubscribe function
+  return () => {
+    subscriber.unsubscribe(channel);
+    subscriber.quit();
+  };
 }
 
 // ─── Rate Limiting ───────────────────────────────────────────────
@@ -270,13 +294,7 @@ export const ANALYTICS_KEYS = {
  */
 export async function incrementCounter(key: string, amount: number = 1): Promise<number> {
   try {
-    // Upstash Redis incr only accepts one argument
-    // For incrementing by more than 1, we need to call it multiple times
-    let result = 0;
-    for (let i = 0; i < amount; i++) {
-      result = await redis.incr(key);
-    }
-    return result;
+    return await redis.incrby(key, amount);
   } catch {
     return 0;
   }
@@ -304,7 +322,7 @@ export async function setCounterWithExpiry(
   ttl: number
 ): Promise<void> {
   try {
-    await redis.set(key, value.toString(), { ex: ttl });
+    await redis.setex(key, ttl, value.toString());
   } catch {
     // Silently fail
   }

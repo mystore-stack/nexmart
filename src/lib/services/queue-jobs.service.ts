@@ -126,8 +126,7 @@ export async function retryJob(jobId: string) {
     const { QUEUES } = await import('../queue');
     const queue = new Queue(job.queueName, {
       connection: {
-        host: process.env.REDIS_HOST || 'localhost',
-        port: parseInt(process.env.REDIS_PORT || '6379'),
+        url: process.env.REDIS_URL,
       },
     });
 
@@ -163,8 +162,7 @@ export async function deleteJob(jobId: string) {
     const { QUEUES } = await import('../queue');
     const queue = new Queue(job.queueName, {
       connection: {
-        host: process.env.REDIS_HOST || 'localhost',
-        port: parseInt(process.env.REDIS_PORT || '6379'),
+        url: process.env.REDIS_URL,
       },
     });
 
@@ -221,8 +219,7 @@ export async function syncQueueJobs(queueName: string) {
     const { QUEUES } = await import('../queue');
     const queue = new Queue(queueName, {
       connection: {
-        host: process.env.REDIS_HOST || 'localhost',
-        port: parseInt(process.env.REDIS_PORT || '6379'),
+        url: process.env.REDIS_URL,
       },
     });
 
