@@ -46,6 +46,8 @@ model User {
   churnPredictions ChurnPrediction[]
   campaignUsers RetentionCampaignUser[]
   campaignEvents CampaignEvent[]
+  emailLogs      EmailLog[]
+  cartReminders  CartReminder[]
 
   @@index([email])
 }
@@ -124,6 +126,7 @@ model Product {
   wishlistItems      WishlistItem[]
   analyticsEvents    AnalyticsEvent[]
   dynamicPrice       DynamicPrice?
+  stockAlertLogs     StockAlertLog[]
 
   @@unique([organizationId, sku])
   @@unique([organizationId, slug])
@@ -197,7 +200,7 @@ model Order {
   customerId        String?              @db.Uuid
   addressId         String               @db.Uuid
   status            OrderStatus          @default(PENDING)
-  paymentStatus     PaymentStatus        @default(UNPAID)
+  paymentStatus     PaymentStatus        @default(PENDING)
   paymentMethod     PaymentMethod
   subtotal          Float
   discount          Float                @default(0)
@@ -228,6 +231,7 @@ model Order {
   reviews           Review[]
   webhookEvents     StripeWebhookEvent[]
   analyticsEvents   AnalyticsEvent[]
+  emailLogs         EmailLog[]
 
   @@unique([organizationId, orderNumber])
   @@index([userId])
@@ -570,6 +574,8 @@ model Organization {
   plan               Plan?                @relation(fields: [planId], references: [id])
   usageRecords       UsageRecord[]
   paymentMethods     PaymentMethod[]
+  stockAlertLogs     StockAlertLog[]
+  dailySalesReports  DailySalesReport[]
 
   @@index([ownerId])
   @@index([slug])
@@ -819,7 +825,6 @@ enum OrderStatus {
 }
 
 enum PaymentStatus {
-  UNPAID
   PENDING
   PAID
   FAILED
@@ -2177,4 +2182,150 @@ model FeatureFlag {
   
   @@index([enabled])
   @@index([category])
+}
+
+// ═══════════════════════════════════════════════════════════════
+// EMAIL MARKETING AUTOMATION MODELS
+// ═══════════════════════════════════════════════════════════════
+
+model EmailLog {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String?  @db.Uuid
+  userId         String?  @db.Uuid
+  orderId        String?  @db.Uuid
+  type           EmailType
+  recipient      String
+  subject        String
+  status         EmailStatus @default(PENDING)
+  error          String?
+  sentAt         DateTime?
+  deliveredAt    DateTime?
+  openedAt       DateTime?
+  clickedAt      DateTime?
+  retryCount     Int      @default(0)
+  metadata       Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  
+  // Relations
+  user           User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  order          Order?   @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  
+  @@index([organizationId])
+  @@index([userId])
+  @@index([orderId])
+  @@index([type])
+  @@index([status])
+  @@index([recipient])
+  @@index([createdAt])
+  @@index([organizationId, type, status])
+}
+
+model CartReminder {
+  id             String   @id @default(uuid()) @db.Uuid
+  userId         String   @db.Uuid
+  cartSnapshot   Json
+  cartValue      Float
+  itemCount      Int
+  reminderSent1  Boolean  @default(false)
+  reminderSent1At DateTime?
+  reminderSent2  Boolean  @default(false)
+  reminderSent2At DateTime?
+  reminderSent3  Boolean  @default(false)
+  reminderSent3At DateTime?
+  recovered      Boolean  @default(false)
+  recoveredAt    DateTime?
+  abandonedAt    DateTime @default(now())
+  lastActivityAt  DateTime @default(now())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([abandonedAt])
+  @@index([recovered])
+  @@index([reminderSent1])
+  @@index([reminderSent2])
+  @@index([reminderSent3])
+}
+
+model StockAlertLog {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @db.Uuid
+  productId      String   @db.Uuid
+  productName    String
+  currentStock   Int
+  threshold      Int
+  alertSent      Boolean  @default(false)
+  alertSentAt    DateTime?
+  acknowledged   Boolean  @default(false)
+  acknowledgedAt DateTime?
+  acknowledgedBy String?  @db.Uuid
+  resolved       Boolean  @default(false)
+  resolvedAt     DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  
+  // Relations
+  product        Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  @@index([organizationId])
+  @@index([productId])
+  @@index([alertSent])
+  @@index([acknowledged])
+  @@index([resolved])
+  @@index([createdAt])
+  @@unique([productId, createdAt])
+}
+
+model DailySalesReport {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @db.Uuid
+  reportDate     DateTime @db.Date
+  totalSales     Float    @default(0)
+  totalOrders    Int      @default(0)
+  newCustomers   Int      @default(0)
+  averageOrderValue Float  @default(0)
+  topProducts    Json
+  metrics        Json
+  sent           Boolean  @default(false)
+  sentAt         DateTime?
+  recipients     String[]
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  @@unique([organizationId, reportDate])
+  @@index([organizationId])
+  @@index([reportDate])
+  @@index([sent])
+}
+
+enum EmailType {
+  WELCOME
+  ORDER_CONFIRMATION
+  ORDER_STATUS_UPDATE
+  SHIPPING_UPDATE
+  CART_ABANDONMENT_1
+  CART_ABANDONMENT_2
+  CART_ABANDONMENT_3
+  STOCK_ALERT
+  DAILY_SALES_REPORT
+  PASSWORD_RESET
+  PROMO
+  REVIEW_REQUEST
+  NEWSLETTER
+}
+
+enum EmailStatus {
+  PENDING
+  SENT
+  DELIVERED
+  OPENED
+  CLICKED
+  FAILED
+  RETRYING
 }

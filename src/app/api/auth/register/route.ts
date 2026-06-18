@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { rateLimit } from "@/lib/api";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
+import { sendWelcomeEmail } from "@/lib/email";
 
 const schema = z.object({
   name: z.string().min(2).max(80),
@@ -47,6 +48,11 @@ export async function POST(req: NextRequest) {
       emailVerified: false,
       createdAt: new Date().toISOString(),
     };
+
+    // Send welcome email asynchronously (non-blocking)
+    sendWelcomeEmail(user.email, user.name, user.id).catch((error) => {
+      console.error('[Welcome Email Error]:', error);
+    });
 
     return NextResponse.json(
       {

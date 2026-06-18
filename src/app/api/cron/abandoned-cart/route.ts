@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { processAbandonedCarts } from "@/lib/notifications/abandonedCart";
+import { detectAbandonedCarts } from "@/lib/automation/cart-abandonment";
+
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
 export async function POST(req: NextRequest) {
   try {
@@ -11,9 +14,13 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const result = await processAbandonedCarts();
+    console.log("[Cron] Starting abandoned cart detection...");
 
-    return NextResponse.json(result);
+    await detectAbandonedCarts();
+
+    console.log("[Cron] Abandoned cart detection completed");
+
+    return NextResponse.json({ success: true, message: "Abandoned cart emails sent" });
   } catch (error) {
     console.error("[CRON_ABANDONED_CART] Error:", error);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

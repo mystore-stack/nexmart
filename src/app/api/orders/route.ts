@@ -9,6 +9,7 @@ import { z } from "zod";
 import type { Prisma } from "@prisma/client";
 import { withLock, LOCK_KEYS, publishEvent, PUBSUB_CHANNELS, incrementCounter, ANALYTICS_KEYS } from "@/lib/redis";
 import { generateIdempotencyKey } from "@/lib/idempotency";
+import { sendOrderConfirmationEmail } from "@/lib/email";
 
 const DEFAULT_CARRIER = "jibli";
 const DEFAULT_CITY = "Casablanca";
@@ -1056,6 +1057,37 @@ export async function POST(req: NextRequest) {
           itemCount: order.items.length,
           orderId: order.id,
         });
+
+        // Send order confirmation email asynchronously (non-blocking)
+        const user = await prisma.user.findUnique({
+          where: { id: order.userId },
+          select: { name: true, email: true },
+        });
+
+        if (user) {
+          sendOrderConfirmationEmail(
+            user.email,
+            user.name,
+            {
+              orderNumber: order.orderNumber,
+              total: order.total,
+              items: order.items.map((item) => ({
+                name: item.name,
+                quantity: item.quantity,
+                price: item.price,
+              })),
+              shippingAddress: {
+                city: address.city,
+                address: `${address.line1}${address.line2 ? ', ' + address.line2 : ''}`,
+              },
+            },
+            order.userId,
+            order.id,
+            organizationId
+          ).catch((error) => {
+            console.error('[Order Confirmation Email Error]:', error);
+          });
+        }
 
         return order;
       },
