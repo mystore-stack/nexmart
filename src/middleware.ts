@@ -40,6 +40,18 @@ export async function middleware(req: NextRequest) {
   const response = NextResponse.next();
   response.headers.set("X-Request-Id", generateRequestId());
 
+  // Bootstrap organization on first request if needed
+  if (!isApiRoute && pathname === "/") {
+    try {
+      const { bootstrapOrganization } = await import("@/lib/tenant");
+      await bootstrapOrganization();
+      console.log("[MIDDLEWARE] Organization bootstrap completed");
+    } catch (error) {
+      console.error("[MIDDLEWARE] Organization bootstrap failed:", error);
+      // Don't block request, just log error
+    }
+  }
+
   // Get session from NextAuth v5 auth() - single source of truth
   const session = await auth();
   

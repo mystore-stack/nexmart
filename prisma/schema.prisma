@@ -48,6 +48,8 @@ model User {
   campaignEvents CampaignEvent[]
   emailLogs      EmailLog[]
   cartReminders  CartReminder[]
+  welcomeSeries  WelcomeSeries?
+  marketingSegmentMembers MarketingSegmentMember[]
 
   @@index([email])
 }
@@ -576,6 +578,10 @@ model Organization {
   paymentMethods     PaymentMethod[]
   stockAlertLogs     StockAlertLog[]
   dailySalesReports  DailySalesReport[]
+  welcomeSeries      WelcomeSeries[]
+  marketingSegments MarketingSegment[]
+  marketingSegmentMembers MarketingSegmentMember[]
+  emailCampaigns     EmailCampaign[]
 
   @@index([ownerId])
   @@index([slug])
@@ -2210,6 +2216,7 @@ model EmailLog {
   // Relations
   user           User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
   order          Order?   @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  tracking       EmailTracking?
   
   @@index([organizationId])
   @@index([userId])
@@ -2304,8 +2311,144 @@ model DailySalesReport {
   @@index([sent])
 }
 
+model WelcomeSeries {
+  id             String   @id @default(uuid()) @db.Uuid
+  userId         String   @db.Uuid
+  organizationId String   @db.Uuid
+  email1Sent     Boolean  @default(false)
+  email1SentAt   DateTime?
+  email2Sent     Boolean  @default(false)
+  email2SentAt   DateTime?
+  email3Sent     Boolean  @default(false)
+  email3SentAt   DateTime?
+  email4Sent     Boolean  @default(false)
+  email4SentAt   DateTime?
+  email5Sent     Boolean  @default(false)
+  email5SentAt   DateTime?
+  completed      Boolean  @default(false)
+  completedAt    DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([organizationId])
+  @@index([email1Sent])
+  @@index([email2Sent])
+  @@index([email3Sent])
+  @@index([email4Sent])
+  @@index([email5Sent])
+  @@index([completed])
+  @@unique([userId])
+}
+
+model MarketingSegment {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @db.Uuid
+  name           String
+  description    String?
+  rules          Json
+  userCount      Int      @default(0)
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  segmentMembers MarketingSegmentMember[]
+  campaigns      EmailCampaign[]
+
+  @@index([organizationId])
+  @@index([isActive])
+}
+
+model MarketingSegmentMember {
+  id             String   @id @default(uuid()) @db.Uuid
+  segmentId      String   @db.Uuid
+  userId         String   @db.Uuid
+  organizationId String   @db.Uuid
+  score          Float    @default(0)
+  assignedAt     DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  segment        MarketingSegment @relation(fields: [segmentId], references: [id], onDelete: Cascade)
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([segmentId])
+  @@index([userId])
+  @@index([organizationId])
+  @@unique([segmentId, userId])
+}
+
+model EmailCampaign {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @db.Uuid
+  name           String
+  type           String
+  subject        String
+  template       String
+  segmentId      String?  @db.Uuid
+  scheduledFor   DateTime?
+  sent           Boolean  @default(false)
+  sentAt         DateTime?
+  recipientCount Int      @default(0)
+  openCount      Int      @default(0)
+  clickCount     Int      @default(0)
+  conversionCount Int     @default(0)
+  revenue        Float    @default(0)
+  status         String   @default("DRAFT")
+  metadata       Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  segment        MarketingSegment? @relation(fields: [segmentId], references: [id], onDelete: SetNull)
+  tracking       EmailTracking[]
+
+  @@index([organizationId])
+  @@index([scheduledFor])
+  @@index([sent])
+  @@index([status])
+}
+
+model EmailTracking {
+  id             String   @id @default(uuid()) @db.Uuid
+  emailLogId     String   @db.Uuid
+  campaignId     String?  @db.Uuid
+  userId         String?  @db.Uuid
+  opened         Boolean  @default(false)
+  openedAt       DateTime?
+  clicked        Boolean  @default(false)
+  clickedAt      DateTime?
+  clickCount     Int      @default(0)
+  linkUrl        String?
+  converted      Boolean  @default(false)
+  convertedAt    DateTime?
+  orderValue     Float?
+  ipAddress      String?
+  userAgent      String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  emailLog       EmailLog @relation(fields: [emailLogId], references: [id], onDelete: Cascade)
+  campaign       EmailCampaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+
+  @@index([emailLogId])
+  @@index([campaignId])
+  @@index([userId])
+  @@index([opened])
+  @@index([clicked])
+  @@index([converted])
+  @@unique([emailLogId])
+}
+
 enum EmailType {
   WELCOME
+  WELCOME_1
+  WELCOME_2
+  WELCOME_3
   ORDER_CONFIRMATION
   ORDER_STATUS_UPDATE
   SHIPPING_UPDATE
@@ -2318,6 +2461,7 @@ enum EmailType {
   PROMO
   REVIEW_REQUEST
   NEWSLETTER
+  PRODUCT_RECOMMENDATION
 }
 
 enum EmailStatus {

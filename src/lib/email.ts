@@ -8,6 +8,8 @@ import {
   stockAlertTemplate,
   cartAbandonmentTemplate,
   dailySalesReportTemplate,
+  passwordResetTemplate,
+  shippingUpdateTemplate,
 } from './email-templates';
 
 // ─── Configuration ─────────────────────────────────────────────
@@ -243,6 +245,52 @@ export async function sendDailySalesReportEmail(
   });
 }
 
+// ─── Password Reset Email ───────────────────────────────────
+export async function sendPasswordReset(
+  email: string,
+  name: string,
+  token: string,
+  userId?: string
+): Promise<SendEmailResult> {
+  const html = passwordResetTemplate(name, token);
+  
+  return sendEmail({
+    to: email,
+    subject: `🔐 Réinitialisation du mot de passe`,
+    html,
+    type: EmailType.PASSWORD_RESET,
+    userId,
+    metadata: { token },
+  });
+}
+
+// ─── Shipping Update Email ───────────────────────────────────
+export async function sendShippingUpdate(
+  email: string,
+  name: string,
+  orderNumber: string,
+  trackingNumber: string,
+  status: string,
+  userId?: string,
+  orderId?: string
+): Promise<SendEmailResult> {
+  const html = shippingUpdateTemplate(name, orderNumber, trackingNumber, status);
+  
+  return sendEmail({
+    to: email,
+    subject: `📦 Mise à jour de commande — #${orderNumber}`,
+    html,
+    type: EmailType.SHIPPING_UPDATE,
+    userId,
+    orderId,
+    metadata: { 
+      orderNumber,
+      trackingNumber,
+      status,
+    },
+  });
+}
+
 // ─── Email Statistics ─────────────────────────────────────────
 export async function getEmailStatistics(organizationId?: string) {
   const where = organizationId ? { organizationId } : {};
@@ -297,6 +345,8 @@ export default {
   sendStockAlertEmail,
   sendCartAbandonmentEmail,
   sendDailySalesReportEmail,
+  sendPasswordReset,
+  sendShippingUpdate,
   getEmailStatistics,
   validateEmailConfig,
 };

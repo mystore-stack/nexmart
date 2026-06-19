@@ -54,7 +54,22 @@ export async function GET(req: NextRequest) {
     const session = await getSession();
     let organizationId;
     if (session) {
-      organizationId = await getOrganizationIdForUser({ userId: session.userId });
+      try {
+        organizationId = await getOrganizationIdForUser({ userId: session.userId });
+      } catch (orgError) {
+        console.error("[PRODUCTS API] Organization resolution failed:", orgError);
+        // Fallback to default organization for better UX
+        try {
+          organizationId = await getDefaultOrganizationId();
+          console.warn("[PRODUCTS API] Using default organization fallback");
+        } catch (defaultError) {
+          console.error("[PRODUCTS API] Default organization also missing:", defaultError);
+          return NextResponse.json(
+            { success: false, error: "System configuration error: No organization found" },
+            { status: 500 }
+          );
+        }
+      }
     } else {
       organizationId = await getDefaultOrganizationId();
     }

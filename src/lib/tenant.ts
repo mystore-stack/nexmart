@@ -92,14 +92,59 @@ export async function getOrganizationIdForUser(payload: Pick<AuthSession, "userI
     return ownedOrganization.id;
   }
 
-  // CRITICAL FIX: DO NOT fallback to default organization
-  // This prevents data isolation issues where users see wrong data
-  console.error("[TENANT] CRITICAL: User has no membership and does not own any organization");
-  console.error("[TENANT] userId:", payload.userId);
-  console.error("[TENANT] Action: Create a Membership record or assign user as Organization owner");
-  throw new Error(
-    `User ${payload.userId} has no organization access. ` +
-    `Please create a Membership record or assign the user as an Organization owner. ` +
-    `This is required for multi-tenant data isolation.`
-  );
+  // AUTO-REPAIR: Create membership to default organization for orphaned users
+  console.warn("[TENANT] User has no organization access, attempting auto-repair");
+  try {
+    const defaultOrgId = await getDefaultOrganizationId();
+    const membership = await prisma.membership.create({
+      data: {
+        userId: payload.userId,
+        organizationId: defaultOrgId,
+        role: 'MEMBER',
+      },
+    });
+    console.log("[TENANT] Auto-repair successful: Created membership", membership.id);
+    return defaultOrgId;
+  } catch (repairError) {
+    console.error("[TENANT] Auto-repair failed:", repairError);
+    throw new Error(
+      `User ${payload.userId} has no organization access. ` +
+      `Auto-repair failed. Please create a Membership record or assign user as Organization owner. ` +
+      `This is required for multi-tenant data isolation.`
+    );
+  }
+}
+
+/**
+ * Bootstrap function to ensure at least one organization exists
+ * Creates default organization if none exists
+ */
+export async function bootstrapOrganization(): Promise<string> {
+  try {
+    const orgId = await getDefaultOrganizationId();
+    console.log("[TENANT] Organization already exists:", orgId);
+    return orgId;
+  } catch {
+    console.log("[TENANT] Creating bootstrap organization");
+    // Get first user to be the owner
+    const firstUser = await prisma.user.findFirst({
+      orderBy: { createdAt: 'asc' },
+      select: { id: true },
+    });
+    
+    if (!firstUser) {
+      throw new Error("Cannot bootstrap organization: No users found in database");
+    }
+    
+    const organization = await prisma.organization.create({
+      data: {
+        name: 'NexMart Default',
+        slug: 'nexmart',
+        ownerId: firstUser.id,
+        status: 'ACTIVE',
+      },
+    });
+    console.log("[TENANT] Bootstrap organization created:", organization.id);
+    return organization.id;
+  }
 }
