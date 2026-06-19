@@ -29,6 +29,13 @@ function generateCSV(orders: any[]) {
 export async function GET(req: NextRequest) {
   try {
     const session = await requireAdmin();
+    
+    // Defensive check for organizationId
+    if (!session.organizationId) {
+      console.error("[ADMIN ORDERS] Session exists but organizationId is missing");
+      return forbidden("Organization access required. Please contact support to assign you to an organization.");
+    }
+    
     const organizationId = session.organizationId;
 
     const exportFormat = req.nextUrl.searchParams.get("export");
@@ -112,6 +119,13 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const session = await requireAdmin();
+    
+    // Defensive check for organizationId
+    if (!session.organizationId) {
+      console.error("[ADMIN ORDERS POST] Session exists but organizationId is missing");
+      return forbidden("Organization access required. Please contact support to assign you to an organization.");
+    }
+    
     const organizationId = session.organizationId;
 
     const body = await req.json();

@@ -82,8 +82,16 @@ export async function getSession(): Promise<ServerAuthSession | null> {
     role: user.role,
   });
 
-  // Resolve organizationId for multi-tenant security
-  const organizationId = await getOrganizationIdForUser({ userId });
+  // Resolve organizationId for multi-tenant security with defensive error handling
+  let organizationId: string;
+  try {
+    organizationId = await getOrganizationIdForUser({ userId });
+    console.log("[AUTH] OrganizationId resolved:", organizationId);
+  } catch (orgError) {
+    console.error("[AUTH] Organization resolution failed:", orgError);
+    // Return null instead of throwing - let the caller handle missing organization
+    return null;
+  }
 
   const authSession: ServerAuthSession = {
     userId,
