@@ -10,6 +10,7 @@ import type { Prisma } from "@prisma/client";
 import { withLock, LOCK_KEYS, publishEvent, PUBSUB_CHANNELS, incrementCounter, ANALYTICS_KEYS } from "@/lib/redis";
 import { generateIdempotencyKey } from "@/lib/idempotency";
 import { sendOrderConfirmationEmail } from "@/lib/email";
+import { getOrganizationIdForUser, getDefaultOrganizationId } from "@/lib/tenant";
 
 const DEFAULT_CARRIER = "jibli";
 const DEFAULT_CITY = "Casablanca";
@@ -249,7 +250,26 @@ async function cleanupInvalidCartItems(
 export async function GET(req: NextRequest) {
   try {
     const session = await requireAuth();
-    const organizationId = session.organizationId;
+    
+    // Resolve organizationId with defensive error handling
+    let organizationId;
+    try {
+      organizationId = await getOrganizationIdForUser({ userId: session.userId });
+    } catch (orgError) {
+      console.error("[ORDERS GET] Organization resolution failed:", orgError);
+      // Fallback to default organization for better UX
+      try {
+        organizationId = await getDefaultOrganizationId();
+        console.warn("[ORDERS GET] Using default organization fallback");
+      } catch (defaultError) {
+        console.error("[ORDERS GET] Default organization also missing:", defaultError);
+        return NextResponse.json(
+          { success: false, error: "System configuration error: No organization found" },
+          { status: 500 }
+        );
+      }
+    }
+    
     const { searchParams } = new URL(req.url);
     const page = Math.max(1, parseInt(searchParams.get("page") || "1"));
     const limit = 10;
@@ -280,7 +300,26 @@ export async function POST(req: NextRequest) {
 
   try {
     const session = await requireAuth();
-    const organizationId = session.organizationId;
+    
+    // Resolve organizationId with defensive error handling
+    let organizationId;
+    try {
+      organizationId = await getOrganizationIdForUser({ userId: session.userId });
+    } catch (orgError) {
+      console.error("[ORDERS POST] Organization resolution failed:", orgError);
+      // Fallback to default organization for better UX
+      try {
+        organizationId = await getDefaultOrganizationId();
+        console.warn("[ORDERS POST] Using default organization fallback");
+      } catch (defaultError) {
+        console.error("[ORDERS POST] Default organization also missing:", defaultError);
+        return NextResponse.json(
+          { success: false, error: "System configuration error: No organization found" },
+          { status: 500 }
+        );
+      }
+    }
+    
     authContext = { userId: session.userId, organizationId };
 
     rawBody = await req.json();
