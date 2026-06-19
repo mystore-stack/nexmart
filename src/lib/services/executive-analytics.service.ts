@@ -2,6 +2,7 @@
 // Enhanced analytics service with executive metrics
 
 import { prisma } from '../prisma';
+import { PaymentStatus } from '@prisma/client';
 
 interface AnalyticsOptions {
   organizationId: string;
@@ -70,7 +71,7 @@ export async function getExecutiveMetrics(options: AnalyticsOptions): Promise<Ex
   ] = await Promise.all([
     // Revenue
     prisma.order.aggregate({
-      where: { organizationId, createdAt: { gte: startDate, lte: endDate }, paymentStatus: 'PAID' },
+      where: { organizationId, createdAt: { gte: startDate, lte: endDate }, paymentStatus: PaymentStatus.PAID },
       _sum: { total: true },
     }),
     
@@ -81,7 +82,7 @@ export async function getExecutiveMetrics(options: AnalyticsOptions): Promise<Ex
     
     // Order values for AOV
     prisma.order.findMany({
-      where: { organizationId, createdAt: { gte: startDate, lte: endDate }, paymentStatus: 'PAID' },
+      where: { organizationId, createdAt: { gte: startDate, lte: endDate }, paymentStatus: PaymentStatus.PAID },
       select: { total: true },
     }),
     
@@ -98,7 +99,7 @@ export async function getExecutiveMetrics(options: AnalyticsOptions): Promise<Ex
     // Customer orders for LTV and repeat rate
     prisma.order.groupBy({
       by: ['userId'],
-      where: { organizationId, paymentStatus: 'PAID' },
+      where: { organizationId, paymentStatus: PaymentStatus.PAID },
       _count: true,
       _sum: { total: true },
     }),
@@ -141,14 +142,14 @@ export async function getExecutiveMetrics(options: AnalyticsOptions): Promise<Ex
   if (previousStartDate && previousEndDate) {
     const [prevRev, prevOrd, prevOrdVals] = await Promise.all([
       prisma.order.aggregate({
-        where: { organizationId, createdAt: { gte: previousStartDate, lte: previousEndDate }, paymentStatus: 'PAID' },
+        where: { organizationId, createdAt: { gte: previousStartDate, lte: previousEndDate }, paymentStatus: PaymentStatus.PAID },
         _sum: { total: true },
       }),
       prisma.order.count({
         where: { organizationId, createdAt: { gte: previousStartDate, lte: previousEndDate } },
       }),
       prisma.order.findMany({
-        where: { organizationId, createdAt: { gte: previousStartDate, lte: previousEndDate }, paymentStatus: 'PAID' },
+        where: { organizationId, createdAt: { gte: previousStartDate, lte: previousEndDate }, paymentStatus: PaymentStatus.PAID },
         select: { total: true },
       }),
     ]);
@@ -287,7 +288,7 @@ export async function getSalesTrends(organizationId: string, days: number = 90) 
   const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
   
   const orders = await prisma.order.findMany({
-    where: { organizationId, createdAt: { gte: startDate }, paymentStatus: 'PAID' },
+    where: { organizationId, createdAt: { gte: startDate }, paymentStatus: PaymentStatus.PAID },
     select: { total: true, createdAt: true },
     orderBy: { createdAt: 'asc' },
   });

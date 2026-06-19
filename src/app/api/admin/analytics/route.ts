@@ -7,6 +7,7 @@ import { requireAdmin } from "@/lib/auth-api";
 import { getCache, setCache, CACHE_TTL } from "@/lib/redis";
 import { subDays, startOfDay, format } from "date-fns";
 import { getExecutiveMetrics, getInventoryMetrics } from "@/lib/services/executive-analytics.service";
+import { PaymentStatus } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
@@ -38,7 +39,7 @@ export const GET = withAdmin(async ({ req }) => {
 
     // Get chart data
     const revenueByDay = await prisma.order.findMany({
-      where: { organizationId, createdAt: { gte: startDate }, paymentStatus: "PAID" },
+      where: { organizationId, createdAt: { gte: startDate }, paymentStatus: PaymentStatus.PAID },
       select: { total: true, createdAt: true },
       orderBy: { createdAt: "asc" },
     });

@@ -4,6 +4,7 @@ import { constructWebhookEvent } from "@/lib/stripe";
 import { prisma } from "@/lib/prisma";
 import { queueNotification } from "@/lib/queues";
 import { ok, error } from "@/lib/api";
+import { OrderStatus, PaymentStatus } from "@prisma/client";
 
 export async function POST(req: NextRequest) {
   const body = await req.text();
@@ -29,7 +30,7 @@ export async function POST(req: NextRequest) {
         if (orderId && organizationId) {
           const order = await prisma.order.update({
             where: { id: orderId, organizationId },
-            data: { paymentStatus: "PAID", status: "CONFIRMED" },
+            data: { paymentStatus: PaymentStatus.PAID, status: OrderStatus.CONFIRMED },
             include: { user: true },
           });
 
@@ -52,7 +53,7 @@ export async function POST(req: NextRequest) {
         if (orderId && organizationId) {
           const order = await prisma.order.update({
             where: { id: orderId, organizationId },
-            data: { paymentStatus: "FAILED", status: "CANCELLED" },
+            data: { paymentStatus: PaymentStatus.FAILED, status: OrderStatus.CANCELLED },
           });
 
           await queueNotification({
@@ -74,7 +75,7 @@ export async function POST(req: NextRequest) {
         if (paymentIntentId && organizationId) {
           await prisma.order.updateMany({
             where: { organizationId, stripePaymentId: paymentIntentId },
-            data: { paymentStatus: "REFUNDED", status: "REFUNDED" },
+            data: { paymentStatus: PaymentStatus.REFUNDED, status: OrderStatus.REFUNDED },
           });
         }
         break;

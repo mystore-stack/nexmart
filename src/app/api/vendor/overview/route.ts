@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/auth-api";
+import { OrderStatus, PaymentStatus } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
 
@@ -27,11 +28,11 @@ export async function GET(req: NextRequest) {
 
     const [revenue, pendingOrders] = await Promise.all([
       prisma.order.aggregate({
-        where: { organizationId: org.id, paymentStatus: "PAID" },
+        where: { organizationId: org.id, paymentStatus: PaymentStatus.PAID },
         _sum: { total: true },
       }),
       prisma.order.count({
-        where: { organizationId: org.id, status: { in: ["PENDING", "CONFIRMED", "PROCESSING"] } },
+        where: { organizationId: org.id, status: { in: [OrderStatus.PENDING, OrderStatus.CONFIRMED, OrderStatus.PROCESSING] } },
       }),
     ]);
 

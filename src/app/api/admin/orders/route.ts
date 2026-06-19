@@ -3,6 +3,8 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth-api";
 import { ok, forbidden, handleApiError, getPaginationParams, buildPaginationMeta } from "@/lib/api";
+import { OrderStatus, PaymentStatus } from "@prisma/client";
+import { validateEnum } from "@/lib/validate-enum";
 
 export const dynamic = "force-dynamic";
 
@@ -40,7 +42,7 @@ export async function GET(req: NextRequest) {
 
     const exportFormat = req.nextUrl.searchParams.get("export");
     const { page, limit, skip } = getPaginationParams(req.nextUrl.searchParams);
-    const status = req.nextUrl.searchParams.get("status") || undefined;
+    const status = validateEnum(req.nextUrl.searchParams.get("status"), Object.values(OrderStatus));
     const search = req.nextUrl.searchParams.get("search") || undefined;
     const dateFrom = req.nextUrl.searchParams.get("from");
     const dateTo = req.nextUrl.searchParams.get("to");
@@ -140,7 +142,10 @@ export async function POST(req: NextRequest) {
       });
 
       const totalRevenue = await prisma.order.aggregate({
-        where: { organizationId, status: { in: ["CONFIRMED", "PROCESSING", "SHIPPED", "DELIVERED"] } },
+        where: { 
+          organizationId, 
+          status: { in: [OrderStatus.CONFIRMED, OrderStatus.PROCESSING, OrderStatus.SHIPPED, OrderStatus.DELIVERED] } 
+        },
         _sum: { total: true },
       });
 

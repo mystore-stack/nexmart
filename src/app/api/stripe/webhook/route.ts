@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import Stripe from "stripe";
 import { sendPaymentReceivedNotification } from "@/lib/notifications/service";
+import { OrderStatus, PaymentStatus } from "@prisma/client";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: "2024-06-20",
@@ -87,8 +88,8 @@ async function handlePaymentIntentSucceeded(event: Stripe.Event) {
     await tx.order.update({
       where: { id: order.id },
       data: {
-        paymentStatus: "PAID",
-        status: "CONFIRMED",
+        paymentStatus: PaymentStatus.PAID,
+        status: OrderStatus.CONFIRMED,
       },
     });
 
@@ -165,8 +166,8 @@ async function handlePaymentIntentFailed(event: Stripe.Event) {
     await tx.order.update({
       where: { id: order.id },
       data: {
-        paymentStatus: "FAILED",
-        status: "PENDING",
+        paymentStatus: PaymentStatus.FAILED,
+        status: OrderStatus.PENDING,
       },
     });
 
@@ -224,8 +225,8 @@ async function handleCheckoutSessionCompleted(event: Stripe.Event) {
   await prisma.order.update({
     where: { id: order.id },
     data: {
-      paymentStatus: "PAID",
-      status: "CONFIRMED",
+      paymentStatus: PaymentStatus.PAID,
+      status: OrderStatus.CONFIRMED,
     },
   });
 
