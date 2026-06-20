@@ -66,6 +66,27 @@ export async function GET(req: NextRequest) {
     console.log("[ADMIN ORDERS] organizationId:", organizationId);
     console.log("[ADMIN ORDERS] where:", where);
 
+    // DEBUG: Check total orders in database (regardless of organization)
+    const totalOrdersInDb = await prisma.order.count();
+    console.log("[ADMIN ORDERS DEBUG] Total orders in database:", totalOrdersInDb);
+
+    // DEBUG: Check all organizations in database
+    const allOrgs = await prisma.organization.findMany({
+      select: { id: true, name: true, slug: true },
+    });
+    console.log("[ADMIN ORDERS DEBUG] Organizations in database:", allOrgs.map(o => ({ id: o.id, name: o.name, slug: o.slug })));
+
+    // DEBUG: Check orders for this specific organizationId
+    const ordersForOrg = await prisma.order.count({ where: { organizationId } });
+    console.log("[ADMIN ORDERS DEBUG] Orders for organizationId:", organizationId, "=", ordersForOrg);
+
+    // DEBUG: Check if organizationId exists in database
+    const orgExists = await prisma.organization.findUnique({
+      where: { id: organizationId },
+      select: { id: true, name: true },
+    });
+    console.log("[ADMIN ORDERS DEBUG] Organization exists:", !!orgExists, orgExists ? { id: orgExists.id, name: orgExists.name } : null);
+
     const [orders, total] = await Promise.all([
       prisma.order.findMany({
         where,
