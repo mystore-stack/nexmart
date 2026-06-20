@@ -30,6 +30,8 @@ function generateCSV(orders: any[]) {
 
 export async function GET(req: NextRequest) {
   try {
+    console.log("PaymentStatus enum mismatch debug - Starting GET request");
+    
     const session = await requireAdmin();
     
     // Defensive check for organizationId
