@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useAuthStore } from "@/store/index";
 import { formatDate } from "@/utils/format";
 import toast from "react-hot-toast";
@@ -104,13 +105,12 @@ export default function AccountPage() {
             {/* Avatar */}
             <div className="glass-card rounded-2xl p-5 text-center border-gold-200/30 dark:border-gold-800/20">
               <div className="relative w-20 h-20 mx-auto mb-3">
-                <div className="w-20 h-20 rounded-full bg-brand-700 flex items-center justify-center text-white text-2xl font-bold overflow-hidden">
-                  {user?.avatar ? (
-                    <Image src={user.avatar} alt={user.name} fill className="object-cover" sizes="80px" />
-                  ) : (
-                    user?.name?.[0]?.toUpperCase()
-                  )}
-                </div>
+                <Avatar className="w-20 h-20">
+                  <AvatarImage src={user?.avatar || ""} />
+                  <AvatarFallback className="text-2xl flex items-center justify-center">
+                    {user?.name?.charAt(0).toUpperCase() || "A"}
+                  </AvatarFallback>
+                </Avatar>
                 <button className="absolute bottom-0 right-0 w-7 h-7 rounded-full bg-brand-700 flex items-center justify-center text-white shadow-md hover:bg-brand-600 transition-colors">
                   <Camera className="w-3.5 h-3.5" />
                 </button>

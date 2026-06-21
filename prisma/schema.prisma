@@ -8,48 +8,48 @@ datasource db {
 }
 
 model User {
-  id               String            @id @default(uuid()) @db.Uuid
-  email            String            @unique
-  name             String
-  password         String
-  avatar           String?
-  phone            String?
-  role             Role              @default(USER)
-  emailVerified    Boolean           @default(false)
-  verifyToken      String?
-  resetToken       String?
-  resetExpires     DateTime?
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
-  locale           LocaleCode        @default(fr)
-  addresses        Address[]
-  AiConversation   AiConversation[]
-  AiEvent          AiEvent[]
-  AuditLog         AuditLog[]
-  cart             CartItem[]
-  Membership       Membership[]
-  notifications    Notification[]
-  notificationLogs NotificationLog[] @relation("UserNotificationLogs")
-  orders           Order[]
-  Organization     Organization[] @relation("OrganizationOwner")
-  viewedProducts   RecentlyViewed[]
-  reviews          Review[]
-  Session          Session[]
-  wishlist         WishlistItem[]
-  loyaltyPoints    LoyaltyPoints[]
-  customerSegment  CustomerSegment[]
-  reviewRequests   ReviewRequest[]
-  recommendations  Recommendation[]
-  analyticsEvents  AnalyticsEvent[]
-  analyticsSessions AnalyticsSession[]
-  userProfile      UserProfile?
-  churnPredictions ChurnPrediction[]
-  campaignUsers RetentionCampaignUser[]
-  campaignEvents CampaignEvent[]
-  emailLogs      EmailLog[]
-  cartReminders  CartReminder[]
-  welcomeSeries  WelcomeSeries?
+  id                      String                   @id @default(uuid()) @db.Uuid
+  email                   String                   @unique
+  name                    String
+  password                String
+  avatar                  String?
+  phone                   String?
+  role                    Role                     @default(USER)
+  emailVerified           Boolean                  @default(false)
+  verifyToken             String?
+  resetToken              String?
+  resetExpires            DateTime?
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
+  locale                  LocaleCode               @default(fr)
+  addresses               Address[]
+  AiConversation          AiConversation[]
+  AiEvent                 AiEvent[]
+  analyticsEvents         AnalyticsEvent[]
+  analyticsSessions       AnalyticsSession[]
+  AuditLog                AuditLog[]
+  campaignEvents          CampaignEvent[]
+  cart                    CartItem[]
+  cartReminders           CartReminder[]
+  churnPredictions        ChurnPrediction[]
+  customerSegment         CustomerSegment[]
+  emailLogs               EmailLog[]
+  loyaltyPoints           LoyaltyPoints[]
   marketingSegmentMembers MarketingSegmentMember[]
+  Membership              Membership[]
+  notifications           Notification[]
+  notificationLogs        NotificationLog[]        @relation("UserNotificationLogs")
+  orders                  Order[]
+  Organization            Organization[]           @relation("OrganizationOwner")
+  viewedProducts          RecentlyViewed[]
+  recommendations         Recommendation[]
+  campaignUsers           RetentionCampaignUser[]
+  reviews                 Review[]
+  reviewRequests          ReviewRequest[]
+  Session                 Session[]
+  userProfile             UserProfile?
+  welcomeSeries           WelcomeSeries?
+  wishlist                WishlistItem[]
 
   @@index([email])
 }
@@ -74,19 +74,19 @@ model Address {
 }
 
 model Category {
-  id             String       @id @default(uuid()) @db.Uuid
-  organizationId String       @db.Uuid
-  name           String
-  slug           String
-  description    String?
-  image          String?
-  parentId       String?      @db.Uuid
-  createdAt      DateTime     @default(now())
-  Organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  parent         Category?    @relation("SubCategories", fields: [parentId], references: [id])
-  children       Category[]   @relation("SubCategories")
-  products       Product[]
+  id              String           @id @default(uuid()) @db.Uuid
+  organizationId  String           @db.Uuid
+  name            String
+  slug            String
+  description     String?
+  image           String?
+  parentId        String?          @db.Uuid
+  createdAt       DateTime         @default(now())
   analyticsEvents AnalyticsEvent[]
+  Organization    Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  parent          Category?        @relation("SubCategories", fields: [parentId], references: [id])
+  children        Category[]       @relation("SubCategories")
+  products        Product[]
 
   @@unique([organizationId, slug])
   @@index([organizationId])
@@ -117,7 +117,9 @@ model Product {
   updatedAt          DateTime               @updatedAt
   AiEvent            AiEvent[]
   AiProductEmbedding AiProductEmbedding?
+  analyticsEvents    AnalyticsEvent[]
   cartItems          CartItem[]
+  dynamicPrice       DynamicPrice?
   reservations       InventoryReservation[]
   orderItems         OrderItem[]
   category           Category               @relation(fields: [categoryId], references: [id])
@@ -125,10 +127,8 @@ model Product {
   variants           ProductVariant[]
   recentlyViewed     RecentlyViewed[]
   reviews            Review[]
-  wishlistItems      WishlistItem[]
-  analyticsEvents    AnalyticsEvent[]
-  dynamicPrice       DynamicPrice?
   stockAlertLogs     StockAlertLog[]
+  wishlistItems      WishlistItem[]
 
   @@unique([organizationId, sku])
   @@unique([organizationId, slug])
@@ -159,15 +159,15 @@ model Review {
   id               String   @id @default(uuid()) @db.Uuid
   productId        String   @db.Uuid
   userId           String   @db.Uuid
-  orderId          String?  @db.Uuid
   rating           Int
   title            String?
   body             String
   images           String[]
-  helpfulCount     Int      @default(0)
-  verifiedPurchase Boolean  @default(false)
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
+  helpfulCount     Int      @default(0)
+  orderId          String?  @db.Uuid
+  verifiedPurchase Boolean  @default(false)
   order            Order?   @relation(fields: [orderId], references: [id])
   product          Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -211,16 +211,18 @@ model Order {
   total             Float
   couponId          String?              @db.Uuid
   stripePaymentId   String?              @unique
-  idempotencyKey    String?              @unique
   notes             String?
   trackingNumber    String?
-  courier           String?
-  estimatedDelivery DateTime?
   createdAt         DateTime             @default(now())
   updatedAt         DateTime             @updatedAt
   currency          String               @default("MAD")
   deliveryCity      String?
+  courier           String?
+  estimatedDelivery DateTime?
+  idempotencyKey    String?              @unique
+  analyticsEvents   AnalyticsEvent[]
   CmiPayment        CmiPayment?
+  emailLogs         EmailLog[]
   Invoice           Invoice?
   notifications     NotificationLog[]    @relation("OrderNotifications")
   address           Address              @relation(fields: [addressId], references: [id])
@@ -232,8 +234,6 @@ model Order {
   trackingHistory   OrderTracking[]
   reviews           Review[]
   webhookEvents     StripeWebhookEvent[]
-  analyticsEvents   AnalyticsEvent[]
-  emailLogs         EmailLog[]
 
   @@unique([organizationId, orderNumber])
   @@index([userId])
@@ -523,65 +523,62 @@ model Membership {
 }
 
 model Organization {
-  id                 String               @id @default(uuid()) @db.Uuid
-  name               String
-  slug               String               @unique
-  logo               String?
-  ownerId            String               @db.Uuid
-  stripeCustomerId   String?              @unique
-  createdAt          DateTime             @default(now())
-  updatedAt          DateTime             @updatedAt
-  defaultLocale      LocaleCode           @default(fr)
-  ice                String?
-  ifNumber           String?
-  legalAddress       String?
-  legalName          String?
-  
-  // SaaS-specific fields
-  planId             String?              @db.Uuid
-  subscriptionId     String?              @unique @db.Uuid
-  status             OrganizationStatus   @default(ACTIVE)
-  primaryColor       String?
-  customDomain       String?              @unique
-  trialEndsAt        DateTime?
-  
-  AiConversation     AiConversation[]
-  AiEvent            AiEvent[]
-  AiProductEmbedding AiProductEmbedding[]
-  AuditLog           AuditLog[]
-  Category           Category[]
-  Coupon             Coupon[]
-  Customer           Customer[]
-  Invoice            Invoice[]
-  Membership         Membership[]
-  Order              Order[]
-  User               User                 @relation("OrganizationOwner", fields: [ownerId], references: [id])
-  Product            Product[]
-  Subscription       Subscription?
-  Experiment         Experiment[]
-  UserProfile        UserProfile[]
-  Personalization    Personalization[]
-  PersonalizedOffer  PersonalizedOffer[]
-  AnalyticsMetric    AnalyticsMetric[]
-  CohortAnalysis     CohortAnalysis[]
-  BICustomerSegment  BICustomerSegment[]
-  PredictiveModel    PredictiveModel[]
-  ChurnPrediction    ChurnPrediction[]
-  RetentionCampaign  RetentionCampaign[]
-  DynamicPrice       DynamicPrice[]
-  ProductBundle      ProductBundle[]
-  RevenueAction      RevenueAction[]
-  MarketingCampaign  MarketingCampaign[]
-  MarketingWorkflow  MarketingWorkflow[]
-  plan               Plan?                @relation(fields: [planId], references: [id])
-  usageRecords       UsageRecord[]
-  paymentMethods     PaymentMethod[]
-  stockAlertLogs     StockAlertLog[]
-  dailySalesReports  DailySalesReport[]
-  welcomeSeries      WelcomeSeries[]
-  marketingSegments MarketingSegment[]
+  id                      String                   @id @default(uuid()) @db.Uuid
+  name                    String
+  slug                    String                   @unique
+  logo                    String?
+  ownerId                 String                   @db.Uuid
+  stripeCustomerId        String?                  @unique
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
+  defaultLocale           LocaleCode               @default(fr)
+  ice                     String?
+  ifNumber                String?
+  legalAddress            String?
+  legalName               String?
+  customDomain            String?                  @unique
+  paymentMethods          PaymentMethod[]
+  planId                  String?                  @db.Uuid
+  primaryColor            String?
+  status                  OrganizationStatus       @default(ACTIVE)
+  subscriptionId          String?                  @unique @db.Uuid
+  trialEndsAt             DateTime?
+  AiConversation          AiConversation[]
+  AiEvent                 AiEvent[]
+  AiProductEmbedding      AiProductEmbedding[]
+  AnalyticsMetric         AnalyticsMetric[]
+  AuditLog                AuditLog[]
+  BICustomerSegment       BICustomerSegment[]
+  Category                Category[]
+  ChurnPrediction         ChurnPrediction[]
+  CohortAnalysis          CohortAnalysis[]
+  Coupon                  Coupon[]
+  Customer                Customer[]
+  dailySalesReports       DailySalesReport[]
+  DynamicPrice            DynamicPrice[]
+  emailCampaigns          EmailCampaign[]
+  Experiment              Experiment[]
+  Invoice                 Invoice[]
+  MarketingCampaign       MarketingCampaign[]
+  marketingSegments       MarketingSegment[]
   marketingSegmentMembers MarketingSegmentMember[]
-  emailCampaigns     EmailCampaign[]
+  MarketingWorkflow       MarketingWorkflow[]
+  Membership              Membership[]
+  Order                   Order[]
+  User                    User                     @relation("OrganizationOwner", fields: [ownerId], references: [id])
+  plan                    Plan?                    @relation(fields: [planId], references: [id])
+  Personalization         Personalization[]
+  PersonalizedOffer       PersonalizedOffer[]
+  PredictiveModel         PredictiveModel[]
+  Product                 Product[]
+  ProductBundle           ProductBundle[]
+  RetentionCampaign       RetentionCampaign[]
+  RevenueAction           RevenueAction[]
+  stockAlertLogs          StockAlertLog[]
+  Subscription            Subscription?
+  usageRecords            UsageRecord[]
+  UserProfile             UserProfile[]
+  welcomeSeries           WelcomeSeries[]
 
   @@index([ownerId])
   @@index([slug])
@@ -609,8 +606,8 @@ model StripeWebhookEvent {
   eventId     String   @unique
   type        String
   processedAt DateTime @default(now())
-  orderId     String?  @db.Uuid
   metadata    Json?
+  orderId     String?  @db.Uuid
   order       Order?   @relation(fields: [orderId], references: [id])
 
   @@index([eventId])
@@ -756,6 +753,975 @@ model AiProductEmbedding {
   @@index([organizationId])
 }
 
+model AutomationLog {
+  id             String           @id @default(uuid()) @db.Uuid
+  organizationId String           @db.Uuid
+  type           AutomationType
+  entityType     String
+  entityId       String
+  action         String
+  status         AutomationStatus @default(COMPLETED)
+  metadata       Json?
+  error          String?
+  executedAt     DateTime         @default(now())
+  userId         String?          @db.Uuid
+  duration       Int?
+  retryCount     Int              @default(0)
+  jobId          String?
+  queueName      String?
+
+  @@index([organizationId])
+  @@index([entityType, entityId])
+  @@index([executedAt])
+  @@index([organizationId, type, status])
+  @@index([status, executedAt])
+  @@index([userId, executedAt])
+  @@index([jobId])
+}
+
+model LoyaltyPoints {
+  id             String      @id @default(uuid()) @db.Uuid
+  userId         String      @db.Uuid
+  organizationId String      @db.Uuid
+  points         Int         @default(0)
+  pointsEarned   Int         @default(0)
+  pointsRedeemed Int         @default(0)
+  tier           LoyaltyTier @default(BRONZE)
+  lifetimeValue  Float       @default(0)
+  orderCount     Int         @default(0)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  user           User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organizationId])
+  @@index([userId])
+  @@index([organizationId])
+}
+
+model CartAbandonment {
+  id            String    @id @default(uuid()) @db.Uuid
+  userId        String    @db.Uuid
+  cartSnapshot  Json
+  cartValue     Float
+  itemCount     Int
+  reminderSent1 Boolean   @default(false)
+  reminderSent2 Boolean   @default(false)
+  recovered     Boolean   @default(false)
+  recoveredAt   DateTime?
+  abandonedAt   DateTime  @default(now())
+  createdAt     DateTime  @default(now())
+
+  @@index([userId])
+  @@index([abandonedAt])
+  @@index([recovered])
+}
+
+model CustomerSegment {
+  id             String              @id @default(uuid()) @db.Uuid
+  organizationId String              @db.Uuid
+  userId         String              @db.Uuid
+  segment        CustomerSegmentType
+  criteria       Json?
+  score          Float?
+  assignedAt     DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  user           User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, userId])
+  @@index([organizationId])
+  @@index([userId])
+}
+
+model ReviewRequest {
+  id          String              @id @default(uuid()) @db.Uuid
+  orderId     String              @db.Uuid
+  userId      String              @db.Uuid
+  productId   String              @db.Uuid
+  sentAt      DateTime            @default(now())
+  respondedAt DateTime?
+  status      ReviewRequestStatus @default(PENDING)
+  emailSent   Boolean             @default(false)
+  user        User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([userId])
+  @@index([productId])
+  @@index([sentAt])
+}
+
+model ReportSchedule {
+  id             String          @id @default(uuid()) @db.Uuid
+  organizationId String          @db.Uuid
+  type           ReportType
+  frequency      ReportFrequency
+  recipients     String[]
+  lastRunAt      DateTime?
+  nextRunAt      DateTime
+  active         Boolean         @default(true)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@index([organizationId])
+  @@index([nextRunAt])
+  @@index([active])
+}
+
+model Recommendation {
+  id        String             @id @default(uuid()) @db.Uuid
+  userId    String             @db.Uuid
+  productId String             @db.Uuid
+  type      RecommendationType
+  score     Float
+  reason    String?
+  clicked   Boolean            @default(false)
+  purchased Boolean            @default(false)
+  createdAt DateTime           @default(now())
+  user      User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([productId])
+  @@index([score])
+}
+
+model QueueJob {
+  id           String    @id @default(uuid()) @db.Uuid
+  jobId        String    @unique
+  queueName    String
+  name         String
+  data         Json
+  status       JobStatus @default(WAITING)
+  priority     Int       @default(0)
+  attempts     Int       @default(0)
+  maxAttempts  Int       @default(3)
+  failedReason String?
+  stacktrace   String?
+  processedOn  DateTime?
+  finishedOn   DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([queueName, status])
+  @@index([status, createdAt])
+  @@index([queueName, createdAt])
+}
+
+model ErrorPattern {
+  id              String    @id @default(uuid()) @db.Uuid
+  errorType       String
+  errorMessage    String
+  stackSignature  String    @unique
+  occurrenceCount Int       @default(1)
+  firstSeenAt     DateTime  @default(now())
+  lastSeenAt      DateTime  @default(now())
+  resolved        Boolean   @default(false)
+  resolvedAt      DateTime?
+  resolutionNote  String?
+
+  @@index([errorType, resolved])
+  @@index([occurrenceCount])
+  @@index([lastSeenAt])
+}
+
+model AnalyticsEvent {
+  id             String            @id @default(uuid()) @db.Uuid
+  organizationId String            @db.Uuid
+  userId         String?           @db.Uuid
+  sessionId      String?           @db.Uuid
+  eventType      EventType
+  eventSource    EventSource
+  properties     Json
+  productId      String?           @db.Uuid
+  categoryId     String?           @db.Uuid
+  orderId        String?           @db.Uuid
+  searchQuery    String?
+  url            String?
+  referrer       String?
+  userAgent      String?
+  ipAddress      String?
+  deviceType     String?
+  browser        String?
+  os             String?
+  occurredAt     DateTime          @default(now())
+  processedAt    DateTime?
+  category       Category?         @relation(fields: [categoryId], references: [id])
+  order          Order?            @relation(fields: [orderId], references: [id])
+  product        Product?          @relation(fields: [productId], references: [id])
+  session        AnalyticsSession? @relation(fields: [sessionId], references: [id])
+  user           User?             @relation(fields: [userId], references: [id])
+
+  @@index([organizationId, occurredAt])
+  @@index([userId, occurredAt])
+  @@index([sessionId, occurredAt])
+  @@index([eventType, occurredAt])
+  @@index([productId, occurredAt])
+  @@index([organizationId, eventType, occurredAt])
+  @@index([occurredAt])
+}
+
+model AnalyticsSession {
+  id             String           @id @default(uuid()) @db.Uuid
+  organizationId String           @db.Uuid
+  userId         String?          @db.Uuid
+  sessionId      String           @unique
+  startedAt      DateTime         @default(now())
+  endedAt        DateTime?
+  pageViews      Int              @default(0)
+  duration       Int?
+  bounce         Boolean          @default(true)
+  conversions    Int              @default(0)
+  deviceType     String?
+  browser        String?
+  os             String?
+  ipAddress      String?
+  events         AnalyticsEvent[]
+  user           User?            @relation(fields: [userId], references: [id])
+
+  @@index([organizationId, startedAt])
+  @@index([userId, startedAt])
+  @@index([sessionId])
+}
+
+model FunnelStep {
+  id             String    @id @default(uuid()) @db.Uuid
+  organizationId String    @db.Uuid
+  funnelName     String
+  stepName       String
+  stepOrder      Int
+  eventType      EventType
+  required       Boolean   @default(true)
+  timeWindow     Int?
+
+  @@unique([organizationId, funnelName, stepName])
+  @@index([organizationId, funnelName])
+}
+
+model FunnelAnalysis {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @db.Uuid
+  funnelName     String
+  startDate      DateTime
+  endDate        DateTime
+  totalUsers     Int
+  step1Users     Int
+  step2Users     Int
+  step3Users     Int
+  step4Users     Int
+  step5Users     Int
+  step1Rate      Float
+  step2Rate      Float
+  step3Rate      Float
+  step4Rate      Float
+  overallRate    Float
+
+  @@index([organizationId, funnelName, startDate])
+}
+
+model Experiment {
+  id                      String               @id @default(uuid()) @db.Uuid
+  organizationId          String               @db.Uuid
+  name                    String
+  description             String?
+  type                    ExperimentType
+  status                  ExperimentStatus     @default(DRAFT)
+  trafficSplit            Float                @default(0.5)
+  startDate               DateTime?
+  endDate                 DateTime?
+  primaryGoal             ExperimentGoal
+  secondaryGoals          Json
+  targetAudience          Json?
+  excludeAudience         Json?
+  totalExposures          Int                  @default(0)
+  totalConversions        Int                  @default(0)
+  controlConversions      Int                  @default(0)
+  variantConversions      Int                  @default(0)
+  controlRevenue          Float                @default(0)
+  variantRevenue          Float                @default(0)
+  conversionRate          Float                @default(0)
+  uplift                  Float?
+  statisticalSignificance Boolean              @default(false)
+  pValue                  Float?
+  createdAt               DateTime             @default(now())
+  updatedAt               DateTime             @updatedAt
+  startedAt               DateTime?
+  completedAt             DateTime?
+  organization            Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  exposures               ExperimentExposure[]
+  variants                ExperimentVariant[]
+
+  @@index([organizationId, status])
+  @@index([organizationId, type])
+  @@index([startDate, endDate])
+}
+
+model ExperimentVariant {
+  id              String               @id @default(uuid()) @db.Uuid
+  experimentId    String               @db.Uuid
+  name            String
+  type            VariantType
+  description     String?
+  config          Json
+  weight          Float                @default(0.5)
+  exposures       Int                  @default(0)
+  conversions     Int                  @default(0)
+  revenue         Float                @default(0)
+  conversionRate  Float                @default(0)
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+  exposureRecords ExperimentExposure[]
+  experiment      Experiment           @relation(fields: [experimentId], references: [id], onDelete: Cascade)
+
+  @@unique([experimentId, type])
+  @@index([experimentId])
+}
+
+model ExperimentExposure {
+  id           String            @id @default(uuid()) @db.Uuid
+  experimentId String            @db.Uuid
+  variantId    String            @db.Uuid
+  userId       String?           @db.Uuid
+  sessionId    String?           @db.Uuid
+  url          String?
+  referrer     String?
+  userAgent    String?
+  exposedAt    DateTime          @default(now())
+  convertedAt  DateTime?
+  experiment   Experiment        @relation(fields: [experimentId], references: [id], onDelete: Cascade)
+  variant      ExperimentVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+
+  @@index([experimentId, userId])
+  @@index([experimentId, sessionId])
+  @@index([variantId])
+  @@index([exposedAt])
+}
+
+model UserProfile {
+  id                  String            @id @default(uuid()) @db.Uuid
+  organizationId      String            @db.Uuid
+  userId              String            @unique @db.Uuid
+  viewCount           Int               @default(0)
+  purchaseCount       Int               @default(0)
+  cartCount           Int               @default(0)
+  searchCount         Int               @default(0)
+  preferredCategories Json
+  preferredPriceRange Json
+  preferredBrands     Json
+  segment             String?
+  loyaltyTier         String?
+  engagementScore     Float             @default(0)
+  purchaseScore       Float             @default(0)
+  activityScore       Float             @default(0)
+  overallScore        Float             @default(0)
+  lastActivityAt      DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+  personalizations    Personalization[]
+  organization        Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user                User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, segment])
+  @@index([lastActivityAt])
+}
+
+model Personalization {
+  id              String                 @id @default(uuid()) @db.Uuid
+  organizationId  String                 @db.Uuid
+  userId          String?                @db.Uuid
+  sessionId       String?                @db.Uuid
+  type            PersonalizationType
+  trigger         PersonalizationTrigger
+  config          Json
+  priority        Int                    @default(0)
+  targetSegments  Json?
+  excludeSegments Json?
+  impressions     Int                    @default(0)
+  clicks          Int                    @default(0)
+  conversions     Int                    @default(0)
+  revenueImpact   Float                  @default(0)
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+  expiresAt       DateTime?
+  organization    Organization           @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userProfile     UserProfile?           @relation(fields: [userId], references: [id])
+
+  @@index([organizationId, type])
+  @@index([userId, type])
+  @@index([sessionId, type])
+  @@index([expiresAt])
+}
+
+model PersonalizedOffer {
+  id                   String       @id @default(uuid()) @db.Uuid
+  organizationId       String       @db.Uuid
+  name                 String
+  description          String?
+  type                 OfferType
+  value                Float
+  minPurchase          Float?
+  maxDiscount          Float?
+  applicableCategories Json?
+  applicableProducts   Json?
+  targetSegments       Json?
+  loyaltyTiers         Json?
+  usedCount            Int          @default(0)
+  revenueImpact        Float        @default(0)
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
+  startDate            DateTime?
+  endDate              DateTime?
+  organization         Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, type])
+  @@index([startDate, endDate])
+}
+
+model AnalyticsMetric {
+  id             String          @id @default(uuid()) @db.Uuid
+  organizationId String          @db.Uuid
+  type           MetricType
+  granularity    TimeGranularity
+  periodStart    DateTime
+  periodEnd      DateTime
+  value          Float
+  previousValue  Float?
+  changePercent  Float?
+  dimensions     Json
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, type, granularity, periodStart])
+  @@index([organizationId, type])
+  @@index([periodStart, periodEnd])
+}
+
+model CohortAnalysis {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @db.Uuid
+  type           CohortType
+  name           String
+  cohortStart    DateTime
+  cohortEnd      DateTime
+  cohortSize     Int
+  retentionData  Json
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, type])
+  @@index([cohortStart])
+}
+
+model BICustomerSegment {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @db.Uuid
+  name           String
+  description    String?
+  criteria       Json
+  userCount      Int          @default(0)
+  avgRevenue     Float        @default(0)
+  avgLTV         Float        @default(0)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+}
+
+model PredictiveModel {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @db.Uuid
+  name           String
+  type           String
+  version        String
+  accuracy       Float
+  precision      Float
+  recall         Float
+  features       Json
+  coefficients   Json
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  trainedAt      DateTime?
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, type])
+}
+
+model ChurnPrediction {
+  id             String         @id @default(uuid()) @db.Uuid
+  organizationId String         @db.Uuid
+  userId         String         @db.Uuid
+  riskScore      Float
+  riskLevel      ChurnRiskLevel
+  confidence     Float
+  factors        Json
+  predictedAt    DateTime       @default(now())
+  validUntil     DateTime
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, predictedAt])
+  @@index([organizationId, riskLevel])
+  @@index([validUntil])
+}
+
+model RetentionCampaign {
+  id               String                  @id @default(uuid()) @db.Uuid
+  organizationId   String                  @db.Uuid
+  name             String
+  type             RetentionCampaignType
+  status           RetentionCampaignStatus @default(SCHEDULED)
+  targetSegments   Json?
+  targetRiskLevels Json?
+  subject          String?
+  message          String
+  offer            Json?
+  scheduledAt      DateTime
+  sentAt           DateTime?
+  targetCount      Int                     @default(0)
+  sentCount        Int                     @default(0)
+  openedCount      Int                     @default(0)
+  clickedCount     Int                     @default(0)
+  convertedCount   Int                     @default(0)
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
+  organization     Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  campaignUsers    RetentionCampaignUser[]
+
+  @@index([organizationId, status])
+  @@index([scheduledAt])
+}
+
+model RetentionCampaignUser {
+  id          String            @id @default(uuid()) @db.Uuid
+  campaignId  String            @db.Uuid
+  userId      String            @db.Uuid
+  sent        Boolean           @default(false)
+  opened      Boolean           @default(false)
+  clicked     Boolean           @default(false)
+  converted   Boolean           @default(false)
+  sentAt      DateTime?
+  openedAt    DateTime?
+  clickedAt   DateTime?
+  convertedAt DateTime?
+  campaign    RetentionCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([campaignId, userId])
+  @@index([campaignId, sent])
+  @@index([userId])
+}
+
+model DynamicPrice {
+  id                String          @id @default(uuid()) @db.Uuid
+  organizationId    String          @db.Uuid
+  productId         String          @unique @db.Uuid
+  basePrice         Float
+  currentPrice      Float
+  minPrice          Float
+  maxPrice          Float
+  strategy          PricingStrategy
+  demandFactor      Float
+  competitionFactor Float
+  seasonalityFactor Float
+  priceChangeCount  Int             @default(0)
+  revenueImpact     Float           @default(0)
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  nextReviewAt      DateTime?
+  organization      Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  product           Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, strategy])
+  @@index([nextReviewAt])
+}
+
+model ProductBundle {
+  id              String       @id @default(uuid()) @db.Uuid
+  organizationId  String       @db.Uuid
+  name            String
+  description     String?
+  type            BundleType
+  bundlePrice     Float
+  discountPercent Float
+  productIds      Json
+  soldCount       Int          @default(0)
+  revenueImpact   Float        @default(0)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  active          Boolean      @default(true)
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, active])
+}
+
+model RevenueAction {
+  id             String            @id @default(uuid()) @db.Uuid
+  organizationId String            @db.Uuid
+  type           RevenueActionType
+  targetId       String
+  actionData     Json
+  executedAt     DateTime?
+  revenueImpact  Float?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  organization   Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, type])
+  @@index([executedAt])
+}
+
+model MarketingCampaign {
+  id             String              @id @default(uuid()) @db.Uuid
+  organizationId String              @db.Uuid
+  name           String
+  type           CampaignType
+  status         CampaignStatus      @default(DRAFT)
+  subject        String?
+  content        String
+  templateId     String?
+  targetSegments Json?
+  targetUsers    Json?
+  scheduledAt    DateTime?
+  sentAt         DateTime?
+  targetCount    Int                 @default(0)
+  sentCount      Int                 @default(0)
+  openedCount    Int                 @default(0)
+  clickedCount   Int                 @default(0)
+  convertedCount Int                 @default(0)
+  revenueImpact  Float               @default(0)
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  campaignEvents CampaignEvent[]
+  organization   Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  workflows      MarketingWorkflow[]
+
+  @@index([organizationId, status])
+  @@index([scheduledAt])
+}
+
+model MarketingWorkflow {
+  id             String             @id @default(uuid()) @db.Uuid
+  organizationId String             @db.Uuid
+  name           String
+  triggerType    TriggerType
+  triggerConfig  Json
+  steps          Json
+  active         Boolean            @default(true)
+  executedCount  Int                @default(0)
+  convertedCount Int                @default(0)
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  campaignId     String?            @db.Uuid
+  campaign       MarketingCampaign? @relation(fields: [campaignId], references: [id])
+  organization   Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, active])
+  @@index([triggerType])
+}
+
+model CampaignEvent {
+  id         String            @id @default(uuid()) @db.Uuid
+  campaignId String            @db.Uuid
+  userId     String            @db.Uuid
+  eventType  String
+  eventData  Json?
+  occurredAt DateTime          @default(now())
+  campaign   MarketingCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  user       User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([campaignId, userId])
+  @@index([userId, eventType])
+  @@index([occurredAt])
+}
+
+model Plan {
+  id                  String         @id @default(uuid()) @db.Uuid
+  name                String
+  slug                String         @unique
+  description         String?
+  monthlyPrice        Float
+  yearlyPrice         Float
+  currency            String         @default("USD")
+  trialDays           Int            @default(14)
+  limits              Json
+  features            Json
+  stripePriceId       String?        @unique
+  stripeYearlyPriceId String?        @unique
+  active              Boolean        @default(true)
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+  organizations       Organization[]
+
+  @@index([active])
+}
+
+model UsageRecord {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @db.Uuid
+  metric         UsageMetric
+  quantity       Int          @default(0)
+  periodStart    DateTime
+  periodEnd      DateTime
+  recordedAt     DateTime     @default(now())
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, metric, periodStart])
+  @@index([periodStart, periodEnd])
+}
+
+model FeatureFlag {
+  id                  String   @id @default(uuid()) @db.Uuid
+  key                 String   @unique
+  name                String
+  description         String?
+  enabled             Boolean  @default(false)
+  rolloutPercentage   Float    @default(0)
+  targetPlans         Json?
+  targetOrganizations Json?
+  category            String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([enabled])
+  @@index([category])
+}
+
+model EmailLog {
+  id             String         @id @default(uuid()) @db.Uuid
+  organizationId String?        @db.Uuid
+  userId         String?        @db.Uuid
+  orderId        String?        @db.Uuid
+  type           EmailType
+  recipient      String
+  subject        String
+  status         EmailStatus    @default(PENDING)
+  error          String?
+  sentAt         DateTime?
+  deliveredAt    DateTime?
+  openedAt       DateTime?
+  clickedAt      DateTime?
+  retryCount     Int            @default(0)
+  metadata       Json?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  order          Order?         @relation(fields: [orderId], references: [id])
+  user           User?          @relation(fields: [userId], references: [id])
+  tracking       EmailTracking?
+
+  @@index([organizationId])
+  @@index([userId])
+  @@index([orderId])
+  @@index([type])
+  @@index([status])
+  @@index([recipient])
+  @@index([createdAt])
+  @@index([organizationId, type, status])
+}
+
+model CartReminder {
+  id              String    @id @default(uuid()) @db.Uuid
+  userId          String    @db.Uuid
+  cartSnapshot    Json
+  cartValue       Float
+  itemCount       Int
+  reminderSent1   Boolean   @default(false)
+  reminderSent1At DateTime?
+  reminderSent2   Boolean   @default(false)
+  reminderSent2At DateTime?
+  reminderSent3   Boolean   @default(false)
+  reminderSent3At DateTime?
+  recovered       Boolean   @default(false)
+  recoveredAt     DateTime?
+  abandonedAt     DateTime  @default(now())
+  lastActivityAt  DateTime  @default(now())
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([abandonedAt])
+  @@index([recovered])
+  @@index([reminderSent1])
+  @@index([reminderSent2])
+  @@index([reminderSent3])
+}
+
+model StockAlertLog {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @db.Uuid
+  productId      String       @db.Uuid
+  productName    String
+  currentStock   Int
+  threshold      Int
+  alertSent      Boolean      @default(false)
+  alertSentAt    DateTime?
+  acknowledged   Boolean      @default(false)
+  acknowledgedAt DateTime?
+  acknowledgedBy String?      @db.Uuid
+  resolved       Boolean      @default(false)
+  resolvedAt     DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  product        Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, createdAt])
+  @@index([organizationId])
+  @@index([productId])
+  @@index([alertSent])
+  @@index([acknowledged])
+  @@index([resolved])
+  @@index([createdAt])
+}
+
+model DailySalesReport {
+  id                String       @id @default(uuid()) @db.Uuid
+  organizationId    String       @db.Uuid
+  reportDate        DateTime     @db.Date
+  totalSales        Float        @default(0)
+  totalOrders       Int          @default(0)
+  newCustomers      Int          @default(0)
+  averageOrderValue Float        @default(0)
+  topProducts       Json
+  metrics           Json
+  sent              Boolean      @default(false)
+  sentAt            DateTime?
+  recipients        String[]
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+  organization      Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, reportDate])
+  @@index([organizationId])
+  @@index([reportDate])
+  @@index([sent])
+}
+
+model WelcomeSeries {
+  id             String       @id @default(uuid()) @db.Uuid
+  userId         String       @unique @db.Uuid
+  organizationId String       @db.Uuid
+  email1Sent     Boolean      @default(false)
+  email1SentAt   DateTime?
+  email2Sent     Boolean      @default(false)
+  email2SentAt   DateTime?
+  email3Sent     Boolean      @default(false)
+  email3SentAt   DateTime?
+  email4Sent     Boolean      @default(false)
+  email4SentAt   DateTime?
+  email5Sent     Boolean      @default(false)
+  email5SentAt   DateTime?
+  completed      Boolean      @default(false)
+  completedAt    DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([organizationId])
+  @@index([email1Sent])
+  @@index([email2Sent])
+  @@index([email3Sent])
+  @@index([email4Sent])
+  @@index([email5Sent])
+  @@index([completed])
+}
+
+model MarketingSegment {
+  id             String                   @id @default(uuid()) @db.Uuid
+  organizationId String                   @db.Uuid
+  name           String
+  description    String?
+  rules          Json
+  userCount      Int                      @default(0)
+  isActive       Boolean                  @default(true)
+  createdAt      DateTime                 @default(now())
+  updatedAt      DateTime                 @updatedAt
+  campaigns      EmailCampaign[]
+  organization   Organization             @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  segmentMembers MarketingSegmentMember[]
+
+  @@index([organizationId])
+  @@index([isActive])
+}
+
+model MarketingSegmentMember {
+  id             String           @id @default(uuid()) @db.Uuid
+  segmentId      String           @db.Uuid
+  userId         String           @db.Uuid
+  organizationId String           @db.Uuid
+  score          Float            @default(0)
+  assignedAt     DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  segment        MarketingSegment @relation(fields: [segmentId], references: [id], onDelete: Cascade)
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([segmentId, userId])
+  @@index([segmentId])
+  @@index([userId])
+  @@index([organizationId])
+}
+
+model EmailCampaign {
+  id              String            @id @default(uuid()) @db.Uuid
+  organizationId  String            @db.Uuid
+  name            String
+  type            String
+  subject         String
+  template        String
+  segmentId       String?           @db.Uuid
+  scheduledFor    DateTime?
+  sent            Boolean           @default(false)
+  sentAt          DateTime?
+  recipientCount  Int               @default(0)
+  openCount       Int               @default(0)
+  clickCount      Int               @default(0)
+  conversionCount Int               @default(0)
+  revenue         Float             @default(0)
+  status          String            @default("DRAFT")
+  metadata        Json?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  organization    Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  segment         MarketingSegment? @relation(fields: [segmentId], references: [id])
+  tracking        EmailTracking[]
+
+  @@index([organizationId])
+  @@index([scheduledFor])
+  @@index([sent])
+  @@index([status])
+}
+
+model EmailTracking {
+  id          String         @id @default(uuid()) @db.Uuid
+  emailLogId  String         @unique @db.Uuid
+  campaignId  String?        @db.Uuid
+  userId      String?        @db.Uuid
+  opened      Boolean        @default(false)
+  openedAt    DateTime?
+  clicked     Boolean        @default(false)
+  clickedAt   DateTime?
+  clickCount  Int            @default(0)
+  linkUrl     String?
+  converted   Boolean        @default(false)
+  convertedAt DateTime?
+  orderValue  Float?
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  campaign    EmailCampaign? @relation(fields: [campaignId], references: [id])
+  emailLog    EmailLog       @relation(fields: [emailLogId], references: [id], onDelete: Cascade)
+
+  @@index([emailLogId])
+  @@index([campaignId])
+  @@index([userId])
+  @@index([opened])
+  @@index([clicked])
+  @@index([converted])
+}
+
 enum AuditEventType {
   CHECKOUT_START
   CHECKOUT_STEP_ADDRESS
@@ -834,7 +1800,6 @@ enum PaymentStatus {
   PENDING
   PAID
   FAILED
-  REFUNDED
 }
 
 enum PaymentMethod {
@@ -997,181 +1962,6 @@ enum JobStatus {
   RETRYING
 }
 
-// ═══════════════════════════════════════════════════════════════
-// AUTOMATION MODELS
-// ═══════════════════════════════════════════════════════════════
-
-model AutomationLog {
-  id             String           @id @default(uuid()) @db.Uuid
-  organizationId String           @db.Uuid
-  type           AutomationType
-  entityType     String
-  entityId       String
-  action         String
-  status         AutomationStatus @default(COMPLETED)
-  metadata       Json?
-  error          String?
-  executedAt     DateTime         @default(now())
-  userId          String?          @db.Uuid
-  duration        Int?             // Execution time in ms
-  retryCount      Int              @default(0)
-  jobId           String?          // BullMQ job ID
-  queueName       String?          // Queue name
-
-  @@index([organizationId])
-  @@index([entityType, entityId])
-  @@index([executedAt])
-  @@index([organizationId, type, status])
-  @@index([status, executedAt])
-  @@index([userId, executedAt])
-  @@index([jobId])
-}
-
-model LoyaltyPoints {
-  id             String   @id @default(uuid()) @db.Uuid
-  userId         String   @db.Uuid
-  organizationId String   @db.Uuid
-  points         Int      @default(0)
-  pointsEarned   Int      @default(0)
-  pointsRedeemed Int      @default(0)
-  tier           LoyaltyTier @default(BRONZE)
-  lifetimeValue  Float    @default(0)
-  orderCount     Int      @default(0)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, organizationId])
-  @@index([userId])
-  @@index([organizationId])
-}
-
-model CartAbandonment {
-  id             String   @id @default(uuid()) @db.Uuid
-  userId         String   @db.Uuid
-  cartSnapshot   Json
-  cartValue      Float
-  itemCount      Int
-  reminderSent1  Boolean  @default(false)
-  reminderSent2  Boolean  @default(false)
-  recovered      Boolean  @default(false)
-  recoveredAt    DateTime?
-  abandonedAt    DateTime @default(now())
-  createdAt      DateTime @default(now())
-
-  @@index([userId])
-  @@index([abandonedAt])
-  @@index([recovered])
-}
-
-model CustomerSegment {
-  id             String   @id @default(uuid()) @db.Uuid
-  organizationId String   @db.Uuid
-  userId         String   @db.Uuid
-  segment        CustomerSegmentType
-  criteria       Json?
-  score          Float?
-  assignedAt     DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([organizationId, userId])
-  @@index([organizationId])
-  @@index([userId])
-}
-
-model ReviewRequest {
-  id             String   @id @default(uuid()) @db.Uuid
-  orderId        String   @db.Uuid
-  userId         String   @db.Uuid
-  productId      String   @db.Uuid
-  sentAt         DateTime @default(now())
-  respondedAt    DateTime?
-  status         ReviewRequestStatus @default(PENDING)
-  emailSent      Boolean  @default(false)
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([orderId])
-  @@index([userId])
-  @@index([productId])
-  @@index([sentAt])
-}
-
-model ReportSchedule {
-  id             String   @id @default(uuid()) @db.Uuid
-  organizationId String   @db.Uuid
-  type           ReportType
-  frequency      ReportFrequency
-  recipients     String[]
-  lastRunAt      DateTime?
-  nextRunAt      DateTime
-  active         Boolean  @default(true)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  @@index([organizationId])
-  @@index([nextRunAt])
-  @@index([active])
-}
-
-model Recommendation {
-  id             String   @id @default(uuid()) @db.Uuid
-  userId         String   @db.Uuid
-  productId      String   @db.Uuid
-  type           RecommendationType
-  score          Float
-  reason         String?
-  clicked        Boolean  @default(false)
-  purchased      Boolean  @default(false)
-  createdAt      DateTime @default(now())
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([productId])
-  @@index([score])
-}
-
-model QueueJob {
-  id             String   @id @default(uuid()) @db.Uuid
-  jobId          String   @unique
-  queueName      String
-  name           String
-  data           Json
-  status         JobStatus @default(WAITING)
-  priority       Int      @default(0)
-  attempts       Int      @default(0)
-  maxAttempts    Int      @default(3)
-  failedReason   String?
-  stacktrace     String?
-  processedOn    DateTime?
-  finishedOn     DateTime?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  @@index([queueName, status])
-  @@index([status, createdAt])
-  @@index([queueName, createdAt])
-}
-
-model ErrorPattern {
-  id             String   @id @default(uuid()) @db.Uuid
-  errorType      String
-  errorMessage   String
-  stackSignature String   @unique
-  occurrenceCount Int     @default(1)
-  firstSeenAt    DateTime @default(now())
-  lastSeenAt     DateTime @default(now())
-  resolved       Boolean  @default(false)
-  resolvedAt     DateTime?
-  resolutionNote String?
-
-  @@index([errorType, resolved])
-  @@index([occurrenceCount])
-  @@index([lastSeenAt])
-}
-
-// ─── Event Tracking System ────────────────────────────────────────
-
 enum EventType {
   PRODUCT_VIEW
   ADD_TO_CART
@@ -1207,122 +1997,6 @@ enum EventSource {
   EMAIL
 }
 
-model AnalyticsEvent {
-  id             String   @id @default(uuid()) @db.Uuid
-  organizationId String   @db.Uuid
-  userId         String?  @db.Uuid
-  sessionId      String?  @db.Uuid
-  eventType      EventType
-  eventSource    EventSource
-  
-  // Event Properties
-  properties     Json
-  productId      String?  @db.Uuid
-  categoryId     String?  @db.Uuid
-  orderId        String?  @db.Uuid
-  searchQuery    String?
-  
-  // Context
-  url            String?
-  referrer       String?
-  userAgent      String?
-  ipAddress      String?
-  deviceType     String?
-  browser        String?
-  os             String?
-  
-  // Timestamps
-  occurredAt     DateTime @default(now())
-  processedAt    DateTime?
-  
-  // Relations
-  user           User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
-  product        Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
-  category       Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  order          Order?   @relation(fields: [orderId], references: [id], onDelete: SetNull)
-  session        AnalyticsSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
-  
-  @@index([organizationId, occurredAt])
-  @@index([userId, occurredAt])
-  @@index([sessionId, occurredAt])
-  @@index([eventType, occurredAt])
-  @@index([productId, occurredAt])
-  @@index([organizationId, eventType, occurredAt])
-  @@index([occurredAt])
-}
-
-model AnalyticsSession {
-  id             String   @id @default(uuid()) @db.Uuid
-  organizationId String   @db.Uuid
-  userId         String?  @db.Uuid
-  sessionId      String   @unique
-  startedAt      DateTime @default(now())
-  endedAt        DateTime?
-  
-  // Session Metrics
-  pageViews      Int      @default(0)
-  duration       Int?
-  bounce         Boolean  @default(true)
-  conversions    Int      @default(0)
-  
-  // Device Info
-  deviceType     String?
-  browser        String?
-  os             String?
-  ipAddress      String?
-  
-  // Relations
-  user           User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
-  events         AnalyticsEvent[]
-  
-  @@index([organizationId, startedAt])
-  @@index([userId, startedAt])
-  @@index([sessionId])
-}
-
-model FunnelStep {
-  id             String   @id @default(uuid()) @db.Uuid
-  organizationId String   @db.Uuid
-  funnelName     String
-  stepName       String
-  stepOrder      Int
-  eventType      EventType
-  
-  // Step Configuration
-  required       Boolean  @default(true)
-  timeWindow     Int?
-  
-  @@unique([organizationId, funnelName, stepName])
-  @@index([organizationId, funnelName])
-}
-
-model FunnelAnalysis {
-  id             String   @id @default(uuid()) @db.Uuid
-  organizationId String   @db.Uuid
-  funnelName     String
-  startDate      DateTime
-  endDate        DateTime
-  
-  // Funnel Metrics
-  totalUsers     Int
-  step1Users     Int
-  step2Users     Int
-  step3Users     Int
-  step4Users     Int
-  step5Users     Int
-  
-  // Conversion Rates
-  step1Rate      Float
-  step2Rate      Float
-  step3Rate      Float
-  step4Rate      Float
-  overallRate    Float
-  
-  @@index([organizationId, funnelName, startDate])
-}
-
-// ─── CRO System ─────────────────────────────────────────────────────
-
 enum ExperimentStatus {
   DRAFT
   RUNNING
@@ -1356,112 +2030,6 @@ enum ExperimentGoal {
   FORM_SUBMISSION
 }
 
-model Experiment {
-  id             String           @id @default(uuid()) @db.Uuid
-  organizationId String           @db.Uuid
-  name           String
-  description    String?
-  type           ExperimentType
-  status         ExperimentStatus @default(DRAFT)
-  
-  // Configuration
-  trafficSplit   Float           @default(0.5)
-  startDate      DateTime?
-  endDate        DateTime?
-  
-  // Goals
-  primaryGoal    ExperimentGoal
-  secondaryGoals Json
-  
-  // Targeting
-  targetAudience Json?
-  excludeAudience Json?
-  
-  // Results
-  totalExposures Int             @default(0)
-  totalConversions Int           @default(0)
-  controlConversions Int         @default(0)
-  variantConversions Int         @default(0)
-  controlRevenue  Float           @default(0)
-  variantRevenue  Float           @default(0)
-  conversionRate Float           @default(0)
-  uplift         Float?
-  statisticalSignificance Boolean @default(false)
-  pValue         Float?
-  
-  // Timestamps
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
-  startedAt      DateTime?
-  completedAt    DateTime?
-  
-  // Relations
-  organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  variants       ExperimentVariant[]
-  exposures      ExperimentExposure[]
-  
-  @@index([organizationId, status])
-  @@index([organizationId, type])
-  @@index([startDate, endDate])
-}
-
-model ExperimentVariant {
-  id             String       @id @default(uuid()) @db.Uuid
-  experimentId   String       @db.Uuid
-  name           String
-  type           VariantType
-  description    String?
-  
-  // Configuration
-  config         Json
-  weight         Float       @default(0.5)
-  
-  // Results
-  exposures      Int         @default(0)
-  conversions    Int         @default(0)
-  revenue        Float       @default(0)
-  conversionRate Float       @default(0)
-  
-  // Timestamps
-  createdAt      DateTime    @default(now())
-  updatedAt      DateTime    @updatedAt
-  
-  // Relations
-  experiment     Experiment  @relation(fields: [experimentId], references: [id], onDelete: Cascade)
-  exposureRecords ExperimentExposure[]
-  
-  @@unique([experimentId, type])
-  @@index([experimentId])
-}
-
-model ExperimentExposure {
-  id             String       @id @default(uuid()) @db.Uuid
-  experimentId   String       @db.Uuid
-  variantId      String       @db.Uuid
-  userId         String?      @db.Uuid
-  sessionId      String?      @db.Uuid
-  
-  // Context
-  url            String?
-  referrer       String?
-  userAgent      String?
-  
-  // Timestamps
-  exposedAt      DateTime    @default(now())
-  convertedAt    DateTime?
-  
-  // Relations
-  experiment     Experiment  @relation(fields: [experimentId], references: [id], onDelete: Cascade)
-  variant        ExperimentVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
-  
-  @@index([experimentId, userId])
-  @@index([experimentId, sessionId])
-  @@index([variantId])
-  @@index([exposedAt])
-}
-
-// ─── Advanced Personalization Engine ───────────────────────────────
-
 enum PersonalizationType {
   PRODUCT_RECOMMENDATION
   CATEGORY_RECOMMENDATION
@@ -1488,120 +2056,6 @@ enum OfferType {
   BOGO
   BUNDLE_DISCOUNT
 }
-
-model UserProfile {
-  id             String   @id @default(uuid()) @db.Uuid
-  organizationId String   @db.Uuid
-  userId         String   @db.Uuid
-  
-  // Behavioral Data
-  viewCount      Int      @default(0)
-  purchaseCount  Int      @default(0)
-  cartCount      Int      @default(0)
-  searchCount    Int      @default(0)
-  
-  // Preferences
-  preferredCategories Json
-  preferredPriceRange Json
-  preferredBrands Json
-  
-  // Segmentation
-  segment        String?
-  loyaltyTier    String?
-  
-  // Scoring
-  engagementScore Float  @default(0)
-  purchaseScore    Float  @default(0)
-  activityScore    Float  @default(0)
-  overallScore     Float  @default(0)
-  
-  // Timestamps
-  lastActivityAt DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  
-  // Relations
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  personalizations Personalization[]
-  
-  @@unique([userId])
-  @@index([organizationId, segment])
-  @@index([lastActivityAt])
-}
-
-model Personalization {
-  id             String   @id @default(uuid()) @db.Uuid
-  organizationId String   @db.Uuid
-  userId         String?  @db.Uuid
-  sessionId      String?  @db.Uuid
-  type           PersonalizationType
-  trigger        PersonalizationTrigger
-  
-  // Configuration
-  config         Json
-  priority       Int      @default(0)
-  
-  // Targeting
-  targetSegments Json?
-  excludeSegments Json?
-  
-  // Results
-  impressions    Int      @default(0)
-  clicks         Int      @default(0)
-  conversions    Int      @default(0)
-  revenueImpact  Float    @default(0)
-  
-  // Timestamps
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  expiresAt      DateTime?
-  
-  // Relations
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  userProfile    UserProfile? @relation(fields: [userId], references: [id], onDelete: SetNull)
-  
-  @@index([organizationId, type])
-  @@index([userId, type])
-  @@index([sessionId, type])
-  @@index([expiresAt])
-}
-
-model PersonalizedOffer {
-  id             String   @id @default(uuid()) @db.Uuid
-  organizationId String   @db.Uuid
-  name           String
-  description    String?
-  type           OfferType
-  value          Float
-  
-  // Rules
-  minPurchase    Float?
-  maxDiscount    Float?
-  applicableCategories Json?
-  applicableProducts Json?
-  
-  // Targeting
-  targetSegments Json?
-  loyaltyTiers   Json?
-  
-  // Results
-  usedCount      Int      @default(0)
-  revenueImpact  Float    @default(0)
-  
-  // Timestamps
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  startDate      DateTime?
-  endDate        DateTime?
-  
-  // Relations
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  
-  @@index([organizationId, type])
-  @@index([startDate, endDate])
-}
-
-// ─── Business Intelligence Layer ───────────────────────────────
 
 enum MetricType {
   REVENUE
@@ -1630,114 +2084,6 @@ enum CohortType {
   GEOGRAPHIC
 }
 
-model AnalyticsMetric {
-  id             String   @id @default(uuid()) @db.Uuid
-  organizationId String   @db.Uuid
-  type           MetricType
-  granularity   TimeGranularity
-  
-  // Time period
-  periodStart    DateTime
-  periodEnd      DateTime
-  
-  // Metric values
-  value          Float
-  previousValue  Float?
-  changePercent  Float?
-  
-  // Dimensions
-  dimensions     Json
-  
-  // Timestamps
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  
-  // Relations
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  
-  @@unique([organizationId, type, granularity, periodStart])
-  @@index([organizationId, type])
-  @@index([periodStart, periodEnd])
-}
-
-model CohortAnalysis {
-  id             String   @id @default(uuid()) @db.Uuid
-  organizationId String   @db.Uuid
-  type           CohortType
-  name           String
-  
-  // Cohort definition
-  cohortStart    DateTime
-  cohortEnd      DateTime
-  cohortSize     Int
-  
-  // Retention data
-  retentionData  Json
-  
-  // Timestamps
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  
-  // Relations
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  
-  @@index([organizationId, type])
-  @@index([cohortStart])
-}
-
-model BICustomerSegment {
-  id             String   @id @default(uuid()) @db.Uuid
-  organizationId String   @db.Uuid
-  name           String
-  description    String?
-  
-  // Segment criteria
-  criteria       Json
-  
-  // Segment metrics
-  userCount      Int      @default(0)
-  avgRevenue     Float    @default(0)
-  avgLTV         Float    @default(0)
-  
-  // Timestamps
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  
-  // Relations
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  
-  @@index([organizationId])
-}
-
-model PredictiveModel {
-  id             String   @id @default(uuid()) @db.Uuid
-  organizationId String   @db.Uuid
-  name           String
-  type           String
-  version        String
-  
-  // Model metrics
-  accuracy       Float
-  precision      Float
-  recall         Float
-  
-  // Model data
-  features       Json
-  coefficients  Json
-  
-  // Timestamps
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  trainedAt      DateTime?
-  
-  // Relations
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  
-  @@index([organizationId, type])
-}
-
-// ─── Retention & Churn Prevention System ─────────────────────────────
-
 enum ChurnRiskLevel {
   LOW
   MEDIUM
@@ -1761,99 +2107,6 @@ enum RetentionCampaignStatus {
   CANCELLED
 }
 
-model ChurnPrediction {
-  id             String   @id @default(uuid()) @db.Uuid
-  organizationId String   @db.Uuid
-  userId         String   @db.Uuid
-  
-  // Churn risk
-  riskScore      Float
-  riskLevel      ChurnRiskLevel
-  confidence     Float
-  
-  // Prediction factors
-  factors        Json
-  
-  // Timestamps
-  predictedAt    DateTime @default(now())
-  validUntil     DateTime
-  
-  // Relations
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  @@unique([userId, predictedAt])
-  @@index([organizationId, riskLevel])
-  @@index([validUntil])
-}
-
-model RetentionCampaign {
-  id             String   @id @default(uuid()) @db.Uuid
-  organizationId String   @db.Uuid
-  name           String
-  type           RetentionCampaignType
-  status         RetentionCampaignStatus @default(SCHEDULED)
-  
-  // Targeting
-  targetSegments Json?
-  targetRiskLevels Json?
-  
-  // Campaign content
-  subject        String?
-  message        String
-  offer          Json?
-  
-  // Scheduling
-  scheduledAt    DateTime
-  sentAt         DateTime?
-  
-  // Results
-  targetCount    Int      @default(0)
-  sentCount      Int      @default(0)
-  openedCount    Int      @default(0)
-  clickedCount   Int      @default(0)
-  convertedCount Int      @default(0)
-  
-  // Timestamps
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  
-  // Relations
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  campaignUsers  RetentionCampaignUser[]
-  
-  @@index([organizationId, status])
-  @@index([scheduledAt])
-}
-
-model RetentionCampaignUser {
-  id             String   @id @default(uuid()) @db.Uuid
-  campaignId     String   @db.Uuid
-  userId         String   @db.Uuid
-  
-  // Status
-  sent           Boolean  @default(false)
-  opened         Boolean  @default(false)
-  clicked        Boolean  @default(false)
-  converted      Boolean  @default(false)
-  
-  // Timestamps
-  sentAt         DateTime?
-  openedAt       DateTime?
-  clickedAt      DateTime?
-  convertedAt    DateTime?
-  
-  // Relations
-  campaign       RetentionCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  @@unique([campaignId, userId])
-  @@index([campaignId, sent])
-  @@index([userId])
-}
-
-// ─── Revenue Optimization Engine ───────────────────────────────
-
 enum PricingStrategy {
   COST_PLUS
   COMPETITIVE
@@ -1875,98 +2128,6 @@ enum RevenueActionType {
   UPSELL
   PROMOTION
 }
-
-model DynamicPrice {
-  id             String   @id @default(uuid()) @db.Uuid
-  organizationId String   @db.Uuid
-  productId      String   @db.Uuid
-  
-  // Pricing
-  basePrice      Float
-  currentPrice   Float
-  minPrice       Float
-  maxPrice       Float
-  
-  // Strategy
-  strategy       PricingStrategy
-  
-  // Factors
-  demandFactor   Float
-  competitionFactor Float
-  seasonalityFactor Float
-  
-  // Results
-  priceChangeCount Int     @default(0)
-  revenueImpact  Float    @default(0)
-  
-  // Timestamps
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  nextReviewAt   DateTime?
-  
-  // Relations
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  product        Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
-  
-  @@unique([productId])
-  @@index([organizationId, strategy])
-  @@index([nextReviewAt])
-}
-
-model ProductBundle {
-  id             String   @id @default(uuid()) @db.Uuid
-  organizationId String   @db.Uuid
-  name           String
-  description    String?
-  type           BundleType
-  
-  // Pricing
-  bundlePrice    Float
-  discountPercent Float
-  
-  // Products
-  productIds     Json
-  
-  // Results
-  soldCount      Int      @default(0)
-  revenueImpact  Float    @default(0)
-  
-  // Timestamps
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  active         Boolean  @default(true)
-  
-  // Relations
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  
-  @@index([organizationId, active])
-}
-
-model RevenueAction {
-  id             String   @id @default(uuid()) @db.Uuid
-  organizationId String   @db.Uuid
-  type           RevenueActionType
-  
-  // Action details
-  targetId       String
-  actionData     Json
-  
-  // Results
-  executedAt     DateTime?
-  revenueImpact  Float?
-  
-  // Timestamps
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  
-  // Relations
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  
-  @@index([organizationId, type])
-  @@index([executedAt])
-}
-
-// ─── Marketing Automation Hub ─────────────────────────────
 
 enum CampaignType {
   EMAIL
@@ -1993,102 +2154,6 @@ enum TriggerType {
   CUSTOM_EVENT
 }
 
-model MarketingCampaign {
-  id             String   @id @default(uuid()) @db.Uuid
-  organizationId String   @db.Uuid
-  name           String
-  type           CampaignType
-  status         CampaignStatus @default(DRAFT)
-  
-  // Campaign content
-  subject        String?
-  content        String
-  templateId     String?
-  
-  // Targeting
-  targetSegments Json?
-  targetUsers     Json?
-  
-  // Scheduling
-  scheduledAt    DateTime?
-  sentAt         DateTime?
-  
-  // Results
-  targetCount    Int      @default(0)
-  sentCount      Int      @default(0)
-  openedCount    Int      @default(0)
-  clickedCount   Int      @default(0)
-  convertedCount Int      @default(0)
-  revenueImpact  Float    @default(0)
-  
-  // Timestamps
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  
-  // Relations
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  workflows      MarketingWorkflow[]
-  campaignEvents CampaignEvent[]
-  
-  @@index([organizationId, status])
-  @@index([scheduledAt])
-}
-
-model MarketingWorkflow {
-  id             String   @id @default(uuid()) @db.Uuid
-  organizationId String   @db.Uuid
-  name           String
-  triggerType    TriggerType
-  triggerConfig  Json
-  
-  // Workflow steps
-  steps          Json
-  
-  // Status
-  active         Boolean  @default(true)
-  
-  // Results
-  executedCount  Int      @default(0)
-  convertedCount Int      @default(0)
-  
-  // Timestamps
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  
-  // Relations
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  campaign       MarketingCampaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
-  campaignId     String?  @db.Uuid
-  
-  @@index([organizationId, active])
-  @@index([triggerType])
-}
-
-model CampaignEvent {
-  id             String   @id @default(uuid()) @db.Uuid
-  campaignId     String   @db.Uuid
-  userId         String   @db.Uuid
-  
-  // Event type
-  eventType      String
-  
-  // Event data
-  eventData      Json?
-  
-  // Timestamps
-  occurredAt     DateTime @default(now())
-  
-  // Relations
-  campaign       MarketingCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  @@index([campaignId, userId])
-  @@index([userId, eventType])
-  @@index([occurredAt])
-}
-
-// ─── SaaS Multi-Tenant Architecture ─────────────────────────────
-
 enum OrganizationStatus {
   ACTIVE
   SUSPENDED
@@ -2110,345 +2175,8 @@ enum UsageMetric {
   ACTIVE_USERS
 }
 
-model Plan {
-  id             String   @id @default(uuid()) @db.Uuid
-  name           String
-  slug           String   @unique
-  description    String?
-  
-  // Pricing
-  monthlyPrice   Float
-  yearlyPrice    Float
-  currency       String   @default("USD")
-  
-  // Trial
-  trialDays      Int      @default(14)
-  
-  // Limits
-  limits         Json
-  
-  // Features
-  features       Json
-  
-  // Metadata
-  stripePriceId  String?  @unique
-  stripeYearlyPriceId String? @unique
-  active         Boolean  @default(true)
-  
-  // Timestamps
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  
-  // Relations
-  organizations  Organization[]
-  
-  @@index([active])
-}
-
-model UsageRecord {
-  id             String   @id @default(uuid()) @db.Uuid
-  organizationId String   @db.Uuid
-  metric         UsageMetric
-  quantity       Int      @default(0)
-  
-  // Period
-  periodStart    DateTime
-  periodEnd      DateTime
-  
-  // Timestamps
-  recordedAt     DateTime @default(now())
-  
-  // Relations
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  
-  @@index([organizationId, metric, periodStart])
-  @@index([periodStart, periodEnd])
-}
-
-model FeatureFlag {
-  id             String   @id @default(uuid()) @db.Uuid
-  key            String   @unique
-  name           String
-  description    String?
-  
-  // Configuration
-  enabled        Boolean  @default(false)
-  rolloutPercentage Float @default(0)
-  
-  // Targeting
-  targetPlans    Json?
-  targetOrganizations Json?
-  
-  // Metadata
-  category       String?
-  
-  // Timestamps
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  
-  @@index([enabled])
-  @@index([category])
-}
-
-// ═══════════════════════════════════════════════════════════════
-// EMAIL MARKETING AUTOMATION MODELS
-// ═══════════════════════════════════════════════════════════════
-
-model EmailLog {
-  id             String   @id @default(uuid()) @db.Uuid
-  organizationId String?  @db.Uuid
-  userId         String?  @db.Uuid
-  orderId        String?  @db.Uuid
-  type           EmailType
-  recipient      String
-  subject        String
-  status         EmailStatus @default(PENDING)
-  error          String?
-  sentAt         DateTime?
-  deliveredAt    DateTime?
-  openedAt       DateTime?
-  clickedAt      DateTime?
-  retryCount     Int      @default(0)
-  metadata       Json?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  
-  // Relations
-  user           User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
-  order          Order?   @relation(fields: [orderId], references: [id], onDelete: SetNull)
-  tracking       EmailTracking?
-  
-  @@index([organizationId])
-  @@index([userId])
-  @@index([orderId])
-  @@index([type])
-  @@index([status])
-  @@index([recipient])
-  @@index([createdAt])
-  @@index([organizationId, type, status])
-}
-
-model CartReminder {
-  id             String   @id @default(uuid()) @db.Uuid
-  userId         String   @db.Uuid
-  cartSnapshot   Json
-  cartValue      Float
-  itemCount      Int
-  reminderSent1  Boolean  @default(false)
-  reminderSent1At DateTime?
-  reminderSent2  Boolean  @default(false)
-  reminderSent2At DateTime?
-  reminderSent3  Boolean  @default(false)
-  reminderSent3At DateTime?
-  recovered      Boolean  @default(false)
-  recoveredAt    DateTime?
-  abandonedAt    DateTime @default(now())
-  lastActivityAt  DateTime @default(now())
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  @@index([userId])
-  @@index([abandonedAt])
-  @@index([recovered])
-  @@index([reminderSent1])
-  @@index([reminderSent2])
-  @@index([reminderSent3])
-}
-
-model StockAlertLog {
-  id             String   @id @default(uuid()) @db.Uuid
-  organizationId String   @db.Uuid
-  productId      String   @db.Uuid
-  productName    String
-  currentStock   Int
-  threshold      Int
-  alertSent      Boolean  @default(false)
-  alertSentAt    DateTime?
-  acknowledged   Boolean  @default(false)
-  acknowledgedAt DateTime?
-  acknowledgedBy String?  @db.Uuid
-  resolved       Boolean  @default(false)
-  resolvedAt     DateTime?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  
-  // Relations
-  product        Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  
-  @@index([organizationId])
-  @@index([productId])
-  @@index([alertSent])
-  @@index([acknowledged])
-  @@index([resolved])
-  @@index([createdAt])
-  @@unique([productId, createdAt])
-}
-
-model DailySalesReport {
-  id             String   @id @default(uuid()) @db.Uuid
-  organizationId String   @db.Uuid
-  reportDate     DateTime @db.Date
-  totalSales     Float    @default(0)
-  totalOrders    Int      @default(0)
-  newCustomers   Int      @default(0)
-  averageOrderValue Float  @default(0)
-  topProducts    Json
-  metrics        Json
-  sent           Boolean  @default(false)
-  sentAt         DateTime?
-  recipients     String[]
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  
-  @@unique([organizationId, reportDate])
-  @@index([organizationId])
-  @@index([reportDate])
-  @@index([sent])
-}
-
-model WelcomeSeries {
-  id             String   @id @default(uuid()) @db.Uuid
-  userId         String   @db.Uuid
-  organizationId String   @db.Uuid
-  email1Sent     Boolean  @default(false)
-  email1SentAt   DateTime?
-  email2Sent     Boolean  @default(false)
-  email2SentAt   DateTime?
-  email3Sent     Boolean  @default(false)
-  email3SentAt   DateTime?
-  email4Sent     Boolean  @default(false)
-  email4SentAt   DateTime?
-  email5Sent     Boolean  @default(false)
-  email5SentAt   DateTime?
-  completed      Boolean  @default(false)
-  completedAt    DateTime?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-  @@index([organizationId])
-  @@index([email1Sent])
-  @@index([email2Sent])
-  @@index([email3Sent])
-  @@index([email4Sent])
-  @@index([email5Sent])
-  @@index([completed])
-  @@unique([userId])
-}
-
-model MarketingSegment {
-  id             String   @id @default(uuid()) @db.Uuid
-  organizationId String   @db.Uuid
-  name           String
-  description    String?
-  rules          Json
-  userCount      Int      @default(0)
-  isActive       Boolean  @default(true)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  segmentMembers MarketingSegmentMember[]
-  campaigns      EmailCampaign[]
-
-  @@index([organizationId])
-  @@index([isActive])
-}
-
-model MarketingSegmentMember {
-  id             String   @id @default(uuid()) @db.Uuid
-  segmentId      String   @db.Uuid
-  userId         String   @db.Uuid
-  organizationId String   @db.Uuid
-  score          Float    @default(0)
-  assignedAt     DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  segment        MarketingSegment @relation(fields: [segmentId], references: [id], onDelete: Cascade)
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-
-  @@index([segmentId])
-  @@index([userId])
-  @@index([organizationId])
-  @@unique([segmentId, userId])
-}
-
-model EmailCampaign {
-  id             String   @id @default(uuid()) @db.Uuid
-  organizationId String   @db.Uuid
-  name           String
-  type           String
-  subject        String
-  template       String
-  segmentId      String?  @db.Uuid
-  scheduledFor   DateTime?
-  sent           Boolean  @default(false)
-  sentAt         DateTime?
-  recipientCount Int      @default(0)
-  openCount      Int      @default(0)
-  clickCount     Int      @default(0)
-  conversionCount Int     @default(0)
-  revenue        Float    @default(0)
-  status         String   @default("DRAFT")
-  metadata       Json?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  segment        MarketingSegment? @relation(fields: [segmentId], references: [id], onDelete: SetNull)
-  tracking       EmailTracking[]
-
-  @@index([organizationId])
-  @@index([scheduledFor])
-  @@index([sent])
-  @@index([status])
-}
-
-model EmailTracking {
-  id             String   @id @default(uuid()) @db.Uuid
-  emailLogId     String   @db.Uuid
-  campaignId     String?  @db.Uuid
-  userId         String?  @db.Uuid
-  opened         Boolean  @default(false)
-  openedAt       DateTime?
-  clicked        Boolean  @default(false)
-  clickedAt      DateTime?
-  clickCount     Int      @default(0)
-  linkUrl        String?
-  converted      Boolean  @default(false)
-  convertedAt    DateTime?
-  orderValue     Float?
-  ipAddress      String?
-  userAgent      String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  emailLog       EmailLog @relation(fields: [emailLogId], references: [id], onDelete: Cascade)
-  campaign       EmailCampaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
-
-  @@index([emailLogId])
-  @@index([campaignId])
-  @@index([userId])
-  @@index([opened])
-  @@index([clicked])
-  @@index([converted])
-  @@unique([emailLogId])
-}
-
 enum EmailType {
   WELCOME
-  WELCOME_1
-  WELCOME_2
-  WELCOME_3
   ORDER_CONFIRMATION
   ORDER_STATUS_UPDATE
   SHIPPING_UPDATE
@@ -2461,6 +2189,9 @@ enum EmailType {
   PROMO
   REVIEW_REQUEST
   NEWSLETTER
+  WELCOME_1
+  WELCOME_2
+  WELCOME_3
   PRODUCT_RECOMMENDATION
 }
 

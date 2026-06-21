@@ -96,9 +96,11 @@ export default function AdminOrdersPage() {
           console.warn("[FRONTEND] WARNING: API returned success but no orders found");
           console.warn("[FRONTEND] This may indicate an organizationId mismatch in the backend");
           console.warn("[FRONTEND] Check server logs for [TENANT] and [ADMIN ORDERS] warnings");
+          toast.error("No orders found - Check browser console for details");
         }
       } else {
         console.error("[FRONTEND] API returned success=false:", data);
+        toast.error("Failed to load orders");
         setOrders([]);
       }
     } catch (error) {

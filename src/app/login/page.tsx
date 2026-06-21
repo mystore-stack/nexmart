@@ -28,9 +28,14 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
     try {
+      // Fetch CSRF token first
+      const csrfResponse = await fetch("/api/auth/csrf");
+      const { csrfToken } = await csrfResponse.json();
+
       const result = await signIn("credentials", {
         email: form.email,
         password: form.password,
+        csrfToken,
         redirect: false,
       });
       if (result?.error) {

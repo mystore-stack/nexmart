@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { usePathname, useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -259,11 +260,12 @@ export function Navbar() {
                   onMouseLeave={() => setActiveDropdown(null)}
                 >
                   <button className="flex items-center gap-2 rounded-xl border border-border/60 bg-white/70 dark:bg-card/70 py-1.5 pl-1.5 pr-3 text-sm font-medium backdrop-blur transition-all hover:bg-muted hover:border-gold-300/60">
-                    <div className="grid h-8 w-8 place-items-center overflow-hidden rounded-lg bg-brand-700 text-xs font-black text-white">
-                      {user.avatar ? (
-                        <Image src={user.avatar} alt={user.name} width={32} height={32} className="h-full w-full object-cover" />
-                      ) : user.name[0].toUpperCase()}
-                    </div>
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage src={user.avatar || ""} />
+                      <AvatarFallback>
+                        {user?.name?.charAt(0).toUpperCase() || "A"}
+                      </AvatarFallback>
+                    </Avatar>
                     <span className="max-w-[80px] truncate text-foreground">{user.name.split(" ")[0]}</span>
                     <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
                   </button>

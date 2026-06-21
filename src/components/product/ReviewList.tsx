@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Star, ThumbsUp, ThumbsDown, Edit, Trash2 } from "lucide-react";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 interface Review {
   id: string;
@@ -124,9 +125,12 @@ export default function ReviewList({ productId, currentUserId }: ReviewListProps
         >
           <div className="flex items-start justify-between mb-4">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#D4AF37] to-[#B8962E] flex items-center justify-center text-[#0F172A] font-bold text-lg">
-                {review.user.name.charAt(0).toUpperCase()}
-              </div>
+              <Avatar className="w-12 h-12">
+                <AvatarImage src={review.user.avatar || ""} />
+                <AvatarFallback className="text-lg flex items-center justify-center">
+                  {review.user.name?.charAt(0).toUpperCase() || "A"}
+                </AvatarFallback>
+              </Avatar>
               <div>
                 <p className="text-white font-semibold">{review.user.name}</p>
                 <div className="flex items-center gap-2">

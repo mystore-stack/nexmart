@@ -1,6 +1,6 @@
 // src/app/layout.tsx — NexMart Moroccan Luxury (local fonts fallback)
 import type { Metadata, Viewport } from "next";
-import { ThemeProvider } from "@/components/providers/ThemeProvider";
+import dynamic from "next/dynamic";
 import { QueryProvider } from "@/components/providers/QueryProvider";
 import { AuthProvider } from "@/components/providers/AuthProvider";
 import { Toaster } from "react-hot-toast";
@@ -8,8 +8,11 @@ import { CartDrawer } from "@/components/cart/CartDrawer";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { SearchModal } from "@/components/layout/SearchModal";
-import dynamic from "next/dynamic";
 import "./globals.css";
+
+const ThemeProvider = dynamic(
+  () => import("@/components/providers/ThemeProvider").then((mod) => ({ default: mod.ThemeProvider }))
+);
 
 const AIChatWidget = dynamic(
   () => import("@/components/ai/AIChatWidget").then((m) => m.AIChatWidget)
