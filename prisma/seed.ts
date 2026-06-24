@@ -407,6 +407,93 @@ async function main() {
   }
   console.log(`✅ ${COUPONS.length} coupons seeded`);
 
+  // ─── CMS: Site Settings + Navigation + Footer defaults ─────────────
+  await prisma.siteSettings.upsert({
+    where: { organizationId: organization.id },
+    create: {
+      organizationId: organization.id,
+      storeName: "NexMart",
+      storeTagline: "Maroc · Premium",
+      email: "contact@nexmart.ma",
+      phone: "+212 5XX-XXXXXX",
+      address: "Casablanca, Maroc",
+      supportEmail: "support@nexmart.ma",
+      seoTitle: "NexMart Maroc — Marketplace Premium",
+      seoDescription: "La marketplace premium du Maroc — shopping intelligent, artisanat authentique.",
+      seoKeywords: ["marketplace maroc", "ecommerce maroc", "nexmart"],
+      siteUrl: process.env.NEXT_PUBLIC_APP_URL || "https://nexmart.ma",
+      twitterHandle: "@nexmart_ma",
+      freeShippingThreshold: 500,
+      freeShippingMessage: "Livraison gratuite au Maroc dès 500 MAD",
+      searchPlaceholder: "Rechercher un produit...",
+      primaryColor: "#0F766E",
+      secondaryColor: "#D4AF37",
+    },
+    update: {},
+  });
+  console.log("✅ Site settings seeded");
+
+  const existingNav = await prisma.navigationMenu.findFirst({
+    where: { organizationId: organization.id, location: "HEADER" },
+  });
+  if (!existingNav) {
+    await prisma.navigationMenu.create({
+      data: {
+        organizationId: organization.id,
+        name: "Main Navigation",
+        location: "HEADER",
+        items: {
+          create: [
+            { label: "Boutique", url: "/products", displayOrder: 0 },
+            { label: "Promotions", url: "/deals", displayOrder: 1 },
+            { label: "Marques", url: "/brands", displayOrder: 2 },
+            { label: "Catégories", url: "/categories", displayOrder: 3 },
+          ],
+        },
+      },
+    });
+    console.log("✅ Navigation menu seeded");
+  }
+
+  await prisma.footerConfig.upsert({
+    where: { id: "00000000-0000-0000-0000-000000000001" },
+    create: {
+      id: "00000000-0000-0000-0000-000000000001",
+      organizationId: organization.id,
+      description: "La marketplace premium du Maroc.",
+      contactInfo: { email: "contact@nexmart.ma", phone: "+212 5XX-XXXXXX", address: "Casablanca, Maroc" },
+      quickLinks: [
+        { title: "Produits", url: "/products" },
+        { title: "Catégories", url: "/categories" },
+      ],
+      legalLinks: [
+        { title: "Confidentialité", url: "/privacy" },
+        { title: "Conditions", url: "/terms" },
+      ],
+      socialLinks: [],
+      columns: [],
+      isActive: true,
+    },
+    update: {},
+  }).catch(async () => {
+    const existing = await prisma.footerConfig.findFirst({ where: { organizationId: organization.id } });
+    if (!existing) {
+      await prisma.footerConfig.create({
+        data: {
+          organizationId: organization.id,
+          description: "La marketplace premium du Maroc.",
+          contactInfo: { email: "contact@nexmart.ma", phone: "+212 5XX-XXXXXX", address: "Casablanca, Maroc" },
+          quickLinks: [{ title: "Produits", url: "/products" }],
+          legalLinks: [{ title: "Confidentialité", url: "/privacy" }],
+          socialLinks: [],
+          columns: [],
+          isActive: true,
+        },
+      });
+    }
+  });
+  console.log("✅ Footer config seeded");
+
   console.log("\n🎉 Database seeded successfully!\n");
   console.log("📧 Admin login: admin@nexmart.com / Admin@123456");
   console.log("📧 User login:  user@nexmart.com  / User@123456");

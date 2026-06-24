@@ -112,10 +112,10 @@ export default function AdminAnalyticsPage() {
         {loading ? Array.from({ length: 4 }).map((_, i) => (
           <div key={i} className="skeleton h-28 rounded-2xl" />
         )) : [
-          { icon: Users, label: "Total Customers", value: (metrics?.customers.total || 0).toLocaleString(), change: metrics?.customers.growth || 0 },
-          { icon: ShoppingCart, label: "Avg Order Value", value: formatPrice(metrics?.orders.averageOrderValue || 0), change: metrics?.orders.aovChange || 0 },
-          { icon: Activity, label: "Customer LTV", value: formatPrice(metrics?.customers.lifetimeValue || 0), change: 0 },
-          { icon: Target, label: "Repeat Rate", value: (metrics?.customers.repeatPurchaseRate || 0).toFixed(1) + "%", change: 0 },
+          { icon: Users, label: "Total Customers", value: (metrics?.customers || 0).toLocaleString(), change: 0 },
+          { icon: ShoppingCart, label: "Avg Order Value", value: formatPrice(metrics?.avgOrderValue || 0), change: 0 },
+          { icon: Activity, label: "Total Visitors", value: (metrics?.visitors || 0).toLocaleString(), change: 0 },
+          { icon: Target, label: "Overall Conv. Rate", value: (metrics?.overallConversionRate || 0).toFixed(2) + "%", change: 0 },
         ].map(({ icon: Icon, label, value, change }, i) => (
           <motion.div
             key={label}
@@ -126,10 +126,7 @@ export default function AdminAnalyticsPage() {
           >
             <div className="flex items-center justify-between mb-3">
               <Icon className="w-5 h-5 text-muted-foreground" />
-              <span className={`flex items-center gap-1 text-xs font-semibold ${change >= 0 ? "text-green-600" : "text-red-500"}`}>
-                {change >= 0 ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendDown className="w-3.5 h-3.5" />}
-                {Math.abs(change).toFixed(1)}%
-              </span>
+              <span className="text-xs text-muted-foreground">Current</span>
             </div>
             <p className="text-xs text-muted-foreground mb-1">{label}</p>
             <p className="text-2xl font-bold">{value}</p>
@@ -137,15 +134,15 @@ export default function AdminAnalyticsPage() {
         ))}
       </div>
 
-      {/* KPI cards - Third row (Inventory & Conversion) */}
+      {/* KPI cards - Third row (Conversion Rates) */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {loading ? Array.from({ length: 4 }).map((_, i) => (
           <div key={i} className="skeleton h-28 rounded-2xl" />
         )) : [
-          { icon: Package, label: "Inventory Value", value: formatPrice(metrics?.inventory.totalValue || 0), change: 0 },
-          { icon: Package, label: "Out of Stock", value: (metrics?.inventory.outOfStock || 0).toLocaleString(), change: 0 },
-          { icon: Target, label: "Conversion Rate", value: (metrics?.conversion.rate || 0).toFixed(1) + "%", change: 0 },
-          { icon: ShoppingCart, label: "Cart Abandonment", value: (metrics?.conversion.cartAbandonmentRate || 0).toFixed(1) + "%", change: 0 },
+          { icon: Package, label: "Inventory Value", value: formatPrice(metrics?.inventory?.totalValue || 0), change: 0 },
+          { icon: Package, label: "Out of Stock", value: (metrics?.inventory?.outOfStock || 0).toLocaleString(), change: 0 },
+          { icon: Target, label: "Add to Cart Rate", value: (metrics?.addToCartRate || 0).toFixed(2) + "%", change: 0 },
+          { icon: ShoppingCart, label: "Checkout Rate", value: (metrics?.checkoutRate || 0).toFixed(2) + "%", change: 0 },
         ].map(({ icon: Icon, label, value, change }, i) => (
           <motion.div
             key={label}
@@ -186,7 +183,7 @@ export default function AdminAnalyticsPage() {
       </div>
 
       {/* Charts row */}
-      <div className="grid lg:grid-cols-2 gap-6">
+      <div className="grid lg:grid-cols-3 gap-6">
         {/* Orders bar chart */}
         <div className="bg-card border border-border rounded-2xl p-6">
           <h2 className="font-bold mb-5">Orders per Day</h2>
@@ -203,6 +200,41 @@ export default function AdminAnalyticsPage() {
           )}
         </div>
 
+        {/* Conversion Funnel */}
+        <div className="bg-card border border-border rounded-2xl p-6">
+          <h2 className="font-bold mb-5">Conversion Funnel</h2>
+          {loading ? <div className="skeleton h-52 rounded-xl" /> : (
+            <ResponsiveContainer width="100%" height={210}>
+              <BarChart data={data?.funnelData || []} layout="vertical">
+                <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                <XAxis type="number" tick={{ fontSize: 10, fill: "var(--muted-foreground)" }} />
+                <YAxis dataKey="stage" type="category" tick={{ fontSize: 10, fill: "var(--muted-foreground)" }} width={80} />
+                <Tooltip contentStyle={{ background: "var(--background)", border: "1px solid var(--border)", borderRadius: "10px", fontSize: 11 }} />
+                <Bar dataKey="count" fill="#22c55e" radius={[0, 4, 4, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+
+        {/* Visitors chart */}
+        <div className="bg-card border border-border rounded-2xl p-6">
+          <h2 className="font-bold mb-5">Visitors Trend</h2>
+          {loading ? <div className="skeleton h-52 rounded-xl" /> : (
+            <ResponsiveContainer width="100%" height={210}>
+              <LineChart data={data?.chartData || []}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                <XAxis dataKey="date" tick={{ fontSize: 10, fill: "var(--muted-foreground)" }} interval="preserveStartEnd" />
+                <YAxis tick={{ fontSize: 10, fill: "var(--muted-foreground)" }} />
+                <Tooltip contentStyle={{ background: "var(--background)", border: "1px solid var(--border)", borderRadius: "10px", fontSize: 11 }} />
+                <Line type="monotone" dataKey="visitors" stroke="#8b5cf6" strokeWidth={2} dot={false} />
+              </LineChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+      </div>
+
+      {/* Top Products & Categories */}
+      <div className="grid lg:grid-cols-2 gap-6">
         {/* Top products */}
         <div className="bg-card border border-border rounded-2xl p-6">
           <h2 className="font-bold mb-5">Top Products</h2>
@@ -222,6 +254,35 @@ export default function AdminAnalyticsPage() {
                         <div
                           className="h-full rounded-full transition-all"
                           style={{ width: `${(p.revenue / maxRevenue) * 100}%`, background: COLORS[i % COLORS.length] }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Top Categories */}
+        <div className="bg-card border border-border rounded-2xl p-6">
+          <h2 className="font-bold mb-5">Top Categories</h2>
+          {loading ? <div className="skeleton h-52 rounded-xl" /> : (
+            <div className="space-y-3">
+              {(data?.topCategories || []).slice(0, 5).map((c: any, i: number) => {
+                const maxProducts = data.topCategories[0]?.productCount || 1;
+                return (
+                  <div key={c.id} className="flex items-center gap-3">
+                    <span className="text-sm font-bold text-muted-foreground w-4">{i + 1}</span>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between mb-1">
+                        <p className="text-xs font-medium truncate max-w-[60%]">{c.name}</p>
+                        <p className="text-xs font-bold">{c.productCount} products</p>
+                      </div>
+                      <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                        <div
+                          className="h-full rounded-full transition-all"
+                          style={{ width: `${(c.productCount / maxProducts) * 100}%`, background: COLORS[i % COLORS.length] }}
                         />
                       </div>
                     </div>

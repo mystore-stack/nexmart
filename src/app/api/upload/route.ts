@@ -1,16 +1,19 @@
 // src/app/api/upload/route.ts
 import { NextRequest } from "next/server";
 import { requireAuth } from "@/lib/auth-api";
-import { uploadImage } from "@/lib/cloudinary";
-import { ok, unauthorized, error, handleApiError } from "@/lib/api";
+import { ok, error, handleApiError } from "@/lib/api";
+import { writeFile, mkdir } from "fs/promises";
+import { existsSync } from "fs";
+import path from "path";
+import { randomUUID } from "crypto";
 
 const MAX_SIZE = 10 * 1024 * 1024;
 const ALLOWED_TYPES = ["image/jpeg", "image/jpg", "image/png", "image/webp", "image/avif"];
 const ALLOWED_FOLDERS = new Set([
-  "nexmart/products",
-  "nexmart/avatars",
-  "nexmart/categories",
-  "nexmart/reviews",
+  "products",
+  "avatars",
+  "categories",
+  "reviews",
 ]);
 
 export const dynamic = "force-dynamic";
@@ -21,8 +24,8 @@ export async function POST(req: NextRequest) {
 
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
-    const rawFolder = (formData.get("folder") as string) || "nexmart/products";
-    const folder = ALLOWED_FOLDERS.has(rawFolder) ? rawFolder : "nexmart/products";
+    const rawFolder = (formData.get("folder") as string) || "products";
+    const folder = ALLOWED_FOLDERS.has(rawFolder) ? rawFolder : "products";
 
     if (!file) return error("No file provided");
     if (!ALLOWED_TYPES.includes(file.type)) {
@@ -32,16 +35,31 @@ export async function POST(req: NextRequest) {
       return error("File too large. Maximum size is 10MB.");
     }
 
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const result = await uploadImage(buffer, folder, {
-      transformation: [{ quality: "auto:good" }, { fetch_format: "auto" }],
-    });
+    const bytes = await file.arrayBuffer();
+    const buffer = Buffer.from(bytes);
+
+    // Generate unique filename
+    const ext = path.extname(file.name);
+    const filename = `${randomUUID()}${ext}`;
+    
+    // Create uploads directory if it doesn't exist
+    const uploadsDir = path.join(process.cwd(), "public", "uploads", folder);
+    if (!existsSync(uploadsDir)) {
+      await mkdir(uploadsDir, { recursive: true });
+    }
+
+    // Save file locally
+    const filepath = path.join(uploadsDir, filename);
+    await writeFile(filepath, buffer);
+
+    // Return internal path (not public URL)
+    const internalPath = `/uploads/${folder}/${filename}`;
 
     return ok({
-      url: result.url,
-      publicId: result.publicId,
-      width: result.width,
-      height: result.height,
+      path: internalPath,
+      filename,
+      size: file.size,
+      type: file.type,
     });
   } catch (err) {
     return handleApiError(err);

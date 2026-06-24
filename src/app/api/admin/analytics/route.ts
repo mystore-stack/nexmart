@@ -37,6 +37,67 @@ export const GET = withAdmin(async ({ req }) => {
     // Get inventory metrics
     const inventoryMetrics = await getInventoryMetrics(organizationId);
 
+    // Get conversion tracking metrics using existing AnalyticsEvent model
+    const [
+      totalVisitors,
+      pageViews,
+      addToCartEvents,
+      checkoutStartedEvents,
+      productViews,
+      searchEvents,
+    ] = await Promise.all([
+      prisma.analyticsEvent.count({
+        where: { 
+          organizationId,
+          occurredAt: { gte: startDate },
+          eventType: "PAGE_VIEW",
+        },
+      }),
+      prisma.analyticsEvent.count({
+        where: { 
+          organizationId,
+          occurredAt: { gte: startDate },
+          eventType: "PAGE_VIEW",
+        },
+      }),
+      prisma.analyticsEvent.count({
+        where: { 
+          organizationId,
+          occurredAt: { gte: startDate },
+          eventType: "ADD_TO_CART",
+        },
+      }),
+      prisma.analyticsEvent.count({
+        where: { 
+          organizationId,
+          occurredAt: { gte: startDate },
+          eventType: "CHECKOUT_STARTED",
+        },
+      }),
+      prisma.analyticsEvent.count({
+        where: { 
+          organizationId,
+          occurredAt: { gte: startDate },
+          eventType: "PRODUCT_VIEW",
+        },
+      }),
+      prisma.analyticsEvent.count({
+        where: { 
+          organizationId,
+          occurredAt: { gte: startDate },
+          eventType: "SEARCH_QUERY",
+        },
+      }),
+    ]);
+
+    // Calculate conversion rates
+    const addToCartRate = productViews > 0 ? (addToCartEvents / productViews) * 100 : 0;
+    const checkoutRate = addToCartEvents > 0 ? (checkoutStartedEvents / addToCartEvents) * 100 : 0;
+    const overallConversionRate = totalVisitors > 0 ? (executiveMetrics.orders / totalVisitors) * 100 : 0;
+
+    // Get average order value
+    const avgOrderValue = executiveMetrics.orders > 0 ? executiveMetrics.revenue / executiveMetrics.orders : 0;
+
     // Get chart data
     const revenueByDay = await prisma.order.findMany({
       where: { organizationId, createdAt: { gte: startDate }, paymentStatus: PaymentStatus.PAID },
@@ -44,11 +105,22 @@ export const GET = withAdmin(async ({ req }) => {
       orderBy: { createdAt: "asc" },
     });
 
-    // Build daily revenue chart data
-    const dailyData: Record<string, { revenue: number; orders: number }> = {};
+    // Get visitors by day using existing AnalyticsEvent model
+    const visitorsByDay = await prisma.analyticsEvent.groupBy({
+      by: ["occurredAt"],
+      _count: { eventType: true },
+      where: { 
+        organizationId,
+        occurredAt: { gte: startDate },
+        eventType: "PAGE_VIEW",
+      },
+    });
+
+    // Build daily chart data
+    const dailyData: Record<string, { revenue: number; orders: number; visitors: number }> = {};
     for (let i = range; i >= 0; i--) {
       const date = format(subDays(now, i), "MMM dd");
-      dailyData[date] = { revenue: 0, orders: 0 };
+      dailyData[date] = { revenue: 0, orders: 0, visitors: 0 };
     }
     revenueByDay.forEach((order) => {
       const date = format(order.createdAt, "MMM dd");
@@ -57,11 +129,18 @@ export const GET = withAdmin(async ({ req }) => {
         dailyData[date].orders += 1;
       }
     });
+    visitorsByDay.forEach((visitor) => {
+      const date = format(visitor.occurredAt, "MMM dd");
+      if (dailyData[date]) {
+        dailyData[date].visitors += visitor._count.eventType;
+      }
+    });
 
     const chartData = Object.entries(dailyData).map(([date, data]) => ({
       date,
       revenue: Math.round(data.revenue * 100) / 100,
       orders: data.orders,
+      visitors: data.visitors,
     }));
 
     // Get top products
@@ -71,6 +150,26 @@ export const GET = withAdmin(async ({ req }) => {
       take: 10,
       select: { id: true, name: true, images: true, soldCount: true, price: true },
     });
+
+    // Get top categories
+    const topCategories = await prisma.category.findMany({
+      where: { organizationId },
+      include: {
+        _count: {
+          select: { products: true },
+        },
+      },
+      take: 10,
+    });
+
+    // Get conversion funnel data
+    const funnelData = [
+      { stage: "Visitors", count: totalVisitors },
+      { stage: "Product Views", count: productViews },
+      { stage: "Add to Cart", count: addToCartEvents },
+      { stage: "Checkout Started", count: checkoutStartedEvents },
+      { stage: "Orders", count: executiveMetrics.orders },
+    ];
 
     // Get orders by status
     const ordersByStatus = await prisma.order.groupBy({
@@ -103,11 +202,22 @@ export const GET = withAdmin(async ({ req }) => {
           overstocked: inventoryMetrics.overstocked,
         },
         conversion: executiveMetrics.conversion,
+        visitors: totalVisitors,
+        addToCartRate: parseFloat(addToCartRate.toFixed(2)),
+        checkoutRate: parseFloat(checkoutRate.toFixed(2)),
+        overallConversionRate: parseFloat(overallConversionRate.toFixed(2)),
+        avgOrderValue: parseFloat(avgOrderValue.toFixed(2)),
       },
       chartData,
+      funnelData,
       topProducts: topProducts.map((p) => ({
         ...p,
         revenue: p.soldCount * p.price,
+      })),
+      topCategories: topCategories.map((c) => ({
+        id: c.id,
+        name: c.name,
+        productCount: c._count.products,
       })),
       ordersByStatus: ordersByStatus.reduce((acc, item) => {
         acc[item.status] = item._count.status;

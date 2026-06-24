@@ -28,6 +28,7 @@ model User {
   analyticsEvents         AnalyticsEvent[]
   analyticsSessions       AnalyticsSession[]
   AuditLog                AuditLog[]
+  eventTracking           EventTracking[]
   campaignEvents          CampaignEvent[]
   cart                    CartItem[]
   cartReminders           CartReminder[]
@@ -83,6 +84,7 @@ model Category {
   parentId        String?          @db.Uuid
   createdAt       DateTime         @default(now())
   analyticsEvents AnalyticsEvent[]
+  eventTracking   EventTracking[]
   Organization    Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   parent          Category?        @relation("SubCategories", fields: [parentId], references: [id])
   children        Category[]       @relation("SubCategories")
@@ -129,6 +131,7 @@ model Product {
   reviews            Review[]
   stockAlertLogs     StockAlertLog[]
   wishlistItems      WishlistItem[]
+  eventTracking      EventTracking[]
 
   @@unique([organizationId, sku])
   @@unique([organizationId, slug])
@@ -221,6 +224,7 @@ model Order {
   estimatedDelivery DateTime?
   idempotencyKey    String?              @unique
   analyticsEvents   AnalyticsEvent[]
+  eventTracking     EventTracking[]
   CmiPayment        CmiPayment?
   emailLogs         EmailLog[]
   Invoice           Invoice?
@@ -311,6 +315,87 @@ model WishlistItem {
   @@index([userId])
 }
 
+model HeroBanner {
+  id                     String    @id @default(uuid()) @db.Uuid
+  badgeText              String?
+  title                  String
+  highlightedText        String?
+  subtitle               String?
+  description            String?
+  desktopImageUrl        String?
+  mobileImageUrl         String?
+  videoUrl               String?
+  primaryButtonText      String?
+  primaryButtonLink      String?
+  secondaryButtonText    String?
+  secondaryButtonLink    String?
+  backgroundColor        String?
+  backgroundOverlayColor String?
+  overlayOpacity         Float     @default(0.5)
+  textColor              String?
+  primaryButtonColor     String?
+  secondaryButtonColor   String?
+  heroHeight             String    @default("90vh")
+  heroPosition           String    @default("center")
+  seoTitle               String?
+  seoDescription         String?
+  displayOrder           Int       @default(0)
+  isActive               Boolean   @default(true)
+  publishDate            DateTime?
+  expireDate             DateTime?
+  impressions            Int       @default(0)
+  primaryButtonClicks    Int       @default(0)
+  secondaryButtonClicks  Int       @default(0)
+  organizationId         String?   @db.Uuid
+  status                 CMSContentStatus @default(PUBLISHED)
+  ctaButtons             Json      @default("[]")
+  animationSettings      Json?
+  priorityScore          Int       @default(0)
+  templateId             String?   @db.Uuid
+  abTestGroupId          String?   @db.Uuid
+  conversionCount        Int       @default(0)
+  revenueGenerated       Float     @default(0)
+  createdBy              String?   @db.Uuid
+  publishedAt            DateTime?
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+
+  analytics     HeroBannerAnalytics[]
+  eventTracking EventTracking[]
+  template      HeroBannerTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  abTestGroup   HeroBannerABTest?   @relation(fields: [abTestGroupId], references: [id], onDelete: SetNull)
+
+  @@index([isActive])
+  @@index([displayOrder])
+  @@index([publishDate])
+  @@index([expireDate])
+  @@index([createdAt])
+  @@index([organizationId])
+  @@index([status])
+  @@index([priorityScore])
+}
+
+model HeroBannerAnalytics {
+  id          String   @id @default(uuid()) @db.Uuid
+  bannerId    String   @db.Uuid
+  eventType   String // "impression", "primaryClick", "secondaryClick"
+  deviceType  String? // "mobile", "desktop", "tablet"
+  country     String?
+  referrer    String?
+  landingPage String?
+  sessionId   String?
+  userAgent   String?
+  ipAddress   String?
+  createdAt   DateTime @default(now())
+
+  banner HeroBanner @relation(fields: [bannerId], references: [id], onDelete: Cascade)
+
+  @@index([bannerId])
+  @@index([eventType])
+  @@index([createdAt])
+  @@index([sessionId])
+}
+
 model Notification {
   id        String           @id @default(uuid()) @db.Uuid
   userId    String           @db.Uuid
@@ -352,6 +437,110 @@ model AuditLog {
   @@index([action])
   @@index([createdAt])
   @@index([organizationId])
+}
+
+model EventTracking {
+  id          String   @id @default(uuid()) @db.Uuid
+  eventType   String // "page_view", "product_view", "search", "add_to_cart", "remove_from_cart", "checkout_started", "payment_success", "order_completed", "banner_click", "category_click"
+  sessionId   String?
+  userId      String?  @db.Uuid
+  productId   String?  @db.Uuid
+  categoryId  String?  @db.Uuid
+  bannerId    String?  @db.Uuid
+  orderId     String?  @db.Uuid
+  deviceType  String? // "mobile", "desktop", "tablet"
+  browser     String?
+  country     String?
+  referrer    String?
+  landingPage String?
+  utmSource   String?
+  utmMedium   String?
+  utmCampaign String?
+  utmTerm     String?
+  utmContent  String?
+  metadata    Json?
+  ipAddress   String?
+  createdAt   DateTime @default(now())
+
+  user     User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  product  Product?    @relation(fields: [productId], references: [id], onDelete: SetNull)
+  category Category?   @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  banner   HeroBanner? @relation(fields: [bannerId], references: [id], onDelete: SetNull)
+  order    Order?      @relation(fields: [orderId], references: [id], onDelete: SetNull)
+
+  @@index([eventType])
+  @@index([sessionId])
+  @@index([userId])
+  @@index([productId])
+  @@index([createdAt])
+  @@index([utmCampaign])
+}
+
+model ABTest {
+  id             String    @id @default(uuid()) @db.Uuid
+  name           String
+  description    String?
+  variantA       Json // Configuration for variant A
+  variantB       Json // Configuration for variant B
+  trafficSplit   Int       @default(50) // Percentage for variant A
+  status         String    @default("draft") // "draft", "running", "completed", "paused"
+  startDate      DateTime?
+  endDate        DateTime?
+  winningVariant String? // "A", "B", or null
+  confidence     Float? // Statistical confidence percentage
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  variants ABTestVariant[]
+
+  @@index([status])
+  @@index([startDate])
+  @@index([endDate])
+}
+
+model ABTestVariant {
+  id          String   @id @default(uuid()) @db.Uuid
+  testId      String   @db.Uuid
+  variant     String // "A" or "B"
+  impressions Int      @default(0)
+  clicks      Int      @default(0)
+  conversions Int      @default(0)
+  revenue     Float    @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  test ABTest @relation(fields: [testId], references: [id], onDelete: Cascade)
+
+  @@index([testId])
+  @@index([variant])
+}
+
+model AdCampaign {
+  id          String    @id @default(uuid()) @db.Uuid
+  name        String
+  platform    String // "facebook", "google", "tiktok", "email", "other"
+  campaignId  String? // External campaign ID
+  status      String    @default("active") // "active", "paused", "completed"
+  budget      Float?
+  spent       Float     @default(0)
+  impressions Int       @default(0)
+  clicks      Int       @default(0)
+  conversions Int       @default(0)
+  revenue     Float     @default(0)
+  startDate   DateTime
+  endDate     DateTime?
+  utmSource   String?
+  utmMedium   String?
+  utmCampaign String?
+  metadata    Json?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([platform])
+  @@index([status])
+  @@index([startDate])
+  @@index([endDate])
+  @@index([utmCampaign])
 }
 
 model AuditEvent {
@@ -1784,6 +1973,8 @@ enum Role {
   USER
   ADMIN
   SUPER_ADMIN
+  EDITOR
+  MARKETING_MANAGER
 }
 
 enum OrderStatus {
@@ -2203,4 +2394,446 @@ enum EmailStatus {
   CLICKED
   FAILED
   RETRYING
+}
+
+// CMS Models
+model MediaAsset {
+  id          String   @id @default(uuid()) @db.Uuid
+  organizationId String @db.Uuid
+  folderId    String?  @db.Uuid
+  filename    String
+  originalName String
+  mimeType    String
+  size        Int
+  url         String
+  webpUrl     String?
+  width       Int?
+  height      Int?
+  alt         String?
+  category    String? // "hero", "product", "brand", "testimonial", "other"
+  tags        String[]
+  aiTags      String[]
+  usageCount  Int      @default(0)
+  viewCount   Int      @default(0)
+  uploadedBy  String?  @db.Uuid
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  folder      MediaFolder? @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  usages      MediaUsage[]
+
+  @@index([organizationId])
+  @@index([category])
+  @@index([uploadedBy])
+  @@index([folderId])
+}
+
+model AnnouncementBar {
+  id          String   @id @default(uuid()) @db.Uuid
+  organizationId String @db.Uuid
+  text        String
+  icon        String?  // icon name or emoji
+  backgroundColor String @default("#000000")
+  textColor   String @default("#ffffff")
+  isActive    Boolean  @default(true)
+  displayOrder Int     @default(0)
+  startDate   DateTime?
+  endDate     DateTime?
+  status      CMSContentStatus @default(PUBLISHED)
+  geoTargeting Json?
+  deviceTargeting DeviceTarget @default(ALL)
+  utmSource   String?
+  utmMedium   String?
+  utmCampaign String?
+  ctaText     String?
+  ctaLink     String?
+  countdownEnd DateTime?
+  stickyMode  Boolean  @default(true)
+  dismissible Boolean  @default(true)
+  impressions Int      @default(0)
+  clicks      Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  analytics   AnnouncementBarAnalytics[]
+
+  @@index([organizationId])
+  @@index([isActive])
+  @@index([displayOrder])
+  @@index([status])
+}
+
+model HomepageConfig {
+  id          String   @id @default(uuid()) @db.Uuid
+  organizationId String @db.Uuid
+  featuredCategories String[] // category IDs
+  featuredProducts    String[] // product IDs
+  featuredBrands      String[] // brand names or IDs
+  testimonials        Json[] // array of testimonial objects
+  newsletterEnabled   Boolean @default(true)
+  newsletterTitle     String?
+  newsletterSubtitle  String?
+  isActive    Boolean  @default(true)
+  status      CMSContentStatus @default(DRAFT)
+  publishedAt DateTime?
+  version     Int      @default(1)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  sections    HomepageSection[]
+  versions    HomepageVersion[]
+
+  @@index([organizationId])
+  @@index([isActive])
+  @@index([status])
+}
+
+model FooterConfig {
+  id          String   @id @default(uuid()) @db.Uuid
+  organizationId String @db.Uuid
+  logoUrl     String?
+  description String?
+  socialLinks Json[] // [{ platform: "twitter", url: "...", icon: "..." }]
+  contactInfo Json   // { email: "...", phone: "...", address: "..." }
+  quickLinks  Json[] // [{ title: "...", url: "..." }]
+  legalLinks  Json[] // [{ title: "...", url: "..." }]
+  columns     Json[]
+  paymentIcons Json[]
+  storeBadges Json[]
+  copyrightText String?
+  newsletterSettings Json?
+  translations Json?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([organizationId])
+  @@index([isActive])
+}
+
+model Testimonial {
+  id          String   @id @default(uuid()) @db.Uuid
+  organizationId String @db.Uuid
+  name        String
+  role        String?
+  avatarUrl   String?
+  rating      Int      @default(5)
+  content     String
+  productId   String?  @db.Uuid // optional: associated product
+  isActive    Boolean  @default(true)
+  displayOrder Int     @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([organizationId])
+  @@index([isActive])
+  @@index([productId])
+  @@index([displayOrder])
+}
+
+// ─── Enterprise CMS Enums ───────────────────────────────────────────
+
+enum CMSContentStatus {
+  DRAFT
+  PUBLISHED
+  SCHEDULED
+  ARCHIVED
+  EXPIRED
+}
+
+enum HomepageSectionType {
+  HERO
+  FEATURED_PRODUCTS
+  CATEGORIES
+  FLASH_DEALS
+  NEW_ARRIVALS
+  BRANDS
+  TESTIMONIALS
+  FAQ
+  NEWSLETTER
+  CUSTOM_HTML
+  AI_RECOMMENDATIONS
+}
+
+enum DeviceTarget {
+  ALL
+  DESKTOP
+  MOBILE
+  TABLET
+}
+
+enum NavigationMenuLocation {
+  HEADER
+  FOOTER
+  MOBILE
+  SIDEBAR
+}
+
+enum CmsAuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  PUBLISH
+  UNPUBLISH
+  SCHEDULE
+  DUPLICATE
+  ROLLBACK
+  REORDER
+}
+
+// ─── Enterprise CMS Models ──────────────────────────────────────────
+
+model HeroBannerTemplate {
+  id          String   @id @default(uuid()) @db.Uuid
+  organizationId String? @db.Uuid
+  name        String
+  description String?
+  thumbnail   String?
+  config      Json
+  isSystem    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  banners     HeroBanner[]
+
+  @@index([organizationId])
+}
+
+model HeroBannerABTest {
+  id          String   @id @default(uuid()) @db.Uuid
+  organizationId String @db.Uuid
+  name        String
+  status      CMSContentStatus @default(DRAFT)
+  variantAId  String?  @db.Uuid
+  variantBId  String?  @db.Uuid
+  trafficSplit Float   @default(0.5)
+  winnerId    String?  @db.Uuid
+  startedAt   DateTime?
+  endedAt     DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  banners     HeroBanner[]
+
+  @@index([organizationId])
+  @@index([status])
+}
+
+model HomepageSection {
+  id          String   @id @default(uuid()) @db.Uuid
+  homepageId  String   @db.Uuid
+  type        HomepageSectionType
+  title       String?
+  subtitle    String?
+  config      Json     @default("{}")
+  isVisible   Boolean  @default(true)
+  displayOrder Int     @default(0)
+  templateId  String?
+  impressions Int      @default(0)
+  clicks      Int      @default(0)
+  conversions Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  homepage    HomepageConfig @relation(fields: [homepageId], references: [id], onDelete: Cascade)
+
+  @@index([homepageId])
+  @@index([displayOrder])
+  @@index([type])
+}
+
+model HomepageVersion {
+  id          String   @id @default(uuid()) @db.Uuid
+  homepageId  String   @db.Uuid
+  version     Int
+  snapshot    Json
+  publishedBy String?  @db.Uuid
+  note        String?
+  createdAt   DateTime @default(now())
+
+  homepage    HomepageConfig @relation(fields: [homepageId], references: [id], onDelete: Cascade)
+
+  @@index([homepageId])
+  @@index([version])
+}
+
+model AnnouncementBarAnalytics {
+  id          String   @id @default(uuid()) @db.Uuid
+  barId       String   @db.Uuid
+  eventType   String
+  deviceType  String?
+  country     String?
+  sessionId   String?
+  utmSource   String?
+  createdAt   DateTime @default(now())
+
+  bar         AnnouncementBar @relation(fields: [barId], references: [id], onDelete: Cascade)
+
+  @@index([barId])
+  @@index([eventType])
+  @@index([createdAt])
+}
+
+model MediaFolder {
+  id          String   @id @default(uuid()) @db.Uuid
+  organizationId String @db.Uuid
+  name        String
+  parentId    String?  @db.Uuid
+  slug        String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  parent      MediaFolder?  @relation("FolderTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children    MediaFolder[] @relation("FolderTree")
+  assets      MediaAsset[]
+
+  @@unique([organizationId, slug])
+  @@index([organizationId])
+  @@index([parentId])
+}
+
+model MediaUsage {
+  id          String   @id @default(uuid()) @db.Uuid
+  assetId     String   @db.Uuid
+  entityType  String
+  entityId    String
+  fieldName   String?
+  createdAt   DateTime @default(now())
+
+  asset       MediaAsset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@index([assetId])
+  @@index([entityType, entityId])
+}
+
+model NavigationMenu {
+  id          String   @id @default(uuid()) @db.Uuid
+  organizationId String @db.Uuid
+  name        String
+  location    NavigationMenuLocation @default(HEADER)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  items       NavigationMenuItem[]
+
+  @@index([organizationId])
+  @@index([location])
+}
+
+model NavigationMenuItem {
+  id          String   @id @default(uuid()) @db.Uuid
+  menuId      String   @db.Uuid
+  parentId    String?  @db.Uuid
+  label       String
+  url         String?
+  icon        String?
+  target      String   @default("_self")
+  isVisible   Boolean  @default(true)
+  displayOrder Int     @default(0)
+  badge       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  menu        NavigationMenu @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  parent      NavigationMenuItem?  @relation("MenuItemTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children    NavigationMenuItem[] @relation("MenuItemTree")
+
+  @@index([menuId])
+  @@index([parentId])
+  @@index([displayOrder])
+}
+
+model Brand {
+  id          String   @id @default(uuid()) @db.Uuid
+  organizationId String @db.Uuid
+  name        String
+  slug        String
+  logoUrl     String?
+  bannerUrl   String?
+  description String?
+  website     String?
+  isActive    Boolean  @default(true)
+  isFeatured  Boolean  @default(false)
+  displayOrder Int     @default(0)
+  productCount Int     @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([organizationId, slug])
+  @@index([organizationId])
+  @@index([isActive])
+  @@index([isFeatured])
+}
+
+model CmsActivityLog {
+  id             String         @id @default(uuid()) @db.Uuid
+  organizationId String         @db.Uuid
+  userId         String?        @db.Uuid
+  entityType     String
+  entityId       String?
+  action         CmsAuditAction
+  metadata       Json?
+  ipAddress      String?
+  createdAt      DateTime       @default(now())
+
+  @@index([organizationId])
+  @@index([userId])
+  @@index([entityType])
+  @@index([action])
+  @@index([createdAt])
+}
+
+// ─── Global Site Settings (single source of truth) ───────────────────
+
+model SiteSettings {
+  id                    String   @id @default(uuid()) @db.Uuid
+  organizationId        String   @unique @db.Uuid
+
+  // Branding
+  storeName             String   @default("NexMart")
+  storeTagline          String?
+  logoUrl               String?
+  faviconUrl            String?
+  ogImageUrl            String?
+
+  // Contact
+  email                 String?
+  phone                 String?
+  whatsapp              String?
+  address               String?
+  businessHours         String?
+  supportEmail          String?
+
+  // Social [{ platform, url, icon }]
+  socialLinks           Json     @default("[]")
+
+  // SEO
+  seoTitle              String?
+  seoDescription        String?
+  seoKeywords           String[]
+  siteUrl               String?
+  twitterHandle         String?
+  locale                String   @default("fr_MA")
+
+  // Theme
+  primaryColor          String   @default("#0F766E")
+  secondaryColor        String   @default("#D4AF37")
+  accentColor           String?
+  themeColorLight       String   @default("#F5F1E8")
+  themeColorDark        String   @default("#0F172A")
+
+  // Business
+  currency              String   @default("MAD")
+  freeShippingThreshold Float?
+  freeShippingMessage   String?
+
+  // UI copy
+  searchPlaceholder     String?
+  copyrightText         String?
+
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@index([organizationId])
 }

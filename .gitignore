@@ -45,3 +45,6 @@ Thumbs.db
 
 # Sentry Config File
 .env.sentry-build-plugin
+
+# Local setup helpers with machine-specific credentials
+setup-env-local.js

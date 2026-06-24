@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth-api';
 import { getExecutiveMetrics, getInventoryMetrics } from '@/lib/services/executive-analytics.service';
 import { subDays, startOfDay } from 'date-fns';
+import { prisma } from '@/lib/prisma';
+import { getDefaultOrganizationId } from '@/lib/tenant';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,31 +16,57 @@ export async function GET(req: NextRequest) {
     const searchParams = req.nextUrl.searchParams;
     const range = parseInt(searchParams.get('range') || '30');
     const format = searchParams.get('format') || 'csv';
+    const type = searchParams.get('type') || 'executive'; // executive, customers, marketing, banners
 
     const now = new Date();
     const startDate = startOfDay(subDays(now, range));
     const prevStart = startOfDay(subDays(now, range * 2));
     const prevEnd = startOfDay(subDays(now, range));
 
-    // Get metrics
-    const executiveMetrics = await getExecutiveMetrics({
-      organizationId,
-      startDate,
-      endDate: now,
-      previousStartDate: prevStart,
-      previousEndDate: prevEnd,
-    });
+    let csv: string;
 
-    const inventoryMetrics = await getInventoryMetrics(organizationId);
+    switch (type) {
+      case 'executive':
+        const executiveMetrics = await getExecutiveMetrics({
+          organizationId,
+          startDate,
+          endDate: now,
+          previousStartDate: prevStart,
+          previousEndDate: prevEnd,
+        });
+        const inventoryMetrics = await getInventoryMetrics(organizationId);
+        csv = generateExecutiveCSV(executiveMetrics, inventoryMetrics, range);
+        break;
 
-    // Generate CSV
+      case 'customers':
+        csv = await generateCustomerCSV(organizationId, startDate);
+        break;
+
+      case 'marketing':
+        csv = await generateMarketingCSV(organizationId, startDate);
+        break;
+
+      case 'banners':
+        csv = await generateBannerCSV(organizationId, startDate);
+        break;
+
+      default:
+        const execMetrics = await getExecutiveMetrics({
+          organizationId,
+          startDate,
+          endDate: now,
+          previousStartDate: prevStart,
+          previousEndDate: prevEnd,
+        });
+        const invMetrics = await getInventoryMetrics(organizationId);
+        csv = generateExecutiveCSV(execMetrics, invMetrics, range);
+    }
+
     if (format === 'csv') {
-      const csv = generateCSV(executiveMetrics, inventoryMetrics, range);
-      
       return new NextResponse(csv, {
         headers: {
           'Content-Type': 'text/csv',
-          'Content-Disposition': `attachment; filename="analytics-export-${now.toISOString().split('T')[0]}.csv"`,
+          'Content-Disposition': `attachment; filename="${type}-export-${now.toISOString().split('T')[0]}.csv"`,
         },
       });
     }
@@ -53,7 +81,7 @@ export async function GET(req: NextRequest) {
   }
 }
 
-function generateCSV(metrics: any, inventory: any, range: number): string {
+function generateExecutiveCSV(metrics: any, inventory: any, range: number): string {
   const headers = [
     'Metric',
     'Value',
@@ -87,3 +115,122 @@ function generateCSV(metrics: any, inventory: any, range: number): string {
 
   return csvContent;
 }
+
+async function generateCustomerCSV(organizationId: string, startDate: Date): Promise<string> {
+  const customers = await prisma.user.findMany({
+    where: {
+      organizationId,
+      role: 'USER',
+    },
+    include: {
+      orders: {
+        where: {
+          paymentStatus: 'PAID',
+          createdAt: { gte: startDate },
+        },
+      },
+    },
+  });
+
+  const headers = ['Customer ID', 'Name', 'Email', 'Total Spent', 'Order Count', 'Created At'];
+
+  const rows = customers.map(customer => {
+    const totalSpent = customer.orders.reduce((sum: number, order: any) => sum + order.total, 0);
+    return [
+      customer.id,
+      customer.name || '',
+      customer.email || '',
+      totalSpent.toFixed(2),
+      customer.orders.length,
+      customer.createdAt.toISOString(),
+    ];
+  });
+
+  return [
+    headers.join(','),
+    ...rows.map(row => row.join(',')),
+  ].join('\n');
+}
+
+async function generateMarketingCSV(organizationId: string, startDate: Date): Promise<string> {
+  const events = await prisma.analyticsEvent.findMany({
+    where: {
+      organizationId,
+      occurredAt: { gte: startDate },
+    },
+  });
+
+  const attributionByChannel = events.reduce((acc: any, event: any) => {
+    const utmSource = event.properties?.utmSource || 'direct';
+    const utmMedium = event.properties?.utmMedium || 'none';
+    const channel = `${utmSource}/${utmMedium}`;
+
+    if (!acc[channel]) {
+      acc[channel] = { channel, impressions: 0, clicks: 0, conversions: 0 };
+    }
+
+    if (event.eventType === 'PAGE_VIEW') {
+      acc[channel].impressions++;
+    } else if (event.eventType === 'PRODUCT_VIEW') {
+      acc[channel].clicks++;
+    } else if (event.eventType === 'ADD_TO_CART' || event.eventType === 'CHECKOUT_STARTED') {
+      acc[channel].conversions++;
+    }
+
+    return acc;
+  }, {});
+
+  const headers = ['Channel', 'Impressions', 'Clicks', 'Conversions', 'CTR (%)', 'Conversion Rate (%)'];
+
+  const rows = Object.values(attributionByChannel).map((item: any) => [
+    item.channel,
+    item.impressions,
+    item.clicks,
+    item.conversions,
+    item.impressions > 0 ? ((item.clicks / item.impressions) * 100).toFixed(2) : '0',
+    item.clicks > 0 ? ((item.conversions / item.clicks) * 100).toFixed(2) : '0',
+  ]);
+
+  return [
+    headers.join(','),
+    ...rows.map(row => row.join(',')),
+  ].join('\n');
+}
+
+async function generateBannerCSV(organizationId: string, startDate: Date): Promise<string> {
+  const banners = await prisma.heroBanner.findMany({
+    where: { organizationId },
+    include: {
+      analytics: {
+        where: { createdAt: { gte: startDate } },
+      },
+    },
+  });
+
+  const headers = ['Banner ID', 'Title', 'Impressions', 'Primary Clicks', 'Secondary Clicks', 'Total Clicks', 'CTR (%)', 'Status'];
+
+  const rows = banners.map(banner => {
+    const impressions = banner.analytics.filter((a: any) => a.eventType === 'impression').length;
+    const primaryClicks = banner.analytics.filter((a: any) => a.eventType === 'primaryClick').length;
+    const secondaryClicks = banner.analytics.filter((a: any) => a.eventType === 'secondaryClick').length;
+    const totalClicks = primaryClicks + secondaryClicks;
+    const ctr = impressions > 0 ? (totalClicks / impressions) * 100 : 0;
+
+    return [
+      banner.id,
+      banner.title,
+      impressions,
+      primaryClicks,
+      secondaryClicks,
+      totalClicks,
+      ctr.toFixed(2),
+      banner.isActive ? 'Active' : 'Inactive',
+    ];
+  });
+
+  return [
+    headers.join(','),
+    ...rows.map(row => row.join(',')),
+  ].join('\n');
+}
+

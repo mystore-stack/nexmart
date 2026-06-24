@@ -158,12 +158,12 @@ export default function AutomationQueuesPage() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
               <label className="text-sm font-medium mb-1 block">Queue</label>
-              <Select value={filters.queueName} onValueChange={(value) => setFilters({ ...filters, queueName: value, page: 1 })}>
+              <Select value={filters.queueName || "all"} onValueChange={(value) => setFilters({ ...filters, queueName: value === "all" ? "" : value, page: 1 })}>
                 <SelectTrigger>
                   <SelectValue placeholder="All queues" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All queues</SelectItem>
+                  <SelectItem value="all">All queues</SelectItem>
                   <SelectItem value="email-queue">Email Queue</SelectItem>
                   <SelectItem value="analytics-queue">Analytics Queue</SelectItem>
                   <SelectItem value="notifications-queue">Notifications Queue</SelectItem>
@@ -176,12 +176,12 @@ export default function AutomationQueuesPage() {
 
             <div>
               <label className="text-sm font-medium mb-1 block">Status</label>
-              <Select value={filters.status} onValueChange={(value) => setFilters({ ...filters, status: value, page: 1 })}>
+              <Select value={filters.status || "all"} onValueChange={(value) => setFilters({ ...filters, status: value === "all" ? "" : value, page: 1 })}>
                 <SelectTrigger>
                   <SelectValue placeholder="All statuses" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All statuses</SelectItem>
+                  <SelectItem value="all">All statuses</SelectItem>
                   {Object.values(JobStatus).map((status) => (
                     <SelectItem key={status} value={status}>
                       {status.toLowerCase()}

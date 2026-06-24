@@ -22,6 +22,19 @@ const PROTECTED_API_PREFIXES = [
   "/api/vendor",
 ];
 
+const CMS_ADMIN_ROLES = ["ADMIN", "SUPER_ADMIN", "EDITOR", "MARKETING_MANAGER"];
+const FULL_ADMIN_ROLES = ["ADMIN", "SUPER_ADMIN"];
+
+function isCmsAdminRoute(pathname: string) {
+  return pathname.startsWith("/admin/cms") || pathname.startsWith("/api/admin/cms");
+}
+
+function canAccessAdminRoute(role: string, pathname: string) {
+  if (FULL_ADMIN_ROLES.includes(role)) return true;
+  if (CMS_ADMIN_ROLES.includes(role) && isCmsAdminRoute(pathname)) return true;
+  return false;
+}
+
 const PUBLIC_API_AUTH = [
   "/api/auth/login",
   "/api/auth/register",
@@ -103,8 +116,10 @@ export async function middleware(req: NextRequest) {
       return NextResponse.redirect(loginUrl);
     }
     if (sessionData.role !== "ADMIN" && sessionData.role !== "SUPER_ADMIN") {
-      console.log("[MIDDLEWARE] Admin route - insufficient role, redirecting to home");
-      return NextResponse.redirect(new URL("/?error=unauthorized", req.url));
+      if (!canAccessAdminRoute(sessionData.role ?? "USER", pathname)) {
+        console.log("[MIDDLEWARE] Admin route - insufficient role, redirecting to home");
+        return NextResponse.redirect(new URL("/?error=unauthorized", req.url));
+      }
     }
     console.log("[MIDDLEWARE] Admin route - access granted");
   }
@@ -126,7 +141,7 @@ export async function middleware(req: NextRequest) {
 
     // Admin API guard
     if (pathname.startsWith("/api/admin") && sessionData) {
-      if (sessionData.role !== "ADMIN" && sessionData.role !== "SUPER_ADMIN") {
+      if (!canAccessAdminRoute(sessionData.role ?? "USER", pathname)) {
         console.log("[MIDDLEWARE] Admin API - insufficient role, returning 403");
         return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
       }

@@ -10,9 +10,17 @@ const PERKS = [
   { icon: ShieldCheck, text: "Alertes de prix en temps réel" },
 ];
 
-export function NewsletterSection() {
+interface NewsletterSectionProps {
+  title?: string;
+  subtitle?: string;
+  enabled?: boolean;
+}
+
+export function NewsletterSection({ title, subtitle, enabled = true }: NewsletterSectionProps) {
   const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
+
+  if (!enabled) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -87,7 +95,7 @@ export function NewsletterSection() {
             transition={{ duration: 0.55, delay: 0.1 }}
             className="font-display text-4xl font-light text-white md:text-5xl lg:text-6xl leading-tight mb-4"
           >
-            Rejoignez les meilleurs
+            {title || "Rejoignez les meilleurs"}
             <span className="block font-semibold" style={{
               background: "linear-gradient(135deg, #D4AF37 0%, #f0d060 50%, #D4AF37 100%)",
               WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent"
@@ -103,7 +111,7 @@ export function NewsletterSection() {
             transition={{ duration: 0.5, delay: 0.2 }}
             className="mb-10 text-base text-white/55 leading-relaxed max-w-xl mx-auto"
           >
-            Abonnez-vous pour recevoir en avant-première les meilleures offres, les nouvelles collections et les recommandations de notre IA.
+            {subtitle || "Abonnez-vous pour recevoir en avant-première les meilleures offres, les nouvelles collections et les recommandations de notre IA."}
           </motion.p>
 
           {/* Perks */}

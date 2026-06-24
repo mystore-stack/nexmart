@@ -145,37 +145,47 @@ export default function AdminDashboard() {
     });
 
     eventSource.addEventListener("orders", (event) => {
-      const data = JSON.parse(event.data);
-      if (data.type === "new_orders") {
-        // Show toast notification for new orders
-        data.orders.forEach((order: any) => {
-          toast.success(
-            `🛒 New Order #${order.orderNumber} - ${formatPrice(order.total)}`,
-            {
-              duration: 5000,
-              icon: <ShoppingCart className="w-5 h-5" />,
-            }
-          );
-        });
-        // Refresh analytics to include new order
-        fetchAnalytics();
+      if (!event.data || event.data === "") return;
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === "new_orders") {
+          // Show toast notification for new orders
+          data.orders.forEach((order: any) => {
+            toast.success(
+              `🛒 New Order #${order.orderNumber} - ${formatPrice(order.total)}`,
+              {
+                duration: 5000,
+                icon: <ShoppingCart className="w-5 h-5" />,
+              }
+            );
+          });
+          // Refresh analytics to include new order
+          fetchAnalytics();
+        }
+      } catch (err) {
+        console.error("[SSE] Failed to parse orders event:", err);
       }
     });
 
     eventSource.addEventListener("inventory", (event) => {
-      const data = JSON.parse(event.data);
-      if (data.type === "inventory_alert") {
-        data.products.forEach((product: any) => {
-          toast.error(
-            `⚠️ Low Stock: ${product.name} (${product.stock} left)`,
-            {
-              duration: 8000,
-              icon: <Bell className="w-5 h-5" />,
-            }
-          );
-        });
-        // Refresh analytics to update low stock count
-        fetchAnalytics();
+      if (!event.data || event.data === "") return;
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === "inventory_alert") {
+          data.products.forEach((product: any) => {
+            toast.error(
+              `⚠️ Low Stock: ${product.name} (${product.stock} left)`,
+              {
+                duration: 8000,
+                icon: <Bell className="w-5 h-5" />,
+              }
+            );
+          });
+          // Refresh analytics to update low stock count
+          fetchAnalytics();
+        }
+      } catch (err) {
+        console.error("[SSE] Failed to parse inventory event:", err);
       }
     });
 

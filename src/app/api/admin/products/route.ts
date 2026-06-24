@@ -16,7 +16,7 @@ const productSchema = z.object({
   categoryId: z.string(),
   images: z
     .array(z.string().trim().min(1))
-    .min(1, "At least 1 valid image URL is required"),
+    .min(1, "At least 1 image is required"),
   tags: z
     .array(z.string().trim())
     .transform((arr) => arr.filter(Boolean))

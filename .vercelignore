@@ -3,3 +3,4 @@
 !.env.example
 prisma/.env
 prisma/.env.*
+setup-env-local.js

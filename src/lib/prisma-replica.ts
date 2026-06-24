@@ -1,11 +1,15 @@
 // src/lib/prisma-replica.ts
 import { PrismaClient } from '@prisma/client';
+import { getDatabaseUrl } from './database-url';
+
+// Use custom database URL resolution to ensure .env.local is respected
+const databaseUrl = getDatabaseUrl();
 
 // Write client for mutations
 export const prismaWrite = new PrismaClient({
   datasources: {
     db: {
-      url: process.env.DATABASE_URL,
+      url: databaseUrl,
     },
   },
   log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
@@ -15,7 +19,7 @@ export const prismaWrite = new PrismaClient({
 export const prismaRead = new PrismaClient({
   datasources: {
     db: {
-      url: process.env.DATABASE_READ_URL || process.env.DATABASE_URL,
+      url: process.env.DATABASE_READ_URL || databaseUrl,
     },
   },
   log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],

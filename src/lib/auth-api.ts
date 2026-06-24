@@ -26,7 +26,7 @@ export class AuthError extends Error {
 export interface ServerAuthSession {
   userId: string;
   email: string;
-  role: "USER" | "ADMIN" | "SUPER_ADMIN";
+  role: "USER" | "ADMIN" | "SUPER_ADMIN" | "EDITOR" | "MARKETING_MANAGER";
   organizationId: string;
 }
 

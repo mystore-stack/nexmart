@@ -10,21 +10,36 @@ export function getDatabaseUrl(): string {
 
   const urlFromEnvLocal = getEnvLocalValue("DATABASE_URL");
   if (urlFromEnvLocal) {
-    // Temporary debug to verify runtime env source
-    console.log(
-      "[database-url] using .env.local DATABASE_URL =",
-      urlFromEnvLocal.slice(0, 80)
-    );
+    console.log("[database-url] ✓ Using .env.local DATABASE_URL");
+    console.log("[database-url] Host =", urlFromEnvLocal.match(/@([^:]+)/)?.[1] || "unknown");
+    console.log("[database-url] Database =", urlFromEnvLocal.match(/\/([^?]+)/)?.[1] || "unknown");
     cached = urlFromEnvLocal;
     return urlFromEnvLocal;
   }
 
   // Fallback: allow process.env if env-local isn't available (e.g. CI).
   const url = process.env.DATABASE_URL;
-  console.log(
-    "[database-url] .env.local DATABASE_URL not found, falling back to process.env (first 80 chars) =",
-    url ? url.slice(0, 80) : "<missing>"
-  );
+  console.log("[database-url] ✗ .env.local DATABASE_URL not found");
+  console.log("[database-url] Falling back to process.env.DATABASE_URL");
+  console.log("[database-url] process.env.DATABASE_URL =", url ? url.replace(/:[^:@]+@/, ":***@") : "<missing>");
+  
+  if (url) {
+    const host = url.match(/@([^:]+)/)?.[1] || "unknown";
+    const db = url.match(/\/([^?]+)/)?.[1] || "unknown";
+    console.log("[database-url] Host =", host);
+    console.log("[database-url] Database =", db);
+    
+    // CRITICAL: Detect and reject localhost connections
+    if (host.includes("localhost") || host.includes("127.0.0.1")) {
+      console.error("[database-url] ❌ CRITICAL: DATABASE_URL points to localhost!");
+      console.error("[database-url] This is likely a Windows system environment variable.");
+      console.error("[database-url] Solution: Add DATABASE_URL to your .env.local file in the project root.");
+      throw new Error(
+        "DATABASE_URL points to localhost. This is likely a Windows system environment variable overriding your project configuration. " +
+        "Add DATABASE_URL to your .env.local file in the project root to use Neon PostgreSQL."
+      );
+    }
+  }
 
   if (!url) {
     throw new Error(

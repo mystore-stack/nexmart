@@ -8,31 +8,15 @@ import { usePathname, useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Bell, ChevronDown, Heart, LogOut, Menu, Package,
-  Search, Settings, ShoppingCart, Sparkles, User, X, Star,
+  Search, Settings, ShoppingCart, Sparkles, User, X,
 } from "lucide-react";
 import { useCartStore } from "@/store/cart";
 import { useAuthStore, useUIStore } from "@/store/index";
+import { useSiteConfig } from "@/components/providers/SiteConfigProvider";
+import type { NavigationItemData } from "@/lib/cms/data";
 
-const NAV_LINKS = [
-  {
-    label: "Boutique",
-    href: "/products",
-    children: [
-      { label: "Sélection IA", href: "/products?sort=recommended", note: "Recommandé pour vous" },
-      { label: "Électronique", href: "/products?category=electronics", note: "Appareils premium" },
-      { label: "Mode", href: "/products?category=fashion", note: "Nouvelles collections" },
-      { label: "Maison", href: "/products?category=home", note: "Art de vivre" },
-      { label: "Beauté", href: "/products?category=beauty", note: "Soins essentiels" },
-      { label: "Tous les produits", href: "/products", note: "Explorer la boutique" },
-    ],
-  },
-  { label: "Promotions", href: "/deals" },
-  { label: "Marques", href: "/brands" },
-  { label: "Catégories", href: "/categories" },
-];
-
-// Moroccan geometric SVG logo mark
-function MoroccanLogo({ size = 40 }: { size?: number }) {
+// Moroccan geometric SVG logo mark — colors from site settings
+function MoroccanLogo({ size = 40, primaryColor = "#0F766E", secondaryColor = "#0a5c55" }: { size?: number; primaryColor?: string; secondaryColor?: string }) {
   return (
     <svg width={size} height={size} viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
       <rect width="40" height="40" rx="10" fill="url(#logoGrad)" />
@@ -42,8 +26,8 @@ function MoroccanLogo({ size = 40 }: { size?: number }) {
       <path d="M20 6 L20 11 M34 20 L29 20 M20 34 L20 29 M6 20 L11 20" stroke="rgba(212,175,55,0.5)" strokeWidth="1" />
       <defs>
         <linearGradient id="logoGrad" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#0F766E" />
-          <stop offset="100%" stopColor="#0a5c55" />
+          <stop offset="0%" stopColor={primaryColor} />
+          <stop offset="100%" stopColor={secondaryColor} />
         </linearGradient>
       </defs>
     </svg>
@@ -53,9 +37,24 @@ function MoroccanLogo({ size = 40 }: { size?: number }) {
 export function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
+  const { settings, navigation } = useSiteConfig();
   const [scrolled, setScrolled] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+
+  const navLinks: Array<{
+    label: string;
+    href: string;
+    children?: Array<{ label: string; href: string; note?: string }>;
+  }> = navigation.map((item: NavigationItemData) => ({
+    label: item.label,
+    href: item.url || "/",
+    children: item.children?.map((c) => ({
+      label: c.label,
+      href: c.url || "/",
+      note: c.badge || undefined,
+    })),
+  }));
 
   const { items, openCart } = useCartStore();
   const { user, logout } = useAuthStore();
@@ -91,44 +90,32 @@ export function Navbar() {
         animate={{ y: 0 }}
         transition={{ type: "spring", stiffness: 280, damping: 30 }}
       >
-        {/* Announcement Bar */}
-        <div className="relative overflow-hidden bg-moroccan-navy">
-          <div className="absolute inset-0 moroccan-pattern-bg opacity-30" />
-          <div className="container-main flex h-9 items-center justify-center gap-3 text-xs font-semibold text-white/90">
-            <span className="flex items-center gap-2">
-              <Star className="h-3 w-3 text-gold-400 fill-gold-400" />
-              <span className="hidden sm:inline text-white/60">|</span>
-              <span>Livraison gratuite au Maroc dès 500 MAD</span>
-              <span className="hidden sm:inline text-white/60">|</span>
-            </span>
-            <span className="hidden sm:inline text-white/55 text-[11px]">
-              Artisanat Premium · Paiement Sécurisé · Support 24h
-            </span>
-          </div>
-          {/* Gold bottom line */}
-          <div className="absolute bottom-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-500/50 to-transparent" />
-        </div>
-
         <div className="container-main">
           <div className="flex h-[4.25rem] items-center gap-4">
-            {/* Logo */}
-            <Link href="/" className="group flex shrink-0 items-center gap-3" aria-label="NexMart">
+            {/* Logo — from database */}
+            <Link href="/" className="group flex shrink-0 items-center gap-3" aria-label={settings.storeName}>
               <motion.div whileHover={{ scale: 1.05 }} transition={{ duration: 0.2 }}>
-                <MoroccanLogo size={42} />
+                {settings.logoUrl ? (
+                  <Image src={settings.logoUrl} alt={settings.storeName} width={42} height={42} className="rounded-xl object-contain" />
+                ) : (
+                  <MoroccanLogo size={42} primaryColor={settings.primaryColor} secondaryColor={settings.accentColor || settings.primaryColor} />
+                )}
               </motion.div>
               <div className="hidden sm:block">
                 <span className="block font-display text-xl font-semibold tracking-tight leading-tight text-foreground">
-                  NexMart
+                  {settings.storeName}
                 </span>
-                <span className="block text-[9px] font-bold uppercase tracking-[0.15em] text-gold-600 dark:text-gold-500 -mt-0.5">
-                  Maroc · Premium
-                </span>
+                {settings.storeTagline && (
+                  <span className="block text-[9px] font-bold uppercase tracking-[0.15em] text-gold-600 dark:text-gold-500 -mt-0.5">
+                    {settings.storeTagline}
+                  </span>
+                )}
               </div>
             </Link>
 
-            {/* Desktop Nav */}
+            {/* Desktop Nav — from database */}
             <nav className="hidden items-center gap-1 lg:flex ml-2">
-              {NAV_LINKS.map((link) => (
+              {navLinks.map((link) => (
                 <div
                   key={link.label}
                   className="relative"
@@ -173,7 +160,7 @@ export function Navbar() {
                             ))}
                           </div>
                           <div className="relative overflow-hidden rounded-xl p-4" style={{
-                            background: "linear-gradient(135deg, #0F766E 0%, #0a5c55 100%)"
+                            background: `linear-gradient(135deg, ${settings.primaryColor} 0%, ${settings.accentColor || settings.primaryColor} 100%)`
                           }}>
                             <div className="absolute inset-0 moroccan-pattern-bg opacity-20" />
                             <div className="relative">
@@ -205,7 +192,7 @@ export function Navbar() {
                   type="search"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Rechercher un produit..."
+                  placeholder={settings.searchPlaceholder || "Rechercher..."}
                   className="h-11 w-full rounded-xl border border-border/80 bg-white/80 dark:bg-card/80 pl-11 pr-24 text-sm shadow-inner-sm outline-none backdrop-blur transition-all placeholder:text-muted-foreground focus:border-brand-500/60 focus:ring-3 focus:ring-brand-500/10 focus:bg-white"
                   style={{ boxShadow: "inset 0 1px 3px rgba(15,23,42,0.06)" }}
                 />
@@ -325,7 +312,7 @@ export function Navbar() {
         )}
       </motion.header>
 
-      <div className="h-[calc(4.25rem+36px)]" />
+      <div className="h-[4.25rem]" />
 
       {/* Mobile Menu */}
       <AnimatePresence>
@@ -349,10 +336,16 @@ export function Navbar() {
               <div className="relative">
                 <div className="mb-6 flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <MoroccanLogo size={36} />
+                    {settings.logoUrl ? (
+                      <Image src={settings.logoUrl} alt={settings.storeName} width={36} height={36} className="rounded-xl" />
+                    ) : (
+                      <MoroccanLogo size={36} primaryColor={settings.primaryColor} secondaryColor={settings.accentColor || settings.primaryColor} />
+                    )}
                     <div>
-                      <span className="font-display text-lg font-semibold">NexMart</span>
-                      <span className="block text-[9px] font-bold uppercase tracking-widest text-gold-600 -mt-0.5">Maroc · Premium</span>
+                      <span className="font-display text-lg font-semibold">{settings.storeName}</span>
+                      {settings.storeTagline && (
+                        <span className="block text-[9px] font-bold uppercase tracking-widest text-gold-600 -mt-0.5">{settings.storeTagline}</span>
+                      )}
                     </div>
                   </div>
                   <button onClick={closeMobileMenu} className="btn-ghost">
@@ -374,7 +367,7 @@ export function Navbar() {
                 </form>
 
                 <nav className="space-y-1.5">
-                  {NAV_LINKS.map((link) => (
+                  {navLinks.map((link) => (
                     <div key={link.label} className="rounded-2xl border border-gold-200/40 bg-white/60 dark:bg-card/50 dark:border-gold-800/20 p-1">
                       <Link href={link.href} className="flex items-center rounded-xl px-3.5 py-3 text-sm font-semibold hover:bg-brand-50 dark:hover:bg-brand-900/20 hover:text-brand-700 transition-colors">
                         {link.label}

@@ -273,7 +273,8 @@ export default function AdminOrdersPage() {
         ) : orders.length === 0 ? (
           <div className="text-center py-16">
             <ShoppingCart className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
-            <p className="font-semibold">No orders found</p>
+            <p className="font-semibold">No orders yet</p>
+            <p className="text-sm text-muted-foreground mt-2">Orders will appear here when customers make purchases</p>
           </div>
         ) : (
           <div className="overflow-x-auto">

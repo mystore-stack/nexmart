@@ -243,12 +243,12 @@ export default function AutomationErrorsPage() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
               <label className="text-sm font-medium mb-1 block">Queue</label>
-              <Select value={filters.queueName} onValueChange={(value) => setFilters({ ...filters, queueName: value, page: 1 })}>
+              <Select value={filters.queueName || "all"} onValueChange={(value) => setFilters({ ...filters, queueName: value === "all" ? "" : value, page: 1 })}>
                 <SelectTrigger>
                   <SelectValue placeholder="All queues" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All queues</SelectItem>
+                  <SelectItem value="all">All queues</SelectItem>
                   <SelectItem value="email-queue">Email Queue</SelectItem>
                   <SelectItem value="analytics-queue">Analytics Queue</SelectItem>
                   <SelectItem value="notifications-queue">Notifications Queue</SelectItem>

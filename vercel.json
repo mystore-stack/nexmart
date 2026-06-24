@@ -23,6 +23,9 @@
     },
     "src/app/api/notifications/telegram/route.ts": {
       "maxDuration": 30
+    },
+    "src/app/api/orders/route.ts": {
+      "maxDuration": 10
     }
   },
   "headers": [

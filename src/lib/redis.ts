@@ -50,7 +50,7 @@ export const CACHE_KEYS = {
 export async function getCache<T>(key: string): Promise<T | null> {
   try {
     const data = await redis.get(key);
-    if (data === null || data === undefined) return null;
+    if (data === null || data === undefined || data === "") return null;
     return JSON.parse(data as string) as T;
   } catch {
     return null;
@@ -87,6 +87,13 @@ export async function invalidateProductCache(productId: string): Promise<void> {
     deleteCache("products:featured"),
     deleteCache("products:trending"),
     deleteCache(`${CACHE_KEYS.featured()}:home:*`),
+  ]);
+}
+
+export async function invalidateCMSCache(organizationId: string): Promise<void> {
+  await Promise.all([
+    deleteCache(`cms:config:${organizationId}`),
+    deleteCache(`cms:*`),
   ]);
 }
 
@@ -187,6 +194,7 @@ export function subscribeToChannel(
   subscriber.on("message", (receivedChannel, message) => {
     if (receivedChannel === channel) {
       try {
+        if (!message || message === "") return;
         const data = JSON.parse(message);
         callback(data);
       } catch (err) {

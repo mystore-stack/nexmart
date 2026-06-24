@@ -7,27 +7,122 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard, Package, ShoppingCart, Users, BarChart2,
   Tag, FolderOpen, Menu, X, LogOut, ChevronRight,
-  Home, Store, Truck, FileText, Upload, Bell, Settings
+  Home, Store, Truck, FileText, Upload, Bell, Settings, Image,
+  BarChart3, LineChart, Megaphone, FlaskConical, ChevronDown,
+  Bot, FileQuestion, AlertCircle, Cpu, LayoutTemplate, Image as ImageIcon, BellRing, Layers, Award
 } from "lucide-react";
 import { useAuthStore } from "@/store/index";
 
-const NAV = [
-  { icon: LayoutDashboard, label: "Tableau de bord", href: "/admin" },
-  { icon: Package, label: "Produits", href: "/admin/products" },
-  { icon: ShoppingCart, label: "Commandes", href: "/admin/orders" },
-  { icon: Users, label: "Utilisateurs", href: "/admin/users" },
-  { icon: BarChart2, label: "Analytiques", href: "/admin/analytics" },
+interface NavItem {
+  icon?: any;
+  label: string;
+  href?: string;
+  items?: NavItem[];
+  group?: string;
+}
+
+const NAV: NavItem[] = [
+  { icon: LayoutDashboard, label: "Dashboard", href: "/admin" },
+  { icon: Package, label: "Products", href: "/admin/products" },
+  { icon: ShoppingCart, label: "Orders", href: "/admin/orders" },
+  { icon: Users, label: "Users", href: "/admin/users" },
   { icon: Tag, label: "Coupons", href: "/admin/coupons" },
-  { icon: FolderOpen, label: "Catégories", href: "/admin/categories" },
-  { icon: Store, label: "Vendeurs", href: "/admin/vendors" },
-  { icon: Truck, label: "Livraison", href: "/admin/delivery" },
-  { icon: FileText, label: "CMS", href: "/admin/cms" },
+  { icon: FolderOpen, label: "Categories", href: "/admin/categories" },
+  { icon: Store, label: "Vendors", href: "/admin/vendors" },
+  { icon: Truck, label: "Delivery", href: "/admin/delivery" },
+  { icon: Image, label: "Hero CMS", href: "/admin/cms/hero" },
+  { icon: FileText, label: "CMS Hub", href: "/admin/cms" },
 ];
+
+const ANALYTICS_GROUP: NavItem = {
+  icon: BarChart3,
+  label: "Analytics",
+  items: [
+    { icon: LineChart, label: "Overview", href: "/admin/analytics" },
+    { icon: BarChart3, label: "Banner Analytics", href: "/admin/analytics/banners" },
+    { icon: Megaphone, label: "Marketing Analytics", href: "/admin/analytics/marketing" },
+  ]
+};
+
+const OPTIMIZATION_GROUP: NavItem = {
+  icon: FlaskConical,
+  label: "Optimization",
+  items: [
+    { icon: FlaskConical, label: "A/B Testing", href: "/admin/experiments" },
+  ]
+};
+
+const CUSTOMERS_GROUP: NavItem = {
+  icon: Users,
+  label: "Customers",
+  items: [
+    { icon: Users, label: "Customer Analytics", href: "/admin/customers/analytics" },
+  ]
+};
+
+const MARKETING_GROUP: NavItem = {
+  icon: Megaphone,
+  label: "Marketing",
+  items: [
+    { icon: Megaphone, label: "Campaigns", href: "/admin/marketing/campaigns" },
+  ]
+};
+
+const AI_GROUP: NavItem = {
+  icon: Bot,
+  label: "AI",
+  items: [
+    { icon: Bot, label: "AI Tools", href: "/admin/ai" },
+  ]
+};
+
+const CONTENT_GROUP: NavItem = {
+  icon: LayoutTemplate,
+  label: "Content",
+  items: [
+    { icon: LayoutTemplate, label: "Paramètres du site", href: "/admin/cms/settings" },
+    { icon: LayoutTemplate, label: "CMS Hub", href: "/admin/cms" },
+    { icon: LayoutTemplate, label: "Homepage Builder", href: "/admin/cms/homepage" },
+    { icon: LayoutTemplate, label: "Announcement Bar", href: "/admin/cms/announcement" },
+    { icon: LayoutTemplate, label: "Footer", href: "/admin/cms/footer" },
+    { icon: ImageIcon, label: "Media Library", href: "/admin/cms/media" },
+    { icon: Menu, label: "Navigation", href: "/admin/cms/navigation" },
+    { icon: Award, label: "Brands", href: "/admin/cms/brands" },
+    { icon: BarChart3, label: "CMS Analytics", href: "/admin/cms/analytics" },
+  ]
+};
+
+const SYSTEM_GROUP: NavItem = {
+  icon: Cpu,
+  label: "System",
+  items: [
+    { icon: Cpu, label: "Automations", href: "/admin/automations" },
+    { icon: AlertCircle, label: "Automation Errors", href: "/admin/automations/errors" },
+    { icon: FileQuestion, label: "Automation Logs", href: "/admin/automations/logs" },
+    { icon: Layers, label: "Automation Queues", href: "/admin/automations/queues" },
+    { icon: FileQuestion, label: "Audit Log", href: "/admin/audit" },
+    { icon: Layers, label: "Job Queues", href: "/admin/queues" },
+    { icon: BellRing, label: "Notifications", href: "/admin/notifications" },
+  ]
+};
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [expandedGroups, setExpandedGroups] = useState<string[]>(["Analytics", "Optimization", "Customers", "Marketing", "AI", "Content", "System"]);
   const { user, logout } = useAuthStore();
+
+  const toggleGroup = (groupLabel: string) => {
+    setExpandedGroups(prev =>
+      prev.includes(groupLabel)
+        ? prev.filter(g => g !== groupLabel)
+        : [...prev, groupLabel]
+    );
+  };
+
+  const isActive = (href: string) => {
+    return href === "/admin" ? pathname === href : pathname.startsWith(href);
+  };
 
   const Sidebar = ({ mobile = false }: { mobile?: boolean }) => (
     <aside
@@ -51,27 +146,220 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       {/* Navigation */}
       <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
         <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-3 mb-3">
-          Intelligence
+          Main
         </p>
-        {NAV.map(({ icon: Icon, label, href }) => {
-          const active = href === "/admin" ? pathname === href : pathname.startsWith(href);
-          return (
+        {NAV.map(({ icon: Icon, label, href }) => (
+          <Link
+            key={href}
+            href={href}
+            onClick={() => setSidebarOpen(false)}
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all group ${
+              isActive(href)
+                ? "bg-white text-foreground shadow-lg"
+                : "text-white/58 hover:text-white hover:bg-white/10"
+            }`}
+          >
+            <Icon className="w-4 h-4 flex-shrink-0" />
+            {label}
+            {isActive(href) && <ChevronRight className="w-3.5 h-3.5 ml-auto" />}
+          </Link>
+        ))}
+
+        {/* Analytics Group */}
+        <div className="pt-4">
+          <button
+            onClick={() => toggleGroup("Analytics")}
+            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-white/70 hover:text-white hover:bg-white/10 transition-all w-full"
+          >
+            <BarChart3 className="w-4 h-4 flex-shrink-0" />
+            Analytics
+            <ChevronDown className={`w-3.5 h-3.5 ml-auto transition-transform ${expandedGroups.includes("Analytics") ? "rotate-180" : ""}`} />
+          </button>
+          {expandedGroups.includes("Analytics") && ANALYTICS_GROUP.items?.map((item) => (
             <Link
-              key={href}
-              href={href}
+              key={item.href}
+              href={item.href!}
               onClick={() => setSidebarOpen(false)}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all group ${
-                active
+              className={`flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all group ml-4 ${
+                isActive(item.href!)
                   ? "bg-white text-foreground shadow-lg"
                   : "text-white/58 hover:text-white hover:bg-white/10"
               }`}
             >
-              <Icon className="w-4 h-4 flex-shrink-0" />
-              {label}
-              {active && <ChevronRight className="w-3.5 h-3.5 ml-auto" />}
+              {item.icon && <item.icon className="w-4 h-4 flex-shrink-0" />}
+              {item.label}
+              {isActive(item.href!) && <ChevronRight className="w-3.5 h-3.5 ml-auto" />}
             </Link>
-          );
-        })}
+          ))}
+        </div>
+
+        {/* Optimization Group */}
+        <div className="pt-2">
+          <button
+            onClick={() => toggleGroup("Optimization")}
+            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-white/70 hover:text-white hover:bg-white/10 transition-all w-full"
+          >
+            <FlaskConical className="w-4 h-4 flex-shrink-0" />
+            Optimization
+            <ChevronDown className={`w-3.5 h-3.5 ml-auto transition-transform ${expandedGroups.includes("Optimization") ? "rotate-180" : ""}`} />
+          </button>
+          {expandedGroups.includes("Optimization") && OPTIMIZATION_GROUP.items?.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href!}
+              onClick={() => setSidebarOpen(false)}
+              className={`flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all group ml-4 ${
+                isActive(item.href!)
+                  ? "bg-white text-foreground shadow-lg"
+                  : "text-white/58 hover:text-white hover:bg-white/10"
+              }`}
+            >
+              {item.icon && <item.icon className="w-4 h-4 flex-shrink-0" />}
+              {item.label}
+              {isActive(item.href!) && <ChevronRight className="w-3.5 h-3.5 ml-auto" />}
+            </Link>
+          ))}
+        </div>
+
+        {/* Customers Group */}
+        <div className="pt-2">
+          <button
+            onClick={() => toggleGroup("Customers")}
+            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-white/70 hover:text-white hover:bg-white/10 transition-all w-full"
+          >
+            <Users className="w-4 h-4 flex-shrink-0" />
+            Customers
+            <ChevronDown className={`w-3.5 h-3.5 ml-auto transition-transform ${expandedGroups.includes("Customers") ? "rotate-180" : ""}`} />
+          </button>
+          {expandedGroups.includes("Customers") && CUSTOMERS_GROUP.items?.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href!}
+              onClick={() => setSidebarOpen(false)}
+              className={`flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all group ml-4 ${
+                isActive(item.href!)
+                  ? "bg-white text-foreground shadow-lg"
+                  : "text-white/58 hover:text-white hover:bg-white/10"
+              }`}
+            >
+              {item.icon && <item.icon className="w-4 h-4 flex-shrink-0" />}
+              {item.label}
+              {isActive(item.href!) && <ChevronRight className="w-3.5 h-3.5 ml-auto" />}
+            </Link>
+          ))}
+        </div>
+
+        {/* Marketing Group */}
+        <div className="pt-2">
+          <button
+            onClick={() => toggleGroup("Marketing")}
+            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-white/70 hover:text-white hover:bg-white/10 transition-all w-full"
+          >
+            <Megaphone className="w-4 h-4 flex-shrink-0" />
+            Marketing
+            <ChevronDown className={`w-3.5 h-3.5 ml-auto transition-transform ${expandedGroups.includes("Marketing") ? "rotate-180" : ""}`} />
+          </button>
+          {expandedGroups.includes("Marketing") && MARKETING_GROUP.items?.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href!}
+              onClick={() => setSidebarOpen(false)}
+              className={`flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all group ml-4 ${
+                isActive(item.href!)
+                  ? "bg-white text-foreground shadow-lg"
+                  : "text-white/58 hover:text-white hover:bg-white/10"
+              }`}
+            >
+              {item.icon && <item.icon className="w-4 h-4 flex-shrink-0" />}
+              {item.label}
+              {isActive(item.href!) && <ChevronRight className="w-3.5 h-3.5 ml-auto" />}
+            </Link>
+          ))}
+        </div>
+
+        {/* AI Group */}
+        <div className="pt-2">
+          <button
+            onClick={() => toggleGroup("AI")}
+            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-white/70 hover:text-white hover:bg-white/10 transition-all w-full"
+          >
+            <Bot className="w-4 h-4 flex-shrink-0" />
+            AI
+            <ChevronDown className={`w-3.5 h-3.5 ml-auto transition-transform ${expandedGroups.includes("AI") ? "rotate-180" : ""}`} />
+          </button>
+          {expandedGroups.includes("AI") && AI_GROUP.items?.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href!}
+              onClick={() => setSidebarOpen(false)}
+              className={`flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all group ml-4 ${
+                isActive(item.href!)
+                  ? "bg-white text-foreground shadow-lg"
+                  : "text-white/58 hover:text-white hover:bg-white/10"
+              }`}
+            >
+              {item.icon && <item.icon className="w-4 h-4 flex-shrink-0" />}
+              {item.label}
+              {isActive(item.href!) && <ChevronRight className="w-3.5 h-3.5 ml-auto" />}
+            </Link>
+          ))}
+        </div>
+
+        {/* Content Group */}
+        <div className="pt-2">
+          <button
+            onClick={() => toggleGroup("Content")}
+            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-white/70 hover:text-white hover:bg-white/10 transition-all w-full"
+          >
+            <LayoutTemplate className="w-4 h-4 flex-shrink-0" />
+            Content
+            <ChevronDown className={`w-3.5 h-3.5 ml-auto transition-transform ${expandedGroups.includes("Content") ? "rotate-180" : ""}`} />
+          </button>
+          {expandedGroups.includes("Content") && CONTENT_GROUP.items?.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href!}
+              onClick={() => setSidebarOpen(false)}
+              className={`flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all group ml-4 ${
+                isActive(item.href!)
+                  ? "bg-white text-foreground shadow-lg"
+                  : "text-white/58 hover:text-white hover:bg-white/10"
+              }`}
+            >
+              {item.icon && <item.icon className="w-4 h-4 flex-shrink-0" />}
+              {item.label}
+              {isActive(item.href!) && <ChevronRight className="w-3.5 h-3.5 ml-auto" />}
+            </Link>
+          ))}
+        </div>
+
+        {/* System Group */}
+        <div className="pt-2">
+          <button
+            onClick={() => toggleGroup("System")}
+            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-white/70 hover:text-white hover:bg-white/10 transition-all w-full"
+          >
+            <Cpu className="w-4 h-4 flex-shrink-0" />
+            System
+            <ChevronDown className={`w-3.5 h-3.5 ml-auto transition-transform ${expandedGroups.includes("System") ? "rotate-180" : ""}`} />
+          </button>
+          {expandedGroups.includes("System") && SYSTEM_GROUP.items?.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href!}
+              onClick={() => setSidebarOpen(false)}
+              className={`flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-all group ml-4 ${
+                isActive(item.href!)
+                  ? "bg-white text-foreground shadow-lg"
+                  : "text-white/58 hover:text-white hover:bg-white/10"
+              }`}
+            >
+              {item.icon && <item.icon className="w-4 h-4 flex-shrink-0" />}
+              {item.label}
+              {isActive(item.href!) && <ChevronRight className="w-3.5 h-3.5 ml-auto" />}
+            </Link>
+          ))}
+        </div>
 
         <div className="pt-4 border-t border-white/10 mt-4">
           <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-3 mb-3">
