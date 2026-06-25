@@ -48,7 +48,7 @@ June 13, 2026
 
 5. ❌ **No external service tests**
    - No Stripe tests
-   - No OpenAI tests
+   - No Gemini tests
    - No email service tests
    - Risk: External service failures
 

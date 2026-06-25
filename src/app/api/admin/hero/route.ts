@@ -3,19 +3,46 @@ import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth-api";
 import { z } from "zod";
 
+const emptyToUndefined = (value: unknown) =>
+  typeof value === "string" && value.trim() === "" ? undefined : value;
+
+const optionalAbsoluteUrl = (message: string) =>
+  z.preprocess(emptyToUndefined, z.string().url(message).optional());
+
+const optionalNullableAbsoluteUrl = (message: string) =>
+  z.preprocess(emptyToUndefined, z.string().url(message).optional().nullable());
+
+const optionalHeroLink = (message: string) =>
+  z.preprocess(
+    emptyToUndefined,
+    z
+      .string()
+      .refine((value) => {
+        if (value.startsWith("/") && !value.startsWith("//")) return true;
+
+        try {
+          const url = new URL(value);
+          return url.protocol === "http:" || url.protocol === "https:";
+        } catch {
+          return false;
+        }
+      }, message)
+      .optional()
+  );
+
 const heroBannerSchema = z.object({
   badgeText: z.string().optional(),
   title: z.string().min(1, "Title is required"),
   highlightedText: z.string().optional(),
   subtitle: z.string().optional(),
   description: z.string().optional(),
-  desktopImageUrl: z.string().url("Invalid desktop image URL").optional(),
-  mobileImageUrl: z.string().url("Invalid mobile image URL").optional().nullable(),
-  videoUrl: z.string().url("Invalid video URL").optional(),
+  desktopImageUrl: optionalAbsoluteUrl("Invalid desktop image URL"),
+  mobileImageUrl: optionalNullableAbsoluteUrl("Invalid mobile image URL"),
+  videoUrl: optionalAbsoluteUrl("Invalid video URL"),
   primaryButtonText: z.string().optional(),
-  primaryButtonLink: z.string().url("Invalid primary button link").optional(),
+  primaryButtonLink: optionalHeroLink("Invalid primary button link"),
   secondaryButtonText: z.string().optional(),
-  secondaryButtonLink: z.string().url("Invalid secondary button link").optional(),
+  secondaryButtonLink: optionalHeroLink("Invalid secondary button link"),
   backgroundColor: z.string().optional(),
   backgroundOverlayColor: z.string().optional(),
   overlayOpacity: z.number().min(0).max(1).default(0.5),

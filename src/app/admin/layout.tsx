@@ -9,7 +9,7 @@ import {
   Tag, FolderOpen, Menu, X, LogOut, ChevronRight,
   Home, Store, Truck, FileText, Upload, Bell, Settings, Image,
   BarChart3, LineChart, Megaphone, FlaskConical, ChevronDown,
-  Bot, FileQuestion, AlertCircle, Cpu, LayoutTemplate, Image as ImageIcon, BellRing, Layers, Award
+  Bot, FileQuestion, AlertCircle, Cpu, LayoutTemplate, Image as ImageIcon, BellRing, Layers, Award, GitBranch
 } from "lucide-react";
 import { useAuthStore } from "@/store/index";
 
@@ -72,7 +72,14 @@ const AI_GROUP: NavItem = {
   icon: Bot,
   label: "AI",
   items: [
-    { icon: Bot, label: "AI Tools", href: "/admin/ai" },
+    { icon: Bot, label: "AI Engineer", href: "/admin/ai" },
+    { icon: Package, label: "AI Product Manager", href: "/admin/ai/products" },
+    { icon: Bot, label: "AI Chat Engineer", href: "/admin/ai/chat" },
+    { icon: AlertCircle, label: "Error Center", href: "/admin/ai/errors" },
+    { icon: FileQuestion, label: "Project Auditor", href: "/admin/ai/audit" },
+    { icon: Cpu, label: "Health Monitor", href: "/admin/ai/health" },
+    { icon: GitBranch, label: "Deployments", href: "/admin/ai/deployments" },
+    { icon: Settings, label: "AI Settings", href: "/admin/settings/ai" },
   ]
 };
 

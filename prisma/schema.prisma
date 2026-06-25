@@ -25,6 +25,7 @@ model User {
   addresses               Address[]
   AiConversation          AiConversation[]
   AiEvent                 AiEvent[]
+  AiProductGeneration     AiProductGeneration[]
   analyticsEvents         AnalyticsEvent[]
   analyticsSessions       AnalyticsSession[]
   AuditLog                AuditLog[]
@@ -119,6 +120,7 @@ model Product {
   updatedAt          DateTime               @updatedAt
   AiEvent            AiEvent[]
   AiProductEmbedding AiProductEmbedding?
+  AiProductGeneration AiProductGeneration[]
   analyticsEvents    AnalyticsEvent[]
   cartItems          CartItem[]
   dynamicPrice       DynamicPrice?
@@ -129,6 +131,8 @@ model Product {
   variants           ProductVariant[]
   recentlyViewed     RecentlyViewed[]
   reviews            Review[]
+  ProductPublishingHistory ProductPublishingHistory[]
+  ProductRevision    ProductRevision[]
   stockAlertLogs     StockAlertLog[]
   wishlistItems      WishlistItem[]
   eventTracking      EventTracking[]
@@ -735,6 +739,7 @@ model Organization {
   AiConversation          AiConversation[]
   AiEvent                 AiEvent[]
   AiProductEmbedding      AiProductEmbedding[]
+  AiProductGeneration     AiProductGeneration[]
   AnalyticsMetric         AnalyticsMetric[]
   AuditLog                AuditLog[]
   BICustomerSegment       BICustomerSegment[]
@@ -760,6 +765,8 @@ model Organization {
   PersonalizedOffer       PersonalizedOffer[]
   PredictiveModel         PredictiveModel[]
   Product                 Product[]
+  ProductPublishingHistory ProductPublishingHistory[]
+  ProductRevision         ProductRevision[]
   ProductBundle           ProductBundle[]
   RetentionCampaign       RetentionCampaign[]
   RevenueAction           RevenueAction[]
@@ -940,6 +947,84 @@ model AiProductEmbedding {
 
   @@index([contentHash])
   @@index([organizationId])
+}
+
+model AiProductGeneration {
+  id                 String                    @id @default(uuid()) @db.Uuid
+  organizationId     String                    @db.Uuid
+  productId          String?                   @db.Uuid
+  createdById        String?                   @db.Uuid
+  kind               AIProductGenerationKind   @default(CREATE)
+  status             AIProductGenerationStatus @default(DRAFT)
+  workflow           AIProductPublishWorkflow  @default(DRAFT)
+  input              Json                      @default("{}")
+  output             Json                      @default("{}")
+  imageAnalysis      Json                      @default("[]")
+  translations       Json                      @default("{}")
+  seo                Json                      @default("{}")
+  qualityScore       Int                       @default(0)
+  qualityBreakdown   Json                      @default("{}")
+  suggestions        Json                      @default("[]")
+  selectedCategoryId String?                   @db.Uuid
+  selectedBrand      String?
+  productType        String?
+  revisionNote       String?
+  publishedAt        DateTime?
+  createdAt          DateTime                  @default(now())
+  updatedAt          DateTime                  @updatedAt
+  Organization       Organization              @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  Product            Product?                  @relation(fields: [productId], references: [id], onDelete: SetNull)
+  User               User?                     @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  revisions          ProductRevision[]
+  publishingHistory  ProductPublishingHistory[]
+
+  @@index([organizationId, status, createdAt])
+  @@index([productId])
+  @@index([createdById])
+  @@index([workflow])
+}
+
+model ProductRevision {
+  id             String                    @id @default(uuid()) @db.Uuid
+  organizationId String                    @db.Uuid
+  productId      String                    @db.Uuid
+  generationId   String?                   @db.Uuid
+  createdById    String?                   @db.Uuid
+  source         ProductRevisionSource     @default(AI_PRODUCT_MANAGER)
+  version        Int
+  title          String
+  snapshot       Json
+  note           String?
+  createdAt      DateTime                  @default(now())
+  Organization   Organization              @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  Product        Product                   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  generation     AiProductGeneration?      @relation(fields: [generationId], references: [id], onDelete: SetNull)
+
+  @@unique([productId, version])
+  @@index([organizationId, createdAt])
+  @@index([generationId])
+}
+
+model ProductPublishingHistory {
+  id             String                    @id @default(uuid()) @db.Uuid
+  organizationId String                    @db.Uuid
+  productId      String                    @db.Uuid
+  generationId   String?                   @db.Uuid
+  actorId        String?                   @db.Uuid
+  workflow       AIProductPublishWorkflow
+  action         ProductPublishingAction
+  fromStatus     String?
+  toStatus       String?
+  metadata       Json?
+  createdAt      DateTime                  @default(now())
+  Organization   Organization              @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  Product        Product                   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  generation     AiProductGeneration?      @relation(fields: [generationId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, createdAt])
+  @@index([productId, createdAt])
+  @@index([generationId])
+  @@index([workflow])
 }
 
 model AutomationLog {
@@ -2061,6 +2146,43 @@ enum AiMessageRole {
   USER
   ASSISTANT
   SYSTEM
+}
+
+enum AIProductGenerationKind {
+  CREATE
+  OPTIMIZE_EXISTING
+  IMAGE_ANALYSIS
+  BULK_IMPORT
+}
+
+enum AIProductGenerationStatus {
+  DRAFT
+  READY
+  REVIEW_REQUIRED
+  PUBLISHED
+  FAILED
+  ARCHIVED
+}
+
+enum AIProductPublishWorkflow {
+  DRAFT
+  REVIEW_REQUIRED
+  AUTO_PUBLISH
+}
+
+enum ProductRevisionSource {
+  AI_PRODUCT_MANAGER
+  MANUAL_EDIT
+  ROLLBACK
+}
+
+enum ProductPublishingAction {
+  DRAFT_CREATED
+  REVIEW_REQUESTED
+  AUTO_PUBLISHED
+  MANUALLY_PUBLISHED
+  UPDATED
+  ROLLED_BACK
 }
 
 enum NotificationChannel {

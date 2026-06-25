@@ -4,36 +4,59 @@ import type { AuthSession } from "@/types";
 export const DEFAULT_ORGANIZATION_SLUG =
   process.env.DEFAULT_ORGANIZATION_SLUG || "nexmart";
 
+export const FALLBACK_ORGANIZATION_ID =
+  process.env.DEFAULT_ORGANIZATION_ID || "default";
+
+const PUBLIC_ORGANIZATION_LOOKUP_TIMEOUT_MS = Number(
+  process.env.PUBLIC_ORGANIZATION_LOOKUP_TIMEOUT_MS || 2500
+);
+
+function withTimeout<T>(operation: Promise<T>, timeoutMs: number): Promise<T | null> {
+  let timeout: NodeJS.Timeout;
+
+  return new Promise((resolve, reject) => {
+    timeout = setTimeout(() => resolve(null), timeoutMs);
+    operation.then(resolve, reject).finally(() => clearTimeout(timeout));
+  });
+}
+
+async function findDefaultOrganizationId(): Promise<string | null> {
+  // Try to find the default organization by slug
+  const organization = await prisma.organization.findUnique({
+    where: { slug: DEFAULT_ORGANIZATION_SLUG },
+    select: { id: true },
+  });
+
+  if (organization) {
+    return organization.id;
+  }
+
+  // Fallback to any existing organization
+  const fallbackOrganization = await prisma.organization.findFirst({
+    select: { id: true },
+    orderBy: { createdAt: "asc" },
+  });
+
+  if (fallbackOrganization) {
+    console.warn(`[TENANT] Using fallback organization: ${fallbackOrganization.id} (default slug '${DEFAULT_ORGANIZATION_SLUG}' not found)`);
+    return fallbackOrganization.id;
+  }
+
+  console.error("[TENANT] No organization found in database");
+  console.error("[TENANT] DEFAULT_ORGANIZATION_SLUG:", DEFAULT_ORGANIZATION_SLUG);
+  console.error("[TENANT] Action: Run 'npm run db:seed' to populate the database");
+
+  return null;
+}
+
 /**
  * Get the default organization ID
  * Throws error if no organization exists - requires database seeding
  */
 export async function getDefaultOrganizationId(): Promise<string> {
   try {
-    // Try to find the default organization by slug
-    const organization = await prisma.organization.findUnique({
-      where: { slug: DEFAULT_ORGANIZATION_SLUG },
-      select: { id: true },
-    });
-
-    if (organization) {
-      return organization.id;
-    }
-
-    // Fallback to any existing organization
-    const fallbackOrganization = await prisma.organization.findFirst({
-      select: { id: true },
-      orderBy: { createdAt: "asc" },
-    });
-
-    if (fallbackOrganization) {
-      console.warn(`[TENANT] Using fallback organization: ${fallbackOrganization.id} (default slug '${DEFAULT_ORGANIZATION_SLUG}' not found)`);
-      return fallbackOrganization.id;
-    }
-
-    console.error("[TENANT] No organization found in database");
-    console.error("[TENANT] DEFAULT_ORGANIZATION_SLUG:", DEFAULT_ORGANIZATION_SLUG);
-    console.error("[TENANT] Action: Run 'npm run db:seed' to populate the database");
+    const organizationId = await findDefaultOrganizationId();
+    if (organizationId) return organizationId;
 
     throw new Error(
       `No organization found. Run "npm run db:seed" or create an organization before loading tenant-scoped pages.`
@@ -44,6 +67,31 @@ export async function getDefaultOrganizationId(): Promise<string> {
     throw new Error(
       `Failed to get organization: ${error instanceof Error ? error.message : 'Unknown error'}`
     );
+  }
+}
+
+/**
+ * Resolve the default organization for public/read-only pages.
+ * Returns null when the database is unavailable so callers can render static defaults.
+ */
+export async function getOptionalDefaultOrganizationId(): Promise<string | null> {
+  try {
+    const organizationId = await withTimeout(
+      findDefaultOrganizationId(),
+      PUBLIC_ORGANIZATION_LOOKUP_TIMEOUT_MS
+    );
+
+    if (!organizationId) {
+      console.warn("[TENANT] Default organization unavailable; using public fallback data.");
+    }
+
+    return organizationId;
+  } catch (error) {
+    console.warn(
+      "[TENANT] Database unavailable while resolving default organization; using public fallback data.",
+      error instanceof Error ? error.message : error
+    );
+    return null;
   }
 }
 

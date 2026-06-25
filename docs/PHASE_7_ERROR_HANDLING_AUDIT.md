@@ -561,7 +561,7 @@ export async function GET() {
     health.checks.redis = { status: 'unhealthy', error: (error as Error).message };
   }
 
-  // External services (Stripe, OpenAI, etc.)
+  // External services (Stripe, Gemini, etc.)
   // Add checks as needed
 
   const statusCode = health.status === 'healthy' ? 200 : 503;

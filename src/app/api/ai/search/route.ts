@@ -7,7 +7,7 @@ import { getSession } from "@/lib/auth-api";
 import { rateLimit } from "@/lib/api";
 import { getDefaultOrganizationId } from "@/lib/tenant";
 import { getCache, setCache } from "@/lib/redis";
-import { createJson } from "@/lib/ai/openai";
+import { createJson } from "@/lib/ai/gemini";
 import { SEARCH_INTENT_PROMPT } from "@/lib/ai/prompts";
 import { semanticProductSearch } from "@/lib/ai/commerce";
 import type { SearchIntent } from "@/lib/ai/types";

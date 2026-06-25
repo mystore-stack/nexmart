@@ -1,5 +1,22 @@
 import { z } from "zod";
 
+const assetUrlSchema = z
+  .string()
+  .refine(
+    (value) => {
+      if (value === "") return true;
+      if (/^\/(?!\/).+/.test(value)) return true;
+
+      try {
+        new URL(value);
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    { message: "Invalid URL" },
+  );
+
 const socialLinkSchema = z.object({
   platform: z.string().min(1),
   url: z.string().url(),
@@ -9,9 +26,9 @@ const socialLinkSchema = z.object({
 export const siteSettingsSchema = z.object({
   storeName: z.string().min(1, "Store name is required"),
   storeTagline: z.string().optional().nullable(),
-  logoUrl: z.string().url().optional().nullable().or(z.literal("")),
-  faviconUrl: z.string().optional().nullable().or(z.literal("")),
-  ogImageUrl: z.string().url().optional().nullable().or(z.literal("")),
+  logoUrl: assetUrlSchema.optional().nullable(),
+  faviconUrl: assetUrlSchema.optional().nullable(),
+  ogImageUrl: assetUrlSchema.optional().nullable(),
   email: z.string().email().optional().nullable().or(z.literal("")),
   phone: z.string().optional().nullable(),
   whatsapp: z.string().optional().nullable(),

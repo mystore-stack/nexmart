@@ -7,7 +7,7 @@ import { getSession } from "@/lib/auth-api";
 import { rateLimit } from "@/lib/api";
 import { getDefaultOrganizationId } from "@/lib/tenant";
 import { COMMERCE_ASSISTANT_PROMPT } from "@/lib/ai/prompts";
-import { createStreamingText, moderateText } from "@/lib/ai/openai";
+import { createStreamingText, moderateText } from "@/lib/ai/gemini";
 import type { AiChatMessage } from "@/lib/ai/types";
 import { AI_CACHE_TTL, getAiCache, setAiCache } from "@/lib/ai/cache";
 import { assertAiRequestAllowed, clientIp } from "@/lib/ai/security";
@@ -149,10 +149,10 @@ export async function POST(req: NextRequest) {
       ? await getAiCache<string>("chat_faq", { locale: body.locale, message: body.message.trim().toLowerCase() })
       : null;
 
-    const openAiStream = cachedReply
-      ? textToOpenAiSseStream(cachedReply)
+    const providerStream = cachedReply
+      ? textToProviderSseStream(cachedReply)
       : await createStreamingText(COMMERCE_ASSISTANT_PROMPT, messages);
-    const { readable, responseText } = openAiSseToUiStream(openAiStream, conversation.id);
+    const { readable, responseText } = providerSseToUiStream(providerStream, conversation.id);
 
     responseText.then(async (content) => {
       if (!content.trim()) return;
@@ -194,7 +194,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
-function textToOpenAiSseStream(text: string) {
+function textToProviderSseStream(text: string) {
   const encoder = new TextEncoder();
   return new ReadableStream<Uint8Array>({
     start(controller) {
@@ -287,7 +287,7 @@ async function buildCommerceContext(input: {
   return context.join("\n");
 }
 
-function openAiSseToUiStream(openAiStream: ReadableStream<Uint8Array>, conversationId: string) {
+function providerSseToUiStream(providerStream: ReadableStream<Uint8Array>, conversationId: string) {
   const decoder = new TextDecoder();
   const encoder = new TextEncoder();
   let fullText = "";
@@ -299,7 +299,7 @@ function openAiSseToUiStream(openAiStream: ReadableStream<Uint8Array>, conversat
   const readable = new ReadableStream<Uint8Array>({
     async start(controller) {
       controller.enqueue(encoder.encode(`event: meta\ndata: ${JSON.stringify({ conversationId })}\n\n`));
-      const reader = openAiStream.getReader();
+      const reader = providerStream.getReader();
       let buffer = "";
 
       try {

@@ -137,7 +137,7 @@ June 13, 2026
     - Risk: Known vulnerabilities in dependencies
 
 23. ❌ **No API key rotation**
-    - OpenAI, Stripe, Cloudinary keys static
+    - Gemini, Stripe, Cloudinary keys static
     - Risk: Compromised keys
 
 24. ❌ **No webhook signature verification**

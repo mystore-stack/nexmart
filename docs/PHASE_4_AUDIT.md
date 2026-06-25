@@ -6,7 +6,7 @@ June 13, 2026
 ## Existing Implementation
 
 ### AI Commerce Library (`src/lib/ai/commerce.ts`)
-- ✅ Product embedding generation using OpenAI
+- ✅ Product embedding generation using Gemini
 - ✅ Semantic product search using cosine similarity
 - ✅ Recommendation candidates algorithm
 - ✅ Behavior scoring based on user events

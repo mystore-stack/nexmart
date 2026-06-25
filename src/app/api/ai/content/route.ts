@@ -3,7 +3,7 @@ import { z } from "zod";
 import { requireAdmin } from "@/lib/auth-api";
 import { rateLimit } from "@/lib/api";
 import { CONTENT_GENERATION_PROMPT } from "@/lib/ai/prompts";
-import { createJson, moderateText } from "@/lib/ai/openai";
+import { createJson, moderateText } from "@/lib/ai/gemini";
 import type { AiGeneratedContent } from "@/lib/ai/types";
 import { assertAiRequestAllowed } from "@/lib/ai/security";
 

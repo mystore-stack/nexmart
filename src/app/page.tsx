@@ -17,25 +17,44 @@ import { prisma } from "@/lib/prisma";
 
 export const revalidate = 300;
 
+const PUBLIC_METADATA_LOOKUP_TIMEOUT_MS = Number(
+  process.env.PUBLIC_METADATA_LOOKUP_TIMEOUT_MS || 1500
+);
+
+function withMetadataTimeout<T>(operation: Promise<T>, timeoutMs: number): Promise<T | null> {
+  let timeout: NodeJS.Timeout;
+
+  return new Promise((resolve, reject) => {
+    timeout = setTimeout(() => resolve(null), timeoutMs);
+    operation.then(resolve, reject).finally(() => clearTimeout(timeout));
+  });
+}
+
 export async function generateMetadata(): Promise<Metadata> {
   try {
     const now = new Date();
-    const activeBanner = await prisma.heroBanner.findFirst({
-      where: {
-        isActive: true,
-        AND: [
-          { OR: [{ publishDate: null }, { publishDate: { lte: now } }] },
-          { OR: [{ expireDate: null }, { expireDate: { gte: now } }] },
-        ],
-      },
-      orderBy: [{ displayOrder: "asc" }, { createdAt: "desc" }],
-    });
+    const activeBanner = await withMetadataTimeout(
+      prisma.heroBanner.findFirst({
+        where: {
+          isActive: true,
+          AND: [
+            { OR: [{ publishDate: null }, { publishDate: { lte: now } }] },
+            { OR: [{ expireDate: null }, { expireDate: { gte: now } }] },
+          ],
+        },
+        orderBy: [{ displayOrder: "asc" }, { createdAt: "desc" }],
+      }),
+      PUBLIC_METADATA_LOOKUP_TIMEOUT_MS
+    );
 
     if (activeBanner?.seoTitle && activeBanner.seoDescription) {
       return { title: activeBanner.seoTitle, description: activeBanner.seoDescription };
     }
   } catch (error) {
-    console.error("Failed to fetch hero banner for metadata:", error);
+    console.warn(
+      "Failed to fetch hero banner for metadata; using fallback metadata.",
+      error instanceof Error ? error.message : error
+    );
   }
 
   return {

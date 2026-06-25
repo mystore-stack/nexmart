@@ -30,16 +30,35 @@ Set these in Vercel → Project Settings → Environment Variables:
 
 ## 4) Deploy automatique (GitHub → Vercel)
 
-Repo GitHub : https://github.com/mystore-stack/nexmart-ma1
+**Déjà configuré** — le repo GitHub est connecté au projet Vercel **nexmart** :
 
-1. Poussez le code (compte **mystore-stack**) :
-   ```powershell
-   .\scripts\push-github.ps1
-   ```
-2. Ajoutez le secret GitHub **VERCEL_TOKEN** :
-   - Créez un token : https://vercel.com/account/tokens
-   - Repo → Settings → Secrets → Actions → `VERCEL_TOKEN`
-3. Chaque push sur `main` déclenche `.github/workflows/deploy.yml`
+| | |
+|---|---|
+| Repo | https://github.com/mystore-stack/nexmart |
+| Projet Vercel | https://vercel.com/you-store-s-projects/nexmart |
+| URL production | https://nexmart-ashy.vercel.app |
+| Branche auto-deploy | `main` |
 
-Alternative : Vercel → Project **nexmart-ma** → Settings → Git → connecter `mystore-stack/nexmart-ma1`.
+### Déclencher un déploiement
+
+Chaque `git push` sur `main` déclenche automatiquement un build + deploy sur Vercel :
+
+```powershell
+git add .
+git commit -m "votre message"
+git push origin main
+```
+
+Suivez le déploiement dans le [dashboard Vercel](https://vercel.com/you-store-s-projects/nexmart) ou dans l’onglet **Deployments** du repo GitHub.
+
+### Déploiement manuel (CLI)
+
+```powershell
+npx vercel link --project nexmart --yes
+npx vercel deploy --prod
+```
+
+### CI GitHub Actions
+
+`.github/workflows/deploy.yml` vérifie que le build passe en CI. Le déploiement réel est géré par l’intégration Git Vercel (pas besoin de `VERCEL_TOKEN` dans GitHub Secrets).
 

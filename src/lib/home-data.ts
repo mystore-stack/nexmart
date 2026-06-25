@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { getDefaultOrganizationId } from "@/lib/tenant";
+import { getOptionalDefaultOrganizationId } from "@/lib/tenant";
 import { CACHE_KEYS, CACHE_TTL, getCache, setCache } from "@/lib/redis";
 import { getCMSCache, setCMSCache } from "@/lib/cms/cache";
 import type { HomepageConfigSchema } from "@/lib/cms/types";
@@ -111,7 +111,8 @@ async function fetchHomepageSections(organizationId: string): Promise<{
 
 export async function getHomePageData(): Promise<HomePageData> {
   try {
-    const organizationId = await getDefaultOrganizationId();
+    const organizationId = await getOptionalDefaultOrganizationId();
+    if (!organizationId) return emptyHome;
 
     const productCacheKey = `${CACHE_KEYS.featured()}:home:${organizationId}`;
     const cachedProducts = await getCache<{ featured: unknown; trending: unknown; categories: unknown; flashSale: unknown }>(productCacheKey);

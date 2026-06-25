@@ -1,14 +1,23 @@
-name: Deploy to Vercel
+# Vercel auto-deploys on every push to main via Git integration
+# (Project: nexmart → https://nexmart-ashy.vercel.app)
+# Dashboard: https://vercel.com/you-store-s-projects/nexmart/settings/git
+#
+# This workflow only verifies the build in CI — deployment is handled by Vercel.
+
+name: CI
 
 on:
   push:
     branches:
       - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
-  deploy:
+  build:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -16,38 +25,18 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
+          node-version: "20"
+          cache: "npm"
 
       - name: Install dependencies
         run: npm install --legacy-peer-deps
 
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
       - name: Build project
         run: npm run build
-
-      - name: Install Vercel CLI
-        run: npm install --global vercel@latest
-
-      - name: Pull Vercel Environment Information
-        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
-
-      - name: Build Project Artifacts
-        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
-
-      - name: Deploy to Vercel
-        id: deploy
-        run: |
-          url=$(vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }})
-          echo "url=$url" >> $GITHUB_OUTPUT
-
-      - name: Comment deployment URL
-        if: github.event_name == 'push'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: '🚀 Deployed to Vercel: ${{ steps.deploy.outputs.url }}'
-            })
+        env:
+          DATABASE_URL: "postgresql://placeholder:placeholder@localhost:5432/placeholder"
+          NEXTAUTH_SECRET: "ci-build-placeholder-secret-32chars"
+          NEXTAUTH_URL: "http://localhost:3000"

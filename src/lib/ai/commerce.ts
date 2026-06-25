@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { getDefaultOrganizationId } from "@/lib/tenant";
-import { createEmbedding, cosineSimilarity } from "./openai";
+import { createEmbedding, cosineSimilarity } from "./gemini";
 import type { Prisma } from "@prisma/client";
 
 export function productSearchText(product: {
@@ -44,7 +44,7 @@ export async function upsertProductEmbedding(productId: string, organizationId?:
   return prisma.aiProductEmbedding.upsert({
     where: { productId },
     update: {
-      model: process.env.OPENAI_EMBEDDING_MODEL || "text-embedding-3-small",
+      model: process.env.GEMINI_EMBEDDING_MODEL || "text-embedding-004",
       contentHash,
       searchableText,
       embedding: embedding as Prisma.InputJsonValue,
@@ -52,7 +52,7 @@ export async function upsertProductEmbedding(productId: string, organizationId?:
     create: {
       organizationId: orgId,
       productId,
-      model: process.env.OPENAI_EMBEDDING_MODEL || "text-embedding-3-small",
+      model: process.env.GEMINI_EMBEDDING_MODEL || "text-embedding-004",
       contentHash,
       searchableText,
       embedding: embedding as Prisma.InputJsonValue,

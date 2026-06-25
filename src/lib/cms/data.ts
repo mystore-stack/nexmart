@@ -1,6 +1,10 @@
 import { unstable_cache } from "next/cache";
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { getDefaultOrganizationId } from "@/lib/tenant";
+import {
+  FALLBACK_ORGANIZATION_ID,
+  getOptionalDefaultOrganizationId,
+} from "@/lib/tenant";
 import { CMS_TAGS } from "@/lib/cms/revalidate";
 import {
   createDefaultSiteSettings,
@@ -28,6 +32,14 @@ export interface SiteConfigBundle {
   announcement: Awaited<ReturnType<typeof getAnnouncementBar>>;
 }
 
+function createFallbackSiteSettings(): SiteSettingsData {
+  return createDefaultSiteSettings(FALLBACK_ORGANIZATION_ID);
+}
+
+async function resolvePublicOrganizationId(organizationId?: string): Promise<string | null> {
+  return organizationId ?? (await getOptionalDefaultOrganizationId());
+}
+
 // ─── Site Settings ───────────────────────────────────────────────────
 
 async function fetchSiteSettingsFromDb(organizationId: string): Promise<SiteSettingsData> {
@@ -48,7 +60,7 @@ async function fetchSiteSettingsFromDb(organizationId: string): Promise<SiteSett
         address: defaults.address,
         businessHours: defaults.businessHours,
         supportEmail: defaults.supportEmail,
-        socialLinks: defaults.socialLinks,
+        socialLinks: defaults.socialLinks as unknown as Prisma.InputJsonValue,
         seoTitle: defaults.seoTitle,
         seoDescription: defaults.seoDescription,
         seoKeywords: defaults.seoKeywords,
@@ -73,19 +85,32 @@ async function fetchSiteSettingsFromDb(organizationId: string): Promise<SiteSett
 }
 
 export async function getSiteSettings(organizationId?: string): Promise<SiteSettingsData> {
-  const orgId = organizationId ?? (await getDefaultOrganizationId());
+  const orgId = await resolvePublicOrganizationId(organizationId);
+  if (!orgId) return createFallbackSiteSettings();
+
   const cached = unstable_cache(
     () => fetchSiteSettingsFromDb(orgId),
     [`site-settings-${orgId}`],
     { tags: [CMS_TAGS.settings(orgId)], revalidate: 60 }
   );
-  return cached();
+
+  try {
+    return await cached();
+  } catch (error) {
+    console.warn(
+      "[CMS] Failed to load site settings; using fallback defaults.",
+      error instanceof Error ? error.message : error
+    );
+    return createFallbackSiteSettings();
+  }
 }
 
 // ─── Footer ──────────────────────────────────────────────────────────
 
 export async function getFooterData(organizationId?: string): Promise<FooterConfigSchema | null> {
-  const orgId = organizationId ?? (await getDefaultOrganizationId());
+  const orgId = await resolvePublicOrganizationId(organizationId);
+  if (!orgId) return null;
+
   const cached = unstable_cache(
     async () => {
       const config = await prisma.footerConfig.findFirst({
@@ -107,7 +132,16 @@ export async function getFooterData(organizationId?: string): Promise<FooterConf
     [`footer-${orgId}`],
     { tags: [CMS_TAGS.footer(orgId)], revalidate: 60 }
   );
-  return cached();
+
+  try {
+    return await cached();
+  } catch (error) {
+    console.warn(
+      "[CMS] Failed to load footer config; rendering without CMS footer data.",
+      error instanceof Error ? error.message : error
+    );
+    return null;
+  }
 }
 
 // ─── Navigation ──────────────────────────────────────────────────────
@@ -152,7 +186,9 @@ export async function getNavigationMenu(
   location: "HEADER" | "FOOTER" | "MOBILE" = "HEADER",
   organizationId?: string
 ): Promise<NavigationItemData[]> {
-  const orgId = organizationId ?? (await getDefaultOrganizationId());
+  const orgId = await resolvePublicOrganizationId(organizationId);
+  if (!orgId) return [];
+
   const cached = unstable_cache(
     async () => {
       const menu = await prisma.navigationMenu.findFirst({
@@ -165,28 +201,47 @@ export async function getNavigationMenu(
     [`navigation-${location}-${orgId}`],
     { tags: [CMS_TAGS.navigation(orgId)], revalidate: 60 }
   );
-  return cached();
+
+  try {
+    return await cached();
+  } catch (error) {
+    console.warn(
+      "[CMS] Failed to load navigation menu; rendering empty navigation.",
+      error instanceof Error ? error.message : error
+    );
+    return [];
+  }
 }
 
 // ─── Hero Banners ────────────────────────────────────────────────────
 
 export async function getHeroBanners(organizationId?: string) {
   const now = new Date();
-  return prisma.heroBanner.findMany({
-    where: {
-      isActive: true,
-      status: { in: ["PUBLISHED", "SCHEDULED"] },
-      OR: [{ publishDate: null }, { publishDate: { lte: now } }],
-      AND: [{ OR: [{ expireDate: null }, { expireDate: { gte: now } }] }],
-    },
-    orderBy: [{ priorityScore: "desc" }, { displayOrder: "asc" }],
-  });
+  try {
+    return await prisma.heroBanner.findMany({
+      where: {
+        isActive: true,
+        status: { in: ["PUBLISHED", "SCHEDULED"] },
+        OR: [{ publishDate: null }, { publishDate: { lte: now } }],
+        AND: [{ OR: [{ expireDate: null }, { expireDate: { gte: now } }] }],
+      },
+      orderBy: [{ priorityScore: "desc" }, { displayOrder: "asc" }],
+    });
+  } catch (error) {
+    console.warn(
+      "[CMS] Failed to load hero banners; rendering without CMS banners.",
+      error instanceof Error ? error.message : error
+    );
+    return [];
+  }
 }
 
 // ─── Announcement Bar ──────────────────────────────────────────────────
 
 export async function getAnnouncementBar(organizationId?: string) {
-  const orgId = organizationId ?? (await getDefaultOrganizationId());
+  const orgId = await resolvePublicOrganizationId(organizationId);
+  if (!orgId) return null;
+
   const now = new Date();
   const cached = unstable_cache(
     async () => {
@@ -204,7 +259,16 @@ export async function getAnnouncementBar(organizationId?: string) {
     [`announcement-${orgId}`],
     { tags: [CMS_TAGS.announcement(orgId)], revalidate: 30 }
   );
-  return cached();
+
+  try {
+    return await cached();
+  } catch (error) {
+    console.warn(
+      "[CMS] Failed to load announcement bar; rendering without announcement.",
+      error instanceof Error ? error.message : error
+    );
+    return null;
+  }
 }
 
 // ─── Homepage Sections ─────────────────────────────────────────────────
@@ -213,7 +277,9 @@ export async function getHomepageSections(organizationId?: string): Promise<{
   sections: HomepageSectionData[];
   config: { newsletterEnabled: boolean; newsletterTitle?: string | null; newsletterSubtitle?: string | null } | null;
 }> {
-  const orgId = organizationId ?? (await getDefaultOrganizationId());
+  const orgId = await resolvePublicOrganizationId(organizationId);
+  if (!orgId) return { sections: [], config: null };
+
   const cached = unstable_cache(
     async () => {
       const config = await prisma.homepageConfig.findFirst({
@@ -241,13 +307,31 @@ export async function getHomepageSections(organizationId?: string): Promise<{
     [`homepage-sections-${orgId}`],
     { tags: [CMS_TAGS.homepage(orgId)], revalidate: 60 }
   );
-  return cached();
+
+  try {
+    return await cached();
+  } catch (error) {
+    console.warn(
+      "[CMS] Failed to load homepage sections; rendering legacy homepage.",
+      error instanceof Error ? error.message : error
+    );
+    return { sections: [], config: null };
+  }
 }
 
 // ─── Full bundle for layout ──────────────────────────────────────────
 
 export async function getSiteConfigBundle(organizationId?: string): Promise<SiteConfigBundle> {
-  const orgId = organizationId ?? (await getDefaultOrganizationId());
+  const orgId = await resolvePublicOrganizationId(organizationId);
+  if (!orgId) {
+    return {
+      settings: createFallbackSiteSettings(),
+      footer: null,
+      navigation: [],
+      announcement: null,
+    };
+  }
+
   const [settings, footer, navigation, announcement] = await Promise.all([
     getSiteSettings(orgId),
     getFooterData(orgId),
