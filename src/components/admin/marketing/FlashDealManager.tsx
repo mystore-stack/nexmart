@@ -90,7 +90,7 @@ export function FlashDealManager() {
           <div>
             <Label>Products</Label>
             <div className="mt-2 flex flex-wrap gap-2 max-h-32 overflow-y-auto">
-              {products.map((p) => (
+              {Array.isArray(products) && products.map((p) => (
                 <button
                   key={p.id}
                   type="button"

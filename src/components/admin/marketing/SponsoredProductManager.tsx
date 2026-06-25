@@ -61,7 +61,7 @@ export function SponsoredProductManager() {
               <Select value={form.productId} onValueChange={(v) => setForm({ ...form, productId: v })}>
                 <SelectTrigger><SelectValue placeholder="Select product" /></SelectTrigger>
                 <SelectContent>
-                  {products.map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                  {Array.isArray(products) && products.map((p) => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>

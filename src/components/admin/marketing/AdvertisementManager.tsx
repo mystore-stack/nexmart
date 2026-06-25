@@ -273,7 +273,7 @@ export function AdvertisementManager() {
                       <SelectTrigger><SelectValue placeholder="None" /></SelectTrigger>
                       <SelectContent>
                         <SelectItem value="none">None</SelectItem>
-                        {campaigns.map((c) => (
+                        {Array.isArray(campaigns) && campaigns.map((c) => (
                           <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                         ))}
                       </SelectContent>
