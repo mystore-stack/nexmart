@@ -4,6 +4,8 @@ import { CACHE_KEYS, CACHE_TTL, getCache, setCache } from "@/lib/redis";
 import { getCMSCache, setCMSCache } from "@/lib/cms/cache";
 import type { HomepageConfigSchema } from "@/lib/cms/types";
 import type { HomepageSectionData } from "@/components/home/HomepageSections";
+import type { HomeMarketingData } from "@/lib/marketing/types";
+import { getCachedHomeMarketingData } from "@/lib/marketing/data";
 
 export type HomePageData = {
   featured: Awaited<ReturnType<typeof fetchFeatured>>;
@@ -13,6 +15,7 @@ export type HomePageData = {
   homepageConfig: HomepageConfigSchema | null;
   homepageSections: HomepageSectionData[];
   useCmsLayout: boolean;
+  marketing: HomeMarketingData | null;
 };
 
 async function fetchFeatured(organizationId: string) {
@@ -59,6 +62,7 @@ const emptyHome: HomePageData = {
   homepageConfig: null,
   homepageSections: [],
   useCmsLayout: false,
+  marketing: null,
 };
 
 async function fetchHomepageSections(organizationId: string): Promise<{
@@ -117,7 +121,7 @@ export async function getHomePageData(): Promise<HomePageData> {
     const productCacheKey = `${CACHE_KEYS.featured()}:home:${organizationId}`;
     const cachedProducts = await getCache<{ featured: unknown; trending: unknown; categories: unknown; flashSale: unknown }>(productCacheKey);
 
-    const [{ config: homepageConfig, sections: homepageSections, useCmsLayout }, productData] = await Promise.all([
+    const [{ config: homepageConfig, sections: homepageSections, useCmsLayout }, productData, marketing] = await Promise.all([
       fetchHomepageSections(organizationId),
       cachedProducts
         ? Promise.resolve(cachedProducts)
@@ -127,6 +131,7 @@ export async function getHomePageData(): Promise<HomePageData> {
             fetchCategories(organizationId),
             fetchFlashSale(organizationId),
           ]).then(([featured, trending, categories, flashSale]) => ({ featured, trending, categories, flashSale })),
+      getCachedHomeMarketingData(organizationId).catch(() => null),
     ]);
 
     const { featured, trending, categories, flashSale } = productData as {
@@ -140,7 +145,7 @@ export async function getHomePageData(): Promise<HomePageData> {
       await setCache(productCacheKey, { featured, trending, categories, flashSale }, CACHE_TTL.MEDIUM);
     }
 
-    return { featured, trending, categories, flashSale, homepageConfig, homepageSections, useCmsLayout };
+    return { featured, trending, categories, flashSale, homepageConfig, homepageSections, useCmsLayout, marketing };
   } catch {
     return emptyHome;
   }

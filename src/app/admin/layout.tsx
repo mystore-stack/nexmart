@@ -9,7 +9,7 @@ import {
   Tag, FolderOpen, Menu, X, LogOut, ChevronRight,
   Home, Store, Truck, FileText, Upload, Bell, Settings, Image,
   BarChart3, LineChart, Megaphone, FlaskConical, ChevronDown,
-  Bot, FileQuestion, AlertCircle, Cpu, LayoutTemplate, Image as ImageIcon, BellRing, Layers, Award, GitBranch
+  Bot, FileQuestion, AlertCircle, Cpu, LayoutTemplate, Image as ImageIcon, BellRing, Layers, Award, GitBranch, Target, Zap
 } from "lucide-react";
 import { useAuthStore } from "@/store/index";
 
@@ -64,7 +64,12 @@ const MARKETING_GROUP: NavItem = {
   icon: Megaphone,
   label: "Marketing",
   items: [
-    { icon: Megaphone, label: "Campaigns", href: "/admin/marketing/campaigns" },
+    { icon: LayoutDashboard, label: "Marketing Hub", href: "/admin/marketing" },
+    { icon: Megaphone, label: "Advertisements", href: "/admin/marketing/advertisements" },
+    { icon: Target, label: "Campaigns", href: "/admin/marketing/campaigns" },
+    { icon: Tag, label: "Sponsored Products", href: "/admin/marketing/sponsored-products" },
+    { icon: Zap, label: "Flash Deals", href: "/admin/marketing/flash-deals" },
+    { icon: BarChart3, label: "Marketing Analytics", href: "/admin/marketing/analytics" },
   ]
 };
 

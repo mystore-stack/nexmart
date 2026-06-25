@@ -2,6 +2,9 @@
 
 import { CMSEventType, type CMSEventPayload, type CMSEventListener, type CMSEventSubscription } from './events';
 
+// Re-export CMSEventType for convenience
+export { CMSEventType };
+
 class CMSEventBus {
   private listeners: Map<CMSEventType, CMSEventSubscription[]> = new Map();
   private subscriptionIdCounter = 0;

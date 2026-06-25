@@ -98,10 +98,10 @@ export async function POST(req: NextRequest) {
     
     if (file.type.startsWith("image/")) {
       const buffer = await file.arrayBuffer();
-      const { createCanvas } = await import("canvas");
-      const img = await createCanvas().loadImage(Buffer.from(buffer));
-      width = img.width;
-      height = img.height;
+      const sharp = await import("sharp");
+      const metadata = await sharp.default(Buffer.from(buffer)).metadata();
+      width = metadata.width;
+      height = metadata.height;
     }
 
     const mediaAsset = await prisma.mediaAsset.create({

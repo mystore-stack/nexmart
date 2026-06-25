@@ -10,6 +10,7 @@ import { RecentlyViewedSection } from "@/components/home/RecentlyViewedSection";
 import { WhyNexMart } from "@/components/home/WhyNexMart";
 import { NewsletterSection } from "@/components/home/NewsletterSection";
 import { HomepageSections } from "@/components/home/HomepageSections";
+import { MarketingHomeIntegration, MarketingHeroAd } from "@/components/marketing/MarketingHomeIntegration";
 import { SkeletonGrid } from "@/components/ui/Skeleton";
 import { getHomePageData } from "@/lib/home-data";
 import type { Metadata } from "next";
@@ -65,15 +66,29 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 function LegacyHomePage({ data }: { data: Awaited<ReturnType<typeof getHomePageData>> }) {
-  const { featured, trending, categories, flashSale, homepageConfig } = data;
+  const { featured, trending, categories, flashSale, homepageConfig, marketing } = data;
+  const heroAd = marketing?.heroAds?.[0];
+  const useMarketingFlash = (marketing?.flashDeals?.length ?? 0) > 0;
+  const sponsoredIds = new Set(marketing?.sponsoredProducts?.map((s) => s.productId) ?? []);
+  const mergedFeatured = [...featured].sort((a, b) => {
+    const aSp = sponsoredIds.has(a.id) ? 1 : 0;
+    const bSp = sponsoredIds.has(b.id) ? 1 : 0;
+    return bSp - aSp;
+  });
 
   return (
     <>
-      <section className="container-main py-4 md:py-6">
-        <PremiumElectronicsHero />
-      </section>
+      {heroAd ? (
+        <MarketingHeroAd ad={heroAd} />
+      ) : (
+        <section className="container-main py-4 md:py-6">
+          <PremiumElectronicsHero />
+        </section>
+      )}
 
-      {flashSale.length > 0 && (
+      {marketing && <MarketingHomeIntegration marketing={marketing} />}
+
+      {!useMarketingFlash && flashSale.length > 0 && (
         <section className="relative overflow-hidden bg-moroccan-navy py-14 md:py-20">
           <div className="container-main">
             <FlashSaleSection products={flashSale as never} />
@@ -87,16 +102,18 @@ function LegacyHomePage({ data }: { data: Awaited<ReturnType<typeof getHomePageD
         </div>
       </section>
 
-      <section className="section bg-surface/60">
-        <div className="container-main">
-          <PromoBanner />
-        </div>
-      </section>
+      {!marketing?.betweenSectionAds?.length && (
+        <section className="section bg-surface/60">
+          <div className="container-main">
+            <PromoBanner />
+          </div>
+        </section>
+      )}
 
       <section className="section">
         <div className="container-main">
           <Suspense fallback={<SkeletonGrid count={8} />}>
-            <FeaturedProducts products={featured as never} />
+            <FeaturedProducts products={mergedFeatured as never} />
           </Suspense>
         </div>
       </section>

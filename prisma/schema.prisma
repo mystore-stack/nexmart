@@ -136,6 +136,8 @@ model Product {
   stockAlertLogs     StockAlertLog[]
   wishlistItems      WishlistItem[]
   eventTracking      EventTracking[]
+  sponsoredProducts  SponsoredProduct[]
+  flashDealProducts  FlashDealProduct[]
 
   @@unique([organizationId, sku])
   @@unique([organizationId, slug])
@@ -775,6 +777,10 @@ model Organization {
   usageRecords            UsageRecord[]
   UserProfile             UserProfile[]
   welcomeSeries           WelcomeSeries[]
+  promoCampaigns          PromoCampaign[]
+  advertisements          Advertisement[]
+  sponsoredProducts       SponsoredProduct[]
+  flashDeals              FlashDeal[]
 
   @@index([ownerId])
   @@index([slug])
@@ -2958,4 +2964,205 @@ model SiteSettings {
   updatedAt             DateTime @updatedAt
 
   @@index([organizationId])
+}
+
+// ─── Advertisement & Marketing CMS ───────────────────────────────────
+
+enum AdPlacement {
+  HOMEPAGE_HERO
+  TOP_BANNER
+  BETWEEN_PRODUCT_SECTIONS
+  CATEGORY_PAGE
+  PRODUCT_PAGE
+  SIDEBAR
+  FOOTER
+  POPUP
+  FLOATING_BANNER
+}
+
+enum PromoCampaignType {
+  BLACK_FRIDAY
+  RAMADAN
+  EID
+  SUMMER_SALE
+  WINTER_SALE
+  CUSTOM
+}
+
+enum VisitorTarget {
+  ALL
+  NEW_VISITORS
+  RETURNING_VISITORS
+  LOGGED_IN
+  GUEST
+}
+
+model PromoCampaign {
+  id             String            @id @default(uuid()) @db.Uuid
+  organizationId String            @db.Uuid
+  name           String
+  slug           String
+  type           PromoCampaignType   @default(CUSTOM)
+  description    String?
+  status         CMSContentStatus    @default(DRAFT)
+  startDate      DateTime?
+  endDate        DateTime?
+  bannerColor    String?
+  metadata       Json?
+  impressions    Int                 @default(0)
+  clicks         Int                 @default(0)
+  conversions    Int                 @default(0)
+  revenue        Float               @default(0)
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  organization   Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  advertisements Advertisement[]
+  flashDeals     FlashDeal[]
+
+  @@unique([organizationId, slug])
+  @@index([organizationId])
+  @@index([status])
+  @@index([type])
+  @@index([startDate])
+  @@index([endDate])
+}
+
+model Advertisement {
+  id              String           @id @default(uuid()) @db.Uuid
+  organizationId  String           @db.Uuid
+  campaignId      String?          @db.Uuid
+  title           String
+  subtitle        String?
+  description     String?
+  imageDesktop    String?
+  imageMobile     String?
+  videoUrl        String?
+  ctaText         String?
+  ctaUrl          String?
+  backgroundColor String           @default("#0F766E")
+  textColor       String           @default("#FFFFFF")
+  placement       AdPlacement      @default(HOMEPAGE_HERO)
+  priority        Int              @default(0)
+  status          CMSContentStatus @default(DRAFT)
+  startDate       DateTime?
+  endDate         DateTime?
+  targetCountries String[]
+  targetLanguages String[]
+  targetDevices   DeviceTarget     @default(ALL)
+  visitorTarget   VisitorTarget    @default(ALL)
+  impressions     Int              @default(0)
+  clicks          Int              @default(0)
+  conversions     Int              @default(0)
+  revenue         Float            @default(0)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  organization    Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  campaign        PromoCampaign?   @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  analytics       AdvertisementAnalytics[]
+
+  @@index([organizationId])
+  @@index([campaignId])
+  @@index([placement])
+  @@index([status])
+  @@index([priority])
+  @@index([startDate])
+  @@index([endDate])
+}
+
+model AdvertisementAnalytics {
+  id         String        @id @default(uuid()) @db.Uuid
+  adId       String        @db.Uuid
+  eventType  String
+  deviceType String?
+  country    String?
+  sessionId  String?
+  revenue    Float?
+  createdAt  DateTime      @default(now())
+
+  advertisement Advertisement @relation(fields: [adId], references: [id], onDelete: Cascade)
+
+  @@index([adId])
+  @@index([eventType])
+  @@index([createdAt])
+}
+
+model SponsoredProduct {
+  id             String    @id @default(uuid()) @db.Uuid
+  organizationId String    @db.Uuid
+  productId      String    @db.Uuid
+  priority       Int       @default(0)
+  badgeText      String    @default("Sponsored")
+  startDate      DateTime?
+  endDate        DateTime?
+  isActive       Boolean   @default(true)
+  impressions    Int       @default(0)
+  clicks         Int       @default(0)
+  conversions    Int       @default(0)
+  revenue        Float     @default(0)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  product        Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, productId])
+  @@index([organizationId])
+  @@index([productId])
+  @@index([isActive])
+  @@index([priority])
+  @@index([startDate])
+  @@index([endDate])
+}
+
+model FlashDeal {
+  id              String           @id @default(uuid()) @db.Uuid
+  organizationId  String           @db.Uuid
+  campaignId      String?          @db.Uuid
+  name            String
+  slug            String
+  discountPercent Float?
+  discountAmount  Float?
+  startDate       DateTime
+  endDate         DateTime
+  autoStart       Boolean          @default(true)
+  autoEnd         Boolean          @default(true)
+  status          CMSContentStatus @default(DRAFT)
+  isActive        Boolean          @default(false)
+  impressions     Int              @default(0)
+  clicks          Int              @default(0)
+  conversions     Int              @default(0)
+  revenue         Float            @default(0)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  organization    Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  campaign        PromoCampaign?   @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  products        FlashDealProduct[]
+
+  @@unique([organizationId, slug])
+  @@index([organizationId])
+  @@index([campaignId])
+  @@index([status])
+  @@index([isActive])
+  @@index([startDate])
+  @@index([endDate])
+}
+
+model FlashDealProduct {
+  id              String    @id @default(uuid()) @db.Uuid
+  flashDealId     String    @db.Uuid
+  productId       String    @db.Uuid
+  discountPercent Float?
+  discountPrice   Float?
+  displayOrder    Int       @default(0)
+  createdAt       DateTime  @default(now())
+
+  flashDeal       FlashDeal @relation(fields: [flashDealId], references: [id], onDelete: Cascade)
+  product         Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([flashDealId, productId])
+  @@index([flashDealId])
+  @@index([productId])
 }
