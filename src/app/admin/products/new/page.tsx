@@ -1,12 +1,13 @@
 "use client";
 // src/app/admin/products/new/page.tsx
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
   Save, ArrowLeft, Plus, Trash2, Image as ImageIcon,
   Package, Tag, DollarSign, Hash, Layers, Eye, EyeOff, Upload
 } from "lucide-react";
+import { MultiImageUpload } from "@/components/admin/ImageUpload";
 import toast from "react-hot-toast";
 
 interface Variant { name: string; value: string; label: string; price: string; stock: string; sku: string; }
@@ -24,10 +25,9 @@ export default function NewProductPage() {
     sku: "", stock: "0", lowStockAt: "5",
     weight: "", published: false, featured: false,
     tags: "",
+    images: [] as string[],
   });
-  const [imageFiles, setImageFiles] = useState<ImageFile[]>([]);
   const [uploading, setUploading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [variants, setVariants] = useState<Variant[]>([]);
 
   useEffect(() => {
@@ -35,69 +35,6 @@ export default function NewProductPage() {
       .then((r) => r.json())
       .then((d) => { if (d.data) setCategories(d.data); });
   }, []);
-
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    if (files.length === 0) return;
-
-    const newImageFiles: ImageFile[] = files.map((file) => ({
-      file,
-      preview: URL.createObjectURL(file),
-    }));
-
-    setImageFiles((prev) => [...prev, ...newImageFiles]);
-    
-    // Reset input so same files can be selected again if needed
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-  };
-
-  const removeImage = (index: number) => {
-    setImageFiles((prev) => {
-      const newFiles = prev.filter((_, i) => i !== index);
-      // Revoke object URL to free memory
-      if (prev[index]?.preview) {
-        URL.revokeObjectURL(prev[index].preview);
-      }
-      return newFiles;
-    });
-  };
-
-  const uploadImages = async (): Promise<string[]> => {
-    if (imageFiles.length === 0) return [];
-
-    setUploading(true);
-    const uploadedPaths: string[] = [];
-
-    try {
-      for (const imageFile of imageFiles) {
-        const formData = new FormData();
-        formData.append("file", imageFile.file);
-        formData.append("folder", "products");
-
-        const res = await fetch("/api/upload", {
-          method: "POST",
-          body: formData,
-        });
-
-        if (!res.ok) {
-          throw new Error(`Failed to upload ${imageFile.file.name}`);
-        }
-
-        const data = await res.json();
-        if (data.success && data.data?.path) {
-          uploadedPaths.push(data.data.path);
-        } else {
-          throw new Error("Invalid upload response");
-        }
-      }
-    } finally {
-      setUploading(false);
-    }
-
-    return uploadedPaths;
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -112,21 +49,13 @@ export default function NewProductPage() {
       toast.error("Description must be at least 10 characters");
       return;
     }
-    if (imageFiles.length < 1) {
+    if (form.images.length < 1) {
       toast.error("Please add at least 1 image");
       return;
     }
 
     setSaving(true);
     try {
-      // Upload images first
-      const images = await uploadImages();
-
-      if (images.length === 0) {
-        toast.error("Failed to upload images");
-        return;
-      }
-
       const tags = form.tags
         .split(",")
         .map((t) => t.trim())
@@ -145,7 +74,7 @@ export default function NewProductPage() {
         weight: form.weight ? parseFloat(form.weight) : undefined,
         published: form.published,
         featured: form.featured,
-        images,
+        images: form.images,
         tags,
         variants: variants
           .filter((v) => v.value.trim() && v.label.trim())
@@ -372,53 +301,13 @@ export default function NewProductPage() {
             Product Images
           </h2>
 
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            multiple
-            onChange={handleFileSelect}
-            className="hidden"
+          <MultiImageUpload
+            values={form.images}
+            onChange={(urls) => setForm({ ...form, images: urls })}
+            folder="products"
+            aspectRatio="square"
+            maxImages={10}
           />
-
-          {imageFiles.length > 0 && (
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              {imageFiles.map((imageFile, idx) => (
-                <div key={idx} className="relative group aspect-square rounded-xl overflow-hidden border border-border">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={imageFile.preview}
-                    alt={`Product image ${idx + 1}`}
-                    className="w-full h-full object-cover"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => removeImage(idx)}
-                    className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                  {idx === 0 && (
-                    <div className="absolute bottom-2 left-2 px-2 py-1 bg-black/50 text-white text-xs rounded">
-                      Main
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-
-          {imageFiles.length < 8 && (
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploading}
-              className="btn-outline py-3 px-4 text-sm w-full border-dashed"
-            >
-              <Upload className="w-4 h-4 inline mr-2" />
-              {uploading ? "Uploading..." : "Upload Images"}
-            </button>
-          )}
         </section>
 
         {/* Variants */}

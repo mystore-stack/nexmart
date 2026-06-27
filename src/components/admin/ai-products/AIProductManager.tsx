@@ -16,6 +16,7 @@ import {
   RefreshCw,
   Rocket,
   Search,
+  Settings,
   ShieldCheck,
   Sparkles,
   Upload,
@@ -28,6 +29,19 @@ import type {
   AIProductManagerBootstrap,
   AIProductWorkflow,
 } from "@/types/ai-products";
+import { AIDashboard } from "./AIDashboard";
+import { AIModelSelector } from "./AIModelSelector";
+import { AILanguageSelector } from "./AILanguageSelector";
+import { SEOAnalyzer } from "./SEOAnalyzer";
+import { ImageAI } from "./ImageAI";
+import { PriceEngine } from "./PriceEngine";
+import { SmartEditor } from "./SmartEditor";
+import { ReviewWorkflow } from "./ReviewWorkflow";
+import { BulkGenerator } from "./BulkGenerator";
+import { QueueSystem } from "./QueueSystem";
+import { AnalyticsDashboard } from "./AnalyticsDashboard";
+import { ExportImport } from "./ExportImport";
+import { AdminSettings } from "./AdminSettings";
 
 interface Props {
   initialData: AIProductManagerBootstrap;
@@ -209,8 +223,12 @@ export default function AIProductManager({ initialData }: Props) {
         <Metric icon={BarChart3} label="Avg Quality" value={`${queueStats.avgQuality}/100`} tone="green" />
       </div>
 
-      <Tabs defaultValue="create" className="space-y-5">
+      <Tabs defaultValue="dashboard" className="space-y-5">
         <TabsList className="flex h-auto w-full flex-wrap justify-start gap-1 rounded-lg">
+          <TabsTrigger value="dashboard" className="gap-2">
+            <BarChart3 className="h-4 w-4" />
+            Dashboard
+          </TabsTrigger>
           <TabsTrigger value="create" className="gap-2">
             <Sparkles className="h-4 w-4" />
             Generate
@@ -223,15 +241,43 @@ export default function AIProductManager({ initialData }: Props) {
             <Wand2 className="h-4 w-4" />
             Smart Editor
           </TabsTrigger>
+          <TabsTrigger value="seo" className="gap-2">
+            <Search className="h-4 w-4" />
+            SEO
+          </TabsTrigger>
+          <TabsTrigger value="images" className="gap-2">
+            <ImagePlus className="h-4 w-4" />
+            Images
+          </TabsTrigger>
+          <TabsTrigger value="pricing" className="gap-2">
+            <ShieldCheck className="h-4 w-4" />
+            Pricing
+          </TabsTrigger>
           <TabsTrigger value="bulk" className="gap-2">
             <Upload className="h-4 w-4" />
             Bulk
+          </TabsTrigger>
+          <TabsTrigger value="queue" className="gap-2">
+            <LayoutList className="h-4 w-4" />
+            Queue
           </TabsTrigger>
           <TabsTrigger value="analytics" className="gap-2">
             <BarChart3 className="h-4 w-4" />
             Analytics
           </TabsTrigger>
+          <TabsTrigger value="export" className="gap-2">
+            <Globe2 className="h-4 w-4" />
+            Export/Import
+          </TabsTrigger>
+          <TabsTrigger value="settings" className="gap-2">
+            <Settings className="h-4 w-4" />
+            Settings
+          </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="dashboard" className="space-y-6">
+          <AIDashboard />
+        </TabsContent>
 
         <TabsContent value="create" className="grid gap-5 xl:grid-cols-[360px_minmax(0,1fr)]">
           <QueuePanel generations={generations} selectedId={selectedId} onSelect={setSelectedId} />
@@ -477,6 +523,56 @@ export default function AIProductManager({ initialData }: Props) {
               ))}
             </div>
           </section>
+        </TabsContent>
+
+        <TabsContent value="seo" className="space-y-6">
+          <div className="grid gap-6 lg:grid-cols-2">
+            <SEOAnalyzer 
+              content={{
+                title: selectedGeneration?.output.title || "",
+                description: selectedGeneration?.output.longDescription || "",
+                slug: selectedGeneration?.output.title.toLowerCase().replace(/\s+/g, "-") || "",
+                content: selectedGeneration?.output.longDescription || "",
+              }}
+            />
+            <div className="space-y-6">
+              <AIModelSelector 
+                selectedModel="GPT_4"
+                onModelChange={(model) => console.log("Model changed:", model)}
+              />
+              <AILanguageSelector 
+                selectedLanguage="EN"
+                onLanguageChange={(lang) => console.log("Language changed:", lang)}
+              />
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="images" className="space-y-6">
+          <ImageAI 
+            images={selectedImages}
+            onImagesChange={(images) => setImageUrls(images)}
+          />
+        </TabsContent>
+
+        <TabsContent value="pricing" className="space-y-6">
+          <PriceEngine 
+            cost={Number(review.cost) || 0}
+            currentPrice={Number(review.price) || 0}
+            onPriceSuggestion={(price) => setReview(prev => ({ ...prev, price: price.toString() }))}
+          />
+        </TabsContent>
+
+        <TabsContent value="queue" className="space-y-6">
+          <QueueSystem />
+        </TabsContent>
+
+        <TabsContent value="export" className="space-y-6">
+          <ExportImport />
+        </TabsContent>
+
+        <TabsContent value="settings" className="space-y-6">
+          <AdminSettings />
         </TabsContent>
       </Tabs>
     </div>

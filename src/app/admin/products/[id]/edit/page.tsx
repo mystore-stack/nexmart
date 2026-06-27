@@ -10,6 +10,7 @@ import {
   Package, DollarSign, Box, AlertTriangle
 } from "lucide-react";
 import { formatPrice } from "@/utils/format";
+import { MultiImageUpload } from "@/components/admin/ImageUpload";
 import toast from "react-hot-toast";
 
 interface Product {
@@ -295,57 +296,13 @@ export default function EditProductPage() {
             <div className="bg-card border border-border rounded-2xl p-6 space-y-4">
               <h2 className="font-semibold">Images</h2>
               
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  placeholder="Paste image URL and press Enter"
-                  className="input flex-1"
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      addImage(e.currentTarget.value);
-                      e.currentTarget.value = "";
-                    }
-                  }}
-                />
-                <button
-                  type="button"
-                  className="btn-outline px-4"
-                  onClick={() => {
-                    const input = document.querySelector('input[placeholder="Paste image URL"]') as HTMLInputElement;
-                    if (input) {
-                      addImage(input.value);
-                      input.value = "";
-                    }
-                  }}
-                >
-                  <Plus className="w-4 h-4" />
-                </button>
-              </div>
-
-              {formData.images.length > 0 && (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {formData.images.map((img, idx) => (
-                    <div key={idx} className="relative group">
-                      <div className="relative aspect-square rounded-xl overflow-hidden bg-muted">
-                        <Image
-                          src={img}
-                          alt={`Product image ${idx + 1}`}
-                          fill
-                          className="object-cover"
-                          sizes="(max-width: 768px) 50vw, 25vw"
-                        />
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => removeImage(idx)}
-                        className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
+              <MultiImageUpload
+                values={formData.images}
+                onChange={(urls) => setFormData({ ...formData, images: urls })}
+                folder="products"
+                aspectRatio="square"
+                maxImages={10}
+              />
             </div>
           </div>
 

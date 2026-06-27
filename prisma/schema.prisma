@@ -26,6 +26,8 @@ model User {
   AiConversation          AiConversation[]
   AiEvent                 AiEvent[]
   AiProductGeneration     AiProductGeneration[]
+  AIProductJobs           AIProductJob[]
+  AIBulkImports           AIBulkImport[]
   analyticsEvents         AnalyticsEvent[]
   analyticsSessions       AnalyticsSession[]
   AuditLog                AuditLog[]
@@ -52,6 +54,7 @@ model User {
   userProfile             UserProfile?
   welcomeSeries           WelcomeSeries?
   wishlist                WishlistItem[]
+  googleOAuthAccount      GoogleOAuthAccount[]
 
   @@index([email])
 }
@@ -90,6 +93,7 @@ model Category {
   parent          Category?        @relation("SubCategories", fields: [parentId], references: [id])
   children        Category[]       @relation("SubCategories")
   products        Product[]
+  featuredCategories FeaturedCategory[]
 
   @@unique([organizationId, slug])
   @@index([organizationId])
@@ -138,6 +142,11 @@ model Product {
   eventTracking      EventTracking[]
   sponsoredProducts  SponsoredProduct[]
   flashDealProducts  FlashDealProduct[]
+  aiProductSEOs      AIProductSEO[]
+  aiProductImages    AIProductImage[]
+  aiProductPricing  AIProductPricing[]
+  superDeals         SuperDeal[]
+  bundleProducts     BundleProduct[]
 
   @@unique([organizationId, sku])
   @@unique([organizationId, slug])
@@ -551,7 +560,7 @@ model AdCampaign {
 
 model AuditEvent {
   id             String         @id @default(uuid()) @db.Uuid
-  sessionId      String         @db.Uuid
+  sessionId      String?        @db.Uuid
   eventType      AuditEventType
   userId         String?        @db.Uuid
   organizationId String         @db.Uuid
@@ -565,7 +574,7 @@ model AuditEvent {
   replayId       String?        @db.Uuid
   createdAt      DateTime       @default(now())
   replay         AuditReplay?   @relation(fields: [replayId], references: [id])
-  session        AuditSession   @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  session        AuditSession?  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
   @@index([sessionId])
   @@index([eventType])
@@ -781,6 +790,21 @@ model Organization {
   advertisements          Advertisement[]
   sponsoredProducts       SponsoredProduct[]
   flashDeals              FlashDeal[]
+  superDeals              SuperDeal[]
+  aiModelConfig           AIModelConfig?
+  aiProductJobs           AIProductJob[]
+  aiProductSEOs           AIProductSEO[]
+  aiProductImages         AIProductImage[]
+  aiProductPricing       AIProductPricing[]
+  aiProductCategories    AIProductCategory[]
+  aiBulkImports           AIBulkImport[]
+  aiProductAnalytics      AIProductAnalytics[]
+  googleIntegrations      GoogleIntegration[]
+  googleAnalyticsEvents   GoogleAnalyticsEvent[]
+  googleMerchantFeeds     GoogleMerchantFeed[]
+  googleSearchConsoleSites GoogleSearchConsoleSite[]
+  googleBusinessProfiles  GoogleBusinessProfile[]
+  googleMapsLocations     GoogleMapsLocation[]
 
   @@index([ownerId])
   @@index([slug])
@@ -983,6 +1007,11 @@ model AiProductGeneration {
   User               User?                     @relation(fields: [createdById], references: [id], onDelete: SetNull)
   revisions          ProductRevision[]
   publishingHistory  ProductPublishingHistory[]
+  aiProductJobs      AIProductJob[]
+  aiProductSEOs      AIProductSEO[]
+  aiProductImages    AIProductImage[]
+  aiProductPricing   AIProductPricing[]
+  aiProductCategories AIProductCategory[]
 
   @@index([organizationId, status, createdAt])
   @@index([productId])
@@ -3164,5 +3193,720 @@ model FlashDealProduct {
 
   @@unique([flashDealId, productId])
   @@index([flashDealId])
+  @@index([productId])
+}
+
+// ─── AI Product Studio Extended Models ───────────────────────────────────
+
+enum AIModel {
+  GPT_5_5
+  GPT_4_1
+  GPT_4
+  GPT_3_5_TURBO
+  CLAUDE_3_OPUS
+  CLAUDE_3_SONNET
+  CLAUDE_3_HAIKU
+  GEMINI_PRO
+  GEMINI_ULTRA
+}
+
+enum AIProductLanguage {
+  EN
+  FR
+  AR
+  ES
+  DE
+  ZH
+  JA
+}
+
+enum AIProductTone {
+  PREMIUM
+  TECHNICAL
+  FRIENDLY
+  CONVERSION
+  LUXURY
+  PROFESSIONAL
+  CASUAL
+}
+
+enum ProductImageType {
+  MAIN
+  GALLERY
+  THUMBNAIL
+  LIFESTYLE
+  PACKAGING
+  DETAIL
+}
+
+enum ProductImageView {
+  FRONT
+  SIDE
+  BACK
+  TOP
+  FORTY_FIVE_DEGREE
+  CLOSE_UP
+  LIFESTYLE_SCENE
+  PACKAGING_SHOT
+}
+
+enum ImageGenerationStatus {
+  PENDING
+  GENERATING
+  COMPLETED
+  FAILED
+  APPROVED
+  REJECTED
+  RETRYING
+}
+
+enum AIProductInputType {
+  URL
+  SUPPLIER_DESCRIPTION
+  IMAGES
+  PDF_CATALOG
+  CSV
+  MANUAL_PROMPT
+  VOICE
+  VIDEO
+}
+
+enum AIJobStatus {
+  QUEUED
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+  RETRYING
+}
+
+enum AIJobPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+model AIModelConfig {
+  id              String   @id @default(uuid()) @db.Uuid
+  organizationId  String   @unique @db.Uuid
+  defaultModel    AIModel  @default(GPT_4)
+  apiKey          String?
+  enabledModels   AIModel[]
+  monthlyQuota    Int      @default(1000)
+  usedQuota       Int      @default(0)
+  quotaResetDate  DateTime
+  rateLimitPerMin Int      @default(60)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  Organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+}
+
+model AIProductJob {
+  id              String          @id @default(uuid()) @db.Uuid
+  organizationId  String          @db.Uuid
+  userId          String?         @db.Uuid
+  generationId    String?         @db.Uuid
+  bulkImportId    String?         @db.Uuid
+  inputType       AIProductInputType
+  status          AIJobStatus     @default(QUEUED)
+  priority        AIJobPriority  @default(NORMAL)
+  progress        Float           @default(0)
+  input           Json            @default("{}")
+  output          Json?           @default("{}")
+  error           String?
+  model           AIModel         @default(GPT_4)
+  language        AIProductLanguage @default(EN)
+  tone            AIProductTone  @default(PROFESSIONAL)
+  estimatedTokens Int?
+  actualTokens    Int?
+  cost            Float?
+  startedAt       DateTime?
+  completedAt     DateTime?
+  retryCount      Int             @default(0)
+  maxRetries      Int             @default(3)
+  metadata        Json?           @default("{}")
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  Organization    Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  User            User?                @relation(fields: [userId], references: [id], onDelete: SetNull)
+  generation      AiProductGeneration? @relation(fields: [generationId], references: [id], onDelete: SetNull)
+  bulkImport      AIBulkImport?        @relation(fields: [bulkImportId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId, status, createdAt])
+  @@index([userId])
+  @@index([generationId])
+  @@index([priority, status])
+  @@index([createdAt])
+}
+
+model AIProductSEO {
+  id              String   @id @default(uuid()) @db.Uuid
+  organizationId  String   @db.Uuid
+  generationId    String   @unique @db.Uuid
+  productId       String?  @db.Uuid
+  seoScore        Int      @default(0)
+  readability     Int      @default(0)
+  keywordDensity  Float?
+  missingKeywords String[]
+  titleLength     Int
+  descriptionLength Int
+  slugQuality     Int
+  headingStructure Json
+  imageOptimization Int
+  suggestions     Json[]
+  oneClickFixes   Json[]
+  analyzedAt      DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  Organization    Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  generation      AiProductGeneration @relation(fields: [generationId], references: [id], onDelete: Cascade)
+  Product         Product?             @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId])
+  @@index([generationId])
+  @@index([productId])
+}
+
+model AIProductImage {
+  id              String   @id @default(uuid()) @db.Uuid
+  organizationId  String   @db.Uuid
+  generationId    String?  @db.Uuid
+  productId       String?  @db.Uuid
+  
+  // Image Type & View
+  imageType       ProductImageType @default(MAIN)
+  viewType        ProductImageView?
+  
+  // Cloudinary Data
+  cloudinaryPublicId String?
+  cloudinaryUrl    String?
+  cloudinarySecureUrl String?
+  format          String?  // "webp", "jpeg", "png"
+  resourceType    String?  // "image"
+  version         Int?
+  signature       String?
+  
+  // Image Variants
+  thumbnailUrl    String?
+  smallUrl        String?
+  mediumUrl       String?
+  largeUrl        String?
+  
+  // Original & Processed URLs
+  originalUrl     String?
+  processedUrl    String?
+  
+  // Image Dimensions
+  width           Int?
+  height          Int?
+  aspectRatio     Float?
+  
+  // File Information
+  fileSize        Int?
+  fileSizeBytes   Int?
+  
+  // SEO Data
+  altText         String?
+  title           String?
+  caption         String?
+  seoFilename     String?
+  imageTitle      String?
+  
+  // Generation Data
+  generationPrompt String?
+  generationModel String?  // "dall-e-3", "dall-e-2"
+  generationStatus ImageGenerationStatus @default(PENDING)
+  qualityScore    Int?     // 0-100
+  isApproved      Boolean  @default(false)
+  isMain          Boolean  @default(false)
+  sortOrder       Int      @default(0)
+  
+  // Processing Flags
+  backgroundRemoved Boolean @default(false)
+  enhanced        Boolean @default(false)
+  compressed       Boolean @default(false)
+  upscaled        Boolean @default(false)
+  
+  // Analysis Data
+  tags            String[]
+  dominantColors  String[]
+  analysis        Json?
+  metadata        Json?
+  
+  // Error Handling
+  error           String?
+  retryCount      Int      @default(0)
+  maxRetries      Int      @default(3)
+  
+  // Timestamps
+  generatedAt     DateTime?
+  uploadedAt      DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  Organization    Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  generation      AiProductGeneration? @relation(fields: [generationId], references: [id], onDelete: SetNull)
+  Product         Product?             @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId])
+  @@index([generationId])
+  @@index([productId])
+  @@index([imageType])
+  @@index([generationStatus])
+  @@index([isMain])
+  @@index([sortOrder])
+}
+
+model AIProductPricing {
+  id              String   @id @default(uuid()) @db.Uuid
+  organizationId  String   @db.Uuid
+  generationId    String   @unique @db.Uuid
+  productId       String?  @db.Uuid
+  suggestedPrice  Float
+  profitMargin    Float
+  shippingEstimate Float?
+  competitorPrice Float?
+  discountPrice   Float?
+  wholesalePrice  Float?
+  taxEstimate     Float?
+  currency        String   @default("MAD")
+  pricingStrategy Json?
+  marketAnalysis  Json?
+  confidence      Float?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  Organization    Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  generation      AiProductGeneration @relation(fields: [generationId], references: [id], onDelete: Cascade)
+  Product         Product?             @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId])
+  @@index([generationId])
+  @@index([productId])
+}
+
+model AIProductCategory {
+  id              String   @id @default(uuid()) @db.Uuid
+  organizationId  String   @db.Uuid
+  generationId    String   @db.Uuid
+  categoryId      String?  @db.Uuid
+  detectedCategory String
+  detectedSubcategory String?
+  tags            String[]
+  attributes      Json?
+  collections     String[]
+  confidence      Float?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  Organization    Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  generation      AiProductGeneration @relation(fields: [generationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([generationId])
+  @@index([categoryId])
+}
+
+model AIBulkImport {
+  id              String   @id @default(uuid()) @db.Uuid
+  organizationId  String   @db.Uuid
+  userId          String?  @db.Uuid
+  sourceType      String
+  sourceUrl       String?
+  fileUrl         String?
+  totalItems      Int
+  processedItems  Int      @default(0)
+  failedItems     Int      @default(0)
+  status          AIJobStatus @default(QUEUED)
+  inputFormat     String
+  mapping         Json?
+  results         Json?
+  error           String?
+  startedAt       DateTime?
+  completedAt     DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  Organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  User            User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  jobs            AIProductJob[]
+
+  @@index([organizationId, status, createdAt])
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model AIProductAnalytics {
+  id              String   @id @default(uuid()) @db.Uuid
+  organizationId  String   @db.Uuid
+  date            DateTime @db.Date
+  totalGenerated  Int      @default(0)
+  totalPublished  Int      @default(0)
+  averageQuality  Float?
+  averageSeoScore Float?
+  generationTime  Int?
+  aiUsage         Json?
+  costPerProduct  Float?
+  topCategories   Json?
+  modelUsage      Json?
+  languageUsage   Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  Organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, date])
+  @@index([organizationId])
+  @@index([date])
+}
+
+// Google Integration Models
+model GoogleIntegration {
+  id              String   @id @default(uuid()) @db.Uuid
+  organizationId  String   @db.Uuid
+  service         GoogleService
+  enabled         Boolean  @default(false)
+  config          Json?
+  status          IntegrationStatus @default(DISCONNECTED)
+  lastSyncAt      DateTime?
+  lastSyncStatus  String?
+  error           String?
+  healthScore     Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  Organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  analyticsEvents GoogleAnalyticsEvent[]
+  merchantFeeds   GoogleMerchantFeed[]
+
+  @@unique([organizationId, service])
+  @@index([organizationId])
+  @@index([service])
+  @@index([status])
+}
+
+model GoogleAnalyticsEvent {
+  id              String   @id @default(uuid()) @db.Uuid
+  organizationId  String   @db.Uuid
+  integrationId   String   @db.Uuid
+  eventType       String
+  eventData       Json
+  userId          String?  @db.Uuid
+  sessionId       String?
+  timestamp       DateTime @default(now())
+
+  Organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  integration     GoogleIntegration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, timestamp])
+  @@index([integrationId, timestamp])
+  @@index([eventType])
+  @@index([userId])
+}
+
+model GoogleMerchantFeed {
+  id              String   @id @default(uuid()) @db.Uuid
+  organizationId  String   @db.Uuid
+  integrationId   String   @db.Uuid
+  feedName        String
+  feedUrl         String?
+  feedId          String?
+  status          FeedStatus @default(PENDING)
+  totalProducts   Int      @default(0)
+  processedProducts Int     @default(0)
+  lastGeneratedAt DateTime?
+  lastSyncAt      DateTime?
+  error           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  Organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  integration     GoogleIntegration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, feedName])
+  @@index([organizationId])
+  @@index([integrationId])
+  @@index([status])
+}
+
+model GoogleOAuthAccount {
+  id              String   @id @default(uuid()) @db.Uuid
+  userId          String   @db.Uuid
+  googleId        String
+  email           String
+  name            String?
+  picture         String?
+  accessToken     String
+  refreshToken    String?
+  tokenExpiresAt  DateTime?
+  scopes          String[]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([googleId])
+  @@unique([userId])
+  @@index([email])
+}
+
+model GoogleSearchConsoleSite {
+  id              String   @id @default(uuid()) @db.Uuid
+  organizationId  String   @db.Uuid
+  siteUrl         String
+  verified        Boolean  @default(false)
+  verificationMethod String?
+  sitemapUrl      String?
+  lastCrawlAt     DateTime?
+  crawlErrors     Int      @default(0)
+  indexedPages    Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  Organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, siteUrl])
+  @@index([organizationId])
+  @@index([verified])
+}
+
+model GoogleBusinessProfile {
+  id              String   @id @default(uuid()) @db.Uuid
+  organizationId  String   @db.Uuid
+  placeId         String
+  name            String
+  address         String?
+  phone           String?
+  website         String?
+  categories      String[]
+  rating          Float?
+  reviewCount     Int?
+  verified        Boolean  @default(false)
+  lastSyncAt      DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  Organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, placeId])
+  @@index([organizationId])
+  @@index([verified])
+}
+
+model GoogleMapsLocation {
+  id              String   @id @default(uuid()) @db.Uuid
+  organizationId  String   @db.Uuid
+  name            String
+  address         String
+  latitude        Float
+  longitude       Float
+  locationType    LocationType
+  deliveryZone    Json?
+  warehouse       Boolean  @default(false)
+  store           Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  Organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([locationType])
+}
+
+// Enums
+enum GoogleService {
+  ANALYTICS
+  TAG_MANAGER
+  SEARCH_CONSOLE
+  MERCHANT_CENTER
+  BUSINESS_PROFILE
+  RECAPTCHA
+  MAPS
+  OAUTH
+}
+
+enum IntegrationStatus {
+  CONNECTED
+  DISCONNECTED
+  ERROR
+  PENDING
+  SYNCING
+}
+
+enum FeedStatus {
+  ACTIVE
+  PENDING
+  PROCESSING
+  ERROR
+  DISABLED
+}
+
+enum LocationType {
+  STORE
+  WAREHOUSE
+  DELIVERY_ZONE
+  PICKUP_POINT
+}
+
+// Homepage Section Models
+
+model FeaturedCategory {
+  id              String   @id @default(uuid()) @db.Uuid
+  categoryId      String   @db.Uuid
+  order           Int      @default(0)
+  enabled         Boolean  @default(true)
+  backgroundColor String?  @default("#ffffff")
+  gradient        String?
+  buttonText      String   @default("Shop Now")
+  buttonUrl       String?
+  description     String?
+  image           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  category        Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@index([categoryId])
+  @@index([enabled])
+}
+
+model SuperDeal {
+  id              String   @id @default(uuid()) @db.Uuid
+  organizationId  String   @db.Uuid
+  productId       String   @db.Uuid
+  order           Int      @default(0)
+  enabled         Boolean  @default(true)
+  
+  // Deal Configuration
+  discountType    SuperDealDiscountType @default(PERCENTAGE)
+  discountValue   Float
+  originalPrice   Float?
+  dealPrice       Float?
+  
+  // Scheduling
+  startDate       DateTime?
+  endDate         DateTime?
+  autoStart       Boolean  @default(false)
+  autoEnd         Boolean  @default(true)
+  
+  // Display Settings
+  countdown       Boolean  @default(false)
+  featured        Boolean  @default(false)
+  flashSale       Boolean  @default(false)
+  stockLimit      Int?
+  
+  // Visual Design
+  image           String?
+  bannerImage     String?
+  backgroundColor String?  @default("#ffffff")
+  gradient        String?
+  
+  // CTA Buttons
+  buttonText      String   @default("Buy Now")
+  buttonUrl       String?
+  
+  // SEO & Metadata
+  title           String?
+  description     String?
+  seoTitle        String?
+  seoDescription  String?
+  ogImage         String?
+  
+  // Multi-language
+  titleAr         String?
+  titleFr         String?
+  descriptionAr   String?
+  descriptionFr   String?
+  buttonTextAr    String?
+  buttonTextFr    String?
+  
+  // AI Generation
+  aiGenerated     Boolean  @default(false)
+  aiPrompt        String?
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  // Relations
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  product         Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+  analytics       SuperDealAnalytics[]
+
+  @@index([organizationId])
+  @@index([productId])
+  @@index([enabled])
+  @@index([startDate])
+  @@index([endDate])
+  @@index([featured])
+  @@index([order])
+}
+
+model SuperDealAnalytics {
+  id              String   @id @default(uuid()) @db.Uuid
+  superDealId     String   @db.Uuid
+  eventType       SuperDealEventType
+  sessionId       String?
+  userId          String?  @db.Uuid
+  ipAddress       String?
+  userAgent       String?
+  metadata        Json?
+  createdAt       DateTime @default(now())
+  
+  superDeal       SuperDeal @relation(fields: [superDealId], references: [id], onDelete: Cascade)
+
+  @@index([superDealId])
+  @@index([eventType])
+  @@index([createdAt])
+  @@index([userId])
+}
+
+enum SuperDealDiscountType {
+  PERCENTAGE
+  FIXED_AMOUNT
+  BUY_ONE_GET_ONE
+}
+
+enum SuperDealEventType {
+  IMPRESSION
+  CLICK
+  ADD_TO_CART
+  PURCHASE
+  VIEW_DETAILS
+}
+
+model BundleDeal {
+  id              String   @id @default(uuid()) @db.Uuid
+  name            String
+  description     String?
+  bundlePrice     Float
+  discountPercent Float
+  enabled         Boolean  @default(true)
+  backgroundColor String?  @default("#ffffff")
+  gradient        String?
+  buttonText      String   @default("Buy Bundle")
+  buttonUrl       String?
+  image           String?
+  order           Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  products        BundleProduct[]
+
+  @@index([enabled])
+}
+
+model BundleProduct {
+  id          String    @id @default(uuid()) @db.Uuid
+  bundleId    String    @db.Uuid
+  productId   String    @db.Uuid
+  order       Int       @default(0)
+  createdAt   DateTime  @default(now())
+  bundle      BundleDeal @relation(fields: [bundleId], references: [id], onDelete: Cascade)
+  product     Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([bundleId])
   @@index([productId])
 }

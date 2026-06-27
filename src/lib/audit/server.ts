@@ -44,7 +44,7 @@ class AuditSDK {
     try {
       // Perform fraud detection
       const fraudResult = await this.detectFraud(input);
-      
+
       // Perform anomaly detection
       const anomalyResult = await this.detectAnomaly(input);
 

@@ -100,6 +100,9 @@ const CONTENT_GROUP: NavItem = {
     { icon: ImageIcon, label: "Media Library", href: "/admin/cms/media" },
     { icon: Menu, label: "Navigation", href: "/admin/cms/navigation" },
     { icon: Award, label: "Brands", href: "/admin/cms/brands" },
+    { icon: FolderOpen, label: "Featured Categories", href: "/admin/cms/featured-categories" },
+    { icon: Tag, label: "Super Deals", href: "/admin/cms/super-deals" },
+    { icon: Layers, label: "Bundle Deals", href: "/admin/cms/bundle-deals" },
     { icon: BarChart3, label: "CMS Analytics", href: "/admin/cms/analytics" },
   ]
 };

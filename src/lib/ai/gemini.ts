@@ -111,25 +111,88 @@ export async function createJson<T>(instructions: string, input: unknown, fallba
 }
 
 export async function createStreamingText(instructions: string, messages: AiChatMessage[]) {
+  const startTime = Date.now();
+  const apiKeyAvailable = isGeminiConfigured();
+  
+  console.log("[Gemini] createStreamingText called:", {
+    model: DEFAULT_MODEL,
+    apiKeyAvailable,
+    instructionsLength: instructions.length,
+    messagesCount: messages.length,
+  });
+
   const client = getClient();
   if (!client) {
+    console.warn("[Gemini] No client available - API key not configured");
     return textToProviderSseStream(
       "Je suis pret a vous aider avec vos achats, recommandations et questions produit. Ajoutez GEMINI_API_KEY pour activer le streaming IA complet."
     );
   }
 
-  try {
-    const model = client.getGenerativeModel({
-      model: DEFAULT_MODEL,
-      safetySettings,
-      generationConfig: { maxOutputTokens: DEFAULT_MAX_OUTPUT_TOKENS },
-    });
-    const stream = await model.generateContentStream(buildPrompt(instructions, messages));
-    return geminiStreamToProviderSse(stream.stream);
-  } catch (error) {
-    console.error("[Gemini] streaming fallback:", safeError(error));
-    return textToProviderSseStream("AI streaming is temporarily unavailable. Please try again shortly.");
+  // Retry logic: try streaming first, then fallback to non-streaming
+  let lastError: Error | null = null;
+  
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    try {
+      console.log(`[Gemini] Streaming attempt ${attempt}/2`);
+      const model = client.getGenerativeModel({
+        model: DEFAULT_MODEL,
+        safetySettings,
+        generationConfig: { maxOutputTokens: DEFAULT_MAX_OUTPUT_TOKENS },
+      });
+      
+      const stream = await withTimeout(
+        model.generateContentStream(buildPrompt(instructions, messages)),
+        DEFAULT_TIMEOUT_MS
+      );
+      
+      const duration = Date.now() - startTime;
+      console.log(`[Gemini] Streaming successful on attempt ${attempt}, duration: ${duration}ms`);
+      
+      return geminiStreamToProviderSse(stream.stream);
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      console.error(`[Gemini] Streaming attempt ${attempt} failed:`, {
+        errorName: lastError.name,
+        errorMessage: lastError.message,
+        errorStack: lastError.stack?.slice(0, 500),
+      });
+      
+      if (attempt < 2) {
+        console.log("[Gemini] Retrying with non-streaming fallback...");
+        // Fallback to non-streaming on second attempt
+        try {
+          const model = client.getGenerativeModel({
+            model: DEFAULT_MODEL,
+            safetySettings,
+            generationConfig: { maxOutputTokens: DEFAULT_MAX_OUTPUT_TOKENS },
+          });
+          
+          const result = await withTimeout(
+            model.generateContent(buildPrompt(instructions, messages)),
+            DEFAULT_TIMEOUT_MS
+          );
+          
+          const text = result.response.text().trim();
+          const duration = Date.now() - startTime;
+          console.log(`[Gemini] Non-streaming fallback successful, duration: ${duration}ms`);
+          
+          return textToProviderSseStream(text);
+        } catch (fallbackError) {
+          console.error("[Gemini] Non-streaming fallback also failed:", safeError(fallbackError));
+        }
+      }
+    }
   }
+
+  // All attempts failed
+  const duration = Date.now() - startTime;
+  console.error("[Gemini] All streaming attempts failed:", {
+    duration,
+    lastError: lastError?.message,
+  });
+  
+  return textToProviderSseStream("AI streaming is temporarily unavailable. Please try again shortly.");
 }
 
 export async function moderateText(input: string) {

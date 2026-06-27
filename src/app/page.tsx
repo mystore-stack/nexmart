@@ -15,6 +15,9 @@ import { SkeletonGrid } from "@/components/ui/Skeleton";
 import { getHomePageData } from "@/lib/home-data";
 import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
+import { ShopByCategoryServer } from "@/components/home/ShopByCategoryServer";
+import { SuperDealsServer } from "@/components/home/SuperDealsServer";
+import { BundleDealsServer } from "@/components/home/BundleDealsServer";
 
 export const revalidate = 300;
 
@@ -88,6 +91,10 @@ function LegacyHomePage({ data }: { data: Awaited<ReturnType<typeof getHomePageD
 
       {marketing && <MarketingHomeIntegration marketing={marketing} />}
 
+      <Suspense fallback={<div className="h-96 animate-pulse bg-muted" />}>
+        <ShopByCategoryServer />
+      </Suspense>
+
       {!useMarketingFlash && flashSale.length > 0 && (
         <section className="relative overflow-hidden bg-moroccan-navy py-14 md:py-20">
           <div className="container-main">
@@ -95,6 +102,10 @@ function LegacyHomePage({ data }: { data: Awaited<ReturnType<typeof getHomePageD
           </div>
         </section>
       )}
+
+      <Suspense fallback={<div className="h-96 animate-pulse bg-muted" />}>
+        <SuperDealsServer />
+      </Suspense>
 
       <section className="section">
         <div className="container-main">
@@ -127,6 +138,10 @@ function LegacyHomePage({ data }: { data: Awaited<ReturnType<typeof getHomePageD
           </Suspense>
         </div>
       </section>
+
+      <Suspense fallback={<div className="h-96 animate-pulse bg-muted" />}>
+        <BundleDealsServer />
+      </Suspense>
 
       <section className="section">
         <div className="container-main">

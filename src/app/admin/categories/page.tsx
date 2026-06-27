@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Plus, FolderOpen, Edit, Trash2, X, Check, Image as ImageIcon } from "lucide-react";
 import Image from "next/image";
 import toast from "react-hot-toast";
+import { ImageUpload } from "@/components/admin/ImageUpload";
 
 interface Category {
   id: string;
@@ -127,14 +128,12 @@ export default function AdminCategoriesPage() {
                   className="input"
                 />
               </div>
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium">Image URL</label>
-                <input
-                  type="url"
+              <div className="space-y-1.5 sm:col-span-2">
+                <label className="text-sm font-medium">Image</label>
+                <ImageUpload
                   value={form.image}
-                  onChange={(e) => setForm((f) => ({ ...f, image: e.target.value }))}
-                  placeholder="https://images.unsplash.com/..."
-                  className="input"
+                  onChange={(value) => setForm((f) => ({ ...f, image: value }))}
+                  folder="categories"
                 />
               </div>
               <div className="space-y-1.5 sm:col-span-2">
@@ -184,7 +183,7 @@ export default function AdminCategoriesPage() {
               {/* Image / placeholder */}
               <div className="relative h-24 bg-muted">
                 {cat.image ? (
-                  <Image src={cat.image} alt={cat.name} fill className="object-cover" sizes="300px" />
+                  <Image src={cat.image} alt={cat.name} fill className="object-cover" sizes="300px" unoptimized />
                 ) : (
                   <div className="flex items-center justify-center h-full">
                     <ImageIcon className="w-8 h-8 text-muted-foreground/30" />
