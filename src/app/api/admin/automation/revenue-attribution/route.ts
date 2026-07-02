@@ -12,8 +12,8 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await requireAuth(req);
-    if (!session || session.user.role !== 'ADMIN') {
+    const session = await requireAuth();
+    if (!session || session.role !== 'ADMIN') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
     const endDate = req.nextUrl.searchParams.get('endDate');
     const topCampaigns = req.nextUrl.searchParams.get('topCampaigns') === 'true';
     const clv = req.nextUrl.searchParams.get('clv') === 'true';
-    const limit = parseInt(req.nextUrl.searchParams.get('limit') || '10');
+    const limit = parseInt(req.nextUrl.searchParams.get('limit') || '10', 10);
 
     if (!organizationId) {
       return NextResponse.json({ error: 'Organization ID required' }, { status: 400 });
@@ -52,8 +52,8 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await requireAuth(req);
-    if (!session || session.user.role !== 'ADMIN') {
+    const session = await requireAuth();
+    if (!session || session.role !== 'ADMIN') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 

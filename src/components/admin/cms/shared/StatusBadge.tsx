@@ -8,7 +8,7 @@ interface StatusBadgeProps {
 }
 
 export function StatusBadge({ status, className }: StatusBadgeProps) {
-  const config = CMS_STATUS_LABELS[status as CMSContentStatus] ?? {
+  const config = CMS_STATUS_LABELS[status as keyof typeof CMS_STATUS_LABELS] ?? {
     label: status,
     color: "bg-gray-500",
   };

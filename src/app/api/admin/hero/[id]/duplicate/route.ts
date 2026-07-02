@@ -1,19 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth-api";
+import { getDefaultOrganizationId } from "@/lib/tenant";
 
 // POST duplicate hero banner (admin only)
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await requireAdmin();
-    const { id } = params;
+    const { id } = await params;
 
-    // Check if banner exists
-    const existingBanner = await prisma.heroBanner.findUnique({
-      where: { id },
+    const organizationId = await getDefaultOrganizationId();
+
+    // Check if banner exists and belongs to organization
+    const existingBanner = await prisma.heroBanner.findFirst({
+      where: { id, organizationId },
     });
 
     if (!existingBanner) {
@@ -23,8 +26,9 @@ export async function POST(
       );
     }
 
-    // Get the highest display order
+    // Get the highest display order for this organization
     const maxOrder = await prisma.heroBanner.findFirst({
+      where: { organizationId },
       orderBy: { displayOrder: "desc" },
       select: { displayOrder: true },
     });
@@ -34,6 +38,7 @@ export async function POST(
     const duplicate = await prisma.heroBanner.create({
       data: {
         ...bannerData,
+        organizationId,
         title: `${bannerData.title} (Copy)`,
         displayOrder: (maxOrder?.displayOrder || 0) + 1,
         isActive: false,
@@ -44,7 +49,7 @@ export async function POST(
         conversionCount: 0,
         revenueGenerated: 0,
         publishedAt: null,
-      },
+      } as any,
     });
 
     return NextResponse.json({ success: true, banner: duplicate }, { status: 201 });

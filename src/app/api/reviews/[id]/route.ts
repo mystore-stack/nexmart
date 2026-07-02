@@ -15,10 +15,10 @@ const updateSchema = z.object({
 // GET /api/reviews/[id] - Get single review
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
     
     const review = await prisma.review.findUnique({
       where: { id },
@@ -42,12 +42,12 @@ export async function GET(
 // PUT /api/reviews/[id] - Update review (within 7 days)
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await requireAuth();
     const organizationId = session.organizationId;
-    const { id } = params;
+    const { id } = await params;
     
     const rl = await rateLimit(`review:update:${session.userId}`, 5, 60 * 1000);
     if (!rl.success) {
@@ -115,11 +115,11 @@ export async function PUT(
 // DELETE /api/reviews/[id] - Delete review
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await requireAuth();
-    const { id } = params;
+    const { id } = await params;
 
     const existingReview = await prisma.review.findUnique({
       where: { id },

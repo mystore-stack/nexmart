@@ -204,7 +204,7 @@ export async function createPredefinedSegments(organizationId: string) {
         organizationId,
         template.name,
         template.description,
-        template.rules
+        template.rules as any
       );
       segments.push(segment);
     }

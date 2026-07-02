@@ -1,72 +1,173 @@
-import { prisma } from "@/lib/prisma";
-import { getDefaultOrganizationId } from "@/lib/tenant";
-import { requireCmsAccess } from "@/lib/cms/auth";
-import { HomepageBuilder } from "@/components/admin/cms/homepage/HomepageBuilder";
-import { DEFAULT_HOMEPAGE_SECTIONS } from "@/lib/cms/constants";
-import type { HomepageSectionType } from "@prisma/client";
+'use client';
 
-export default async function HomepageBuilderPage() {
-  await requireCmsAccess();
-  const orgId = await getDefaultOrganizationId();
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { TopNavigation } from '@/components/page-builder/cms/TopNavigation';
+import { LeftSidebar } from '@/components/page-builder/cms/LeftSidebar';
+import { VisualCanvas } from '@/components/page-builder/cms/VisualCanvas';
+import { RightInspector } from '@/components/page-builder/cms/RightInspector';
+import { AIAssistant } from '@/components/page-builder/cms/AIAssistant';
+import { CommandPalette } from '@/components/page-builder/cms/CommandPalette';
+import { PublishDialog } from '@/components/page-builder/cms/PublishDialog';
+import { useHomepageBuilder } from '@/components/page-builder/cms/hooks/useHomepageBuilder';
+import toast from 'react-hot-toast';
 
-  let config = await prisma.homepageConfig.findFirst({
-    where: { organizationId: orgId },
-    include: {
-      sections: { orderBy: { displayOrder: "asc" } },
-      versions: { orderBy: { version: "desc" }, take: 10 },
-    },
-  });
+export default function HomepageBuilderPage() {
+  const [showAI, setShowAI] = useState(false);
+  const [showCommandPalette, setShowCommandPalette] = useState(false);
+  const [showPublishDialog, setShowPublishDialog] = useState(false);
+  const [orientation, setOrientation] = useState<'portrait' | 'landscape'>('portrait');
+  
+  const {
+    sections,
+    selectedSection,
+    selectedDevice,
+    theme,
+    selectSection,
+    updateSection,
+    addSection,
+    removeSection,
+    duplicateSection,
+    reorderSections,
+    setDevice,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+    saveDraft,
+    publish,
+    isSaving,
+    isPublishing,
+    lastSaved,
+    status,
+  } = useHomepageBuilder();
 
-  if (!config) {
-    config = await prisma.homepageConfig.create({
-      data: {
-        organizationId: orgId,
-        featuredCategories: [],
-        featuredProducts: [],
-        featuredBrands: [],
-        testimonials: [],
-        status: "DRAFT",
-        sections: {
-          create: DEFAULT_HOMEPAGE_SECTIONS.map((type, index) => ({
-            type: type as HomepageSectionType,
-            title: type.replace(/_/g, " "),
-            config: {},
-            isVisible: true,
-            displayOrder: index,
-          })),
-        },
-      },
-      include: {
-        sections: { orderBy: { displayOrder: "asc" } },
-        versions: { orderBy: { version: "desc" }, take: 10 },
-      },
-    });
-  }
+  // Handle save with toast notification
+  const handleSaveDraft = async () => {
+    try {
+      await saveDraft();
+      toast.success('Draft saved successfully');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to save draft');
+    }
+  };
+
+  // Handle publish with toast notification
+  const handlePublish = async () => {
+    try {
+      await publish();
+      toast.success('Homepage published successfully');
+      setShowPublishDialog(false);
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to publish');
+    }
+  };
+
+  // Auto-save with debouncing
+  useEffect(() => {
+    const timeoutId = setTimeout(async () => {
+      if (sections.length > 0) {
+        try {
+          await saveDraft();
+          console.log('[AUTO_SAVE] Saved automatically');
+        } catch (error) {
+          console.error('[AUTO_SAVE] Failed:', error);
+        }
+      }
+    }, 2000); // 2 second debounce
+
+    return () => clearTimeout(timeoutId);
+  }, [sections, saveDraft]);
 
   return (
-    <HomepageBuilder
-      initialSections={config.sections.map((s) => ({
-        id: s.id,
-        type: s.type,
-        title: s.title,
-        subtitle: s.subtitle,
-        config: (s.config as Record<string, unknown>) ?? {},
-        isVisible: s.isVisible,
-        displayOrder: s.displayOrder,
-      }))}
-      initialStatus={config.status}
-      initialVersion={config.version}
-      versions={config.versions.map((v) => ({
-        id: v.id,
-        version: v.version,
-        note: v.note,
-        createdAt: v.createdAt.toISOString(),
-      }))}
-      newsletter={{
-        enabled: config.newsletterEnabled,
-        title: config.newsletterTitle,
-        subtitle: config.newsletterSubtitle,
-      }}
-    />
+    <div className="flex flex-col bg-background rounded-xl border border-border/40 overflow-hidden" style={{ height: 'calc(100vh - 10rem)' }}>
+      {/* Top Navigation */}
+      <TopNavigation
+        onUndo={undo}
+        onRedo={redo}
+        canUndo={canUndo}
+        canRedo={canRedo}
+        onSaveDraft={handleSaveDraft}
+        onPublish={() => setShowPublishDialog(true)}
+        onToggleAI={() => setShowAI(!showAI)}
+        onShowCommandPalette={() => setShowCommandPalette(true)}
+        device={selectedDevice}
+        onDeviceChange={setDevice}
+        isSaving={isSaving}
+        isPublishing={isPublishing}
+        lastSaved={lastSaved}
+        status={status}
+      />
+
+      {/* Main Content */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Left Sidebar */}
+        <LeftSidebar
+          sections={sections}
+          selectedSection={selectedSection}
+          onSelectSection={selectSection}
+          onAddSection={addSection}
+          onRemoveSection={removeSection}
+          onDuplicateSection={duplicateSection}
+          onReorderSections={reorderSections}
+        />
+
+        {/* Visual Canvas */}
+        <VisualCanvas
+          sections={sections}
+          selectedSection={selectedSection}
+          device={selectedDevice}
+          orientation={orientation}
+          theme={theme}
+          onSelectSection={selectSection}
+          onUpdateSection={updateSection}
+          onDeviceChange={setDevice}
+          onOrientationChange={setOrientation}
+        />
+
+        {/* Right Inspector */}
+        <RightInspector
+          section={selectedSection}
+          theme={theme}
+          onUpdateSection={updateSection}
+          onUpdateTheme={() => {}}
+        />
+      </div>
+
+      {/* AI Assistant */}
+      <AnimatePresence>
+        {showAI && (
+          <AIAssistant
+            onClose={() => setShowAI(false)}
+            onGenerate={(prompt) => {
+              console.log('AI Generate:', prompt);
+            }}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Command Palette */}
+      <AnimatePresence>
+        {showCommandPalette && (
+          <CommandPalette
+            onClose={() => setShowCommandPalette(false)}
+            onSelect={(action) => {
+              console.log('Command:', action);
+              setShowCommandPalette(false);
+            }}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Publish Dialog */}
+      <AnimatePresence>
+        {showPublishDialog && (
+          <PublishDialog
+            onClose={() => setShowPublishDialog(false)}
+            onPublish={handlePublish}
+          />
+        )}
+      </AnimatePresence>
+    </div>
   );
 }

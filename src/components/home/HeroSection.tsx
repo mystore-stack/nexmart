@@ -10,51 +10,45 @@ import { ArrowRight, ChevronLeft, ChevronRight, ShieldCheck, Star, Truck, Sparkl
 const FALLBACK_SLIDES = [
   {
     id: "fallback-1",
-    eyebrow: "Collection Exclusive",
+    badgeText: "IA · Boutique Live",
     title: "L'art du shopping",
-    titleAccent: "marocain.",
+    highlightedText: "marocain.",
     subtitle: "Découvrez une sélection premium de produits authentiques, recommandés par notre intelligence artificielle adaptée à votre style.",
-    cta: "Explorer la boutique",
-    ctaSecondary: "Voir les offres",
-    href: "/products?sort=recommended",
-    hrefSecondary: "/deals",
-    badge: "IA · Boutique Live",
-    stat: "2.4M+",
-    statLabel: "clients satisfaits",
-    image: "https://images.unsplash.com/photo-1558769132-cb1aea458c5e?w=1400&q=90",
-    accent: "#0F766E",
+    description: "2.4M+ clients satisfaits",
+    primaryButtonText: "Explorer la boutique",
+    primaryButtonLink: "/products?sort=recommended",
+    secondaryButtonText: "Voir les offres",
+    secondaryButtonLink: "/deals",
+    desktopImageUrl: "https://images.unsplash.com/photo-1558769132-cb1aea458c5e?w=1400&q=90",
+    backgroundColor: "#0F766E",
   },
   {
     id: "fallback-2",
-    eyebrow: "Technologie Premium",
+    badgeText: "Électronique · Curated",
     title: "Équipez-vous avec",
-    titleAccent: "le meilleur.",
+    highlightedText: "le meilleur.",
     subtitle: "Comparez les specs, lisez les avis et trouvez les meilleures offres tech du marché marocain en un seul endroit élégant.",
-    cta: "Découvrir la tech",
-    ctaSecondary: "Meilleures ventes",
-    href: "/products?category=electronics",
-    hrefSecondary: "/products?sort=bestselling",
-    badge: "Électronique · Curated",
-    stat: "18%",
-    statLabel: "d'économies moyennes",
-    image: "https://images.unsplash.com/photo-1491933382434-500287f9b54b?w=1400&q=90",
-    accent: "#1255A0",
+    description: "18% d'économies moyennes",
+    primaryButtonText: "Découvrir la tech",
+    primaryButtonLink: "/products?category=electronics",
+    secondaryButtonText: "Meilleures ventes",
+    secondaryButtonLink: "/products?sort=bestselling",
+    desktopImageUrl: "https://images.unsplash.com/photo-1491933382434-500287f9b54b?w=1400&q=90",
+    backgroundColor: "#1255A0",
   },
   {
     id: "fallback-3",
-    eyebrow: "Mode & Lifestyle",
+    badgeText: "Tendances · Now",
     title: "La nouvelle saison,",
-    titleAccent: "sublimée.",
+    highlightedText: "sublimée.",
     subtitle: "Mode, maison, beauté — découvrez des collections triées par nos experts pour refléter l'élégance marocaine contemporaine.",
-    cta: "Voir la collection",
-    ctaSecondary: "Nouveautés",
-    href: "/products?category=fashion",
-    hrefSecondary: "/new-arrivals",
-    badge: "Tendances · Now",
-    stat: "4.9★",
-    statLabel: "note acheteurs",
-    image: "https://images.unsplash.com/photo-1445205170230-053b83016050?w=1400&q=90",
-    accent: "#C25B33",
+    description: "4.9★ note acheteurs",
+    primaryButtonText: "Voir la collection",
+    primaryButtonLink: "/products?category=fashion",
+    secondaryButtonText: "Nouveautés",
+    secondaryButtonLink: "/new-arrivals",
+    desktopImageUrl: "https://images.unsplash.com/photo-1445205170230-053b83016050?w=1400&q=90",
+    backgroundColor: "#C25B33",
   },
 ];
 
@@ -97,6 +91,9 @@ export function HeroSection() {
   const slides = banners.length > 0 ? banners : FALLBACK_SLIDES;
   const slide = slides[current];
   const isUsingFallback = banners.length === 0;
+
+  // Get image URL - support both API format and fallback format
+  const imageUrl = slide.desktopImageUrl || slide.image;
 
   useEffect(() => {
     async function fetchBanners() {
@@ -233,7 +230,7 @@ export function HeroSection() {
           transition={{ duration: 0.85 }}
           className="absolute inset-0"
         >
-          <Image src={slide.image} alt="" fill className="object-cover opacity-30" priority sizes="100vw" />
+          <Image src={imageUrl} alt="" fill className="object-cover opacity-30" priority sizes="100vw" />
           <div className="absolute inset-0" style={{
             background: "linear-gradient(90deg, rgba(10,15,28,0.98) 0%, rgba(10,15,28,0.75) 55%, rgba(10,15,28,0.3) 100%)"
           }} />
@@ -277,42 +274,50 @@ export function HeroSection() {
             className="max-w-2xl"
           >
             {/* Eyebrow */}
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.1, duration: 0.4 }}
-              className="mb-5 inline-flex items-center gap-2.5 rounded-full border border-gold-400/30 bg-gold-400/10 px-4 py-2 backdrop-blur"
-            >
-              <div className="h-1.5 w-1.5 rounded-full bg-gold-400 animate-pulse" />
-              <span className="text-xs font-bold uppercase tracking-widest text-gold-300">
-                {slide.badge}
-              </span>
-            </motion.div>
+            {slide.badgeText && (
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.1, duration: 0.4 }}
+                className="mb-5 inline-flex items-center gap-2.5 rounded-full border border-gold-400/30 bg-gold-400/10 px-4 py-2 backdrop-blur"
+              >
+                <div className="h-1.5 w-1.5 rounded-full bg-gold-400 animate-pulse" />
+                <span className="text-xs font-bold uppercase tracking-widest text-gold-300">
+                  {slide.badgeText}
+                </span>
+              </motion.div>
+            )}
 
             {/* Headline */}
             <h1 className="font-display text-5xl font-light leading-[1.02] text-white sm:text-6xl lg:text-7xl">
               <span className="block text-white/95">{slide.title}</span>
-              <span className="block" style={{ background: "linear-gradient(135deg, #D4AF37 0%, #f0d060 50%, #D4AF37 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
-                {slide.titleAccent}
-              </span>
+              {slide.highlightedText && (
+                <span className="block" style={{ background: "linear-gradient(135deg, #D4AF37 0%, #f0d060 50%, #D4AF37 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+                  {slide.highlightedText}
+                </span>
+              )}
             </h1>
 
             {/* Gold divider */}
             <div className="my-6 h-px w-16 bg-gradient-to-r from-gold-400 to-transparent" />
 
             <p className="max-w-lg text-base leading-7 text-white/65 sm:text-[1.05rem]">
-              {slide.subtitle}
+              {slide.subtitle || slide.description}
             </p>
 
             {/* CTAs */}
             <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
-              <Link href={slide.href} onClick={() => trackClick("primaryClick")} className="btn btn-primary btn-lg group font-display text-[1rem] tracking-wide">
-                {slide.cta}
-                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1.5" />
-              </Link>
-              <Link href={slide.hrefSecondary} onClick={() => trackClick("secondaryClick")} className="btn h-[52px] px-6 border border-white/20 bg-white/8 text-white/90 rounded-2xl backdrop-blur hover:bg-white/15 hover:border-white/30 transition-all font-medium">
-                {slide.ctaSecondary}
-              </Link>
+              {slide.primaryButtonText && slide.primaryButtonLink && (
+                <Link href={slide.primaryButtonLink} onClick={() => trackClick("primaryClick")} className="btn btn-primary btn-lg group font-display text-[1rem] tracking-wide">
+                  {slide.primaryButtonText}
+                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1.5" />
+                </Link>
+              )}
+              {slide.secondaryButtonText && slide.secondaryButtonLink && (
+                <Link href={slide.secondaryButtonLink} onClick={() => trackClick("secondaryClick")} className="btn h-[52px] px-6 border border-white/20 bg-white/8 text-white/90 rounded-2xl backdrop-blur hover:bg-white/15 hover:border-white/30 transition-all font-medium">
+                  {slide.secondaryButtonText}
+                </Link>
+              )}
             </div>
 
             {/* Trust badges */}
@@ -351,7 +356,7 @@ export function HeroSection() {
                 <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-gold-400/70 to-transparent" />
 
                 <div className="relative aspect-[4/5] overflow-hidden">
-                  <Image src={slide.image} alt="" fill className="object-cover" priority sizes="(max-width: 640px) 100vw, 50vw" />
+                  <Image src={imageUrl} alt="" fill className="object-cover" priority sizes="(max-width: 640px) 100vw, 50vw" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
                 </div>
 
@@ -362,8 +367,8 @@ export function HeroSection() {
                   className="absolute top-4 left-4 rounded-2xl border border-gold-400/30 bg-black/50 px-4 py-3 backdrop-blur-xl"
                 >
                   <p className="text-xs font-bold text-gold-300/80 uppercase tracking-wide">Confiance</p>
-                  <p className="text-2xl font-display font-semibold text-white">{slide.stat}</p>
-                  <p className="text-xs text-white/55">{slide.statLabel}</p>
+                  <p className="text-2xl font-display font-semibold text-white">{slide.description || "2.4M+"}</p>
+                  <p className="text-xs text-white/55">Clients satisfaits</p>
                 </motion.div>
 
                 {/* Bottom info */}
@@ -377,7 +382,7 @@ export function HeroSection() {
                     <span className="text-xs text-white/70">Recommandé par l&apos;IA</span>
                   </div>
                   <div className="mt-2 flex items-center justify-between">
-                    <p className="text-sm font-semibold text-white">{slide.eyebrow}</p>
+                    <p className="text-sm font-semibold text-white">{slide.badgeText || "Premium"}</p>
                     <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gold-400/20">
                       <Sparkles className="h-3.5 w-3.5 text-gold-300" />
                     </div>

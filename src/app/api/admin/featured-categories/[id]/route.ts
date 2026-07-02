@@ -5,16 +5,17 @@ import { prisma } from "@/lib/prisma";
 // PATCH - Update featured category
 export async function PATCH(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const admin = await requireAdmin();
     const body = await req.json();
 
     const { enabled, order, backgroundColor, gradient, buttonText, buttonUrl, description } = body;
 
     const featuredCategory = await (prisma as any).featuredCategory.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         ...(enabled !== undefined && { enabled }),
         ...(order !== undefined && { order }),
@@ -45,13 +46,14 @@ export async function PATCH(
 // DELETE - Delete featured category
 export async function DELETE(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const admin = await requireAdmin();
 
     await (prisma as any).featuredCategory.delete({
-      where: { id: params.id },
+      where: { id },
     });
 
     return NextResponse.json({

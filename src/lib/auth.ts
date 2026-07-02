@@ -121,8 +121,8 @@ export async function verifyRefreshToken(token: string): Promise<JwtPayload> {
   }
 }
 
-export function setAuthCookies(accessToken: string, refreshToken: string) {
-  const cookieStore = cookies();
+export async function setAuthCookies(accessToken: string, refreshToken: string) {
+  const cookieStore = await cookies();
   const isProd = process.env.NODE_ENV === "production";
 
   cookieStore.set(AUTH_COOKIE, accessToken, {
@@ -142,8 +142,8 @@ export function setAuthCookies(accessToken: string, refreshToken: string) {
   });
 }
 
-export function clearAuthCookies() {
-  const cookieStore = cookies();
+export async function clearAuthCookies() {
+  const cookieStore = await cookies();
   cookieStore.delete(AUTH_COOKIE);
   cookieStore.delete(REFRESH_COOKIE);
 }

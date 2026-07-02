@@ -1,5 +1,4 @@
 export * from "./hero";
-export * from "./homepage";
 export * from "./announcement";
 export * from "./footer";
 export * from "./media";

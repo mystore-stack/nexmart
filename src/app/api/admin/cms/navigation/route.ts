@@ -5,6 +5,7 @@ import { requireCmsPermission } from "@/lib/cms/auth";
 import { CmsPermission } from "@/lib/cms/rbac";
 import { navigationMenuSchema, navigationMenuItemSchema } from "@/lib/cms/schemas/navigation";
 import { logCmsActivity } from "@/lib/cms/audit";
+import { revalidateSiteContent } from "@/lib/cms/revalidate";
 import { z } from "zod";
 
 export async function GET() {
@@ -69,12 +70,85 @@ export async function POST(req: NextRequest) {
       action: "CREATE",
     });
 
+    await revalidateSiteContent(orgId);
+
     return NextResponse.json({ success: true, menu }, { status: 201 });
   } catch (error: unknown) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ success: false, error: "Validation failed", details: error.errors }, { status: 400 });
     }
     const message = error instanceof Error ? error.message : "Failed to create menu";
+    const status = (error as { statusCode?: number }).statusCode ?? 500;
+    return NextResponse.json({ success: false, error: message }, { status });
+  }
+}
+
+export async function PATCH(req: NextRequest) {
+  try {
+    const session = await requireCmsPermission(CmsPermission.CMS_NAVIGATION);
+    const orgId = await getDefaultOrganizationId();
+    const body = await req.json();
+    const { id, ...data } = body;
+
+    if (!id) {
+      return NextResponse.json({ success: false, error: "Menu ID is required" }, { status: 400 });
+    }
+
+    const parsedData = navigationMenuSchema.partial().parse(data);
+
+    const menu = await prisma.navigationMenu.update({
+      where: { id },
+      data: parsedData,
+      include: { items: true },
+    });
+
+    await logCmsActivity({
+      userId: session.userId,
+      organizationId: orgId,
+      entityType: "navigation_menu",
+      entityId: menu.id,
+      action: "UPDATE",
+    });
+
+    await revalidateSiteContent(orgId);
+
+    return NextResponse.json({ success: true, menu });
+  } catch (error: unknown) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ success: false, error: "Validation failed", details: error.errors }, { status: 400 });
+    }
+    const message = error instanceof Error ? error.message : "Failed to update menu";
+    const status = (error as { statusCode?: number }).statusCode ?? 500;
+    return NextResponse.json({ success: false, error: message }, { status });
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const session = await requireCmsPermission(CmsPermission.CMS_NAVIGATION);
+    const orgId = await getDefaultOrganizationId();
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get("id");
+
+    if (!id) {
+      return NextResponse.json({ success: false, error: "Menu ID is required" }, { status: 400 });
+    }
+
+    await prisma.navigationMenu.delete({ where: { id } });
+
+    await logCmsActivity({
+      userId: session.userId,
+      organizationId: orgId,
+      entityType: "navigation_menu",
+      entityId: id,
+      action: "DELETE",
+    });
+
+    await revalidateSiteContent(orgId);
+
+    return NextResponse.json({ success: true, message: "Menu deleted" });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Failed to delete menu";
     const status = (error as { statusCode?: number }).statusCode ?? 500;
     return NextResponse.json({ success: false, error: message }, { status });
   }

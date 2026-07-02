@@ -3,10 +3,11 @@ import { NextRequest } from 'next/server';
 import { withApi } from '@/lib/withApi';
 
 export const GET = withApi(async ({ session }) => {
+  if (!session) throw new Error("Session required");
   const { prisma } = await import('@/lib/prisma');
 
   const campaigns = await prisma.marketingCampaign.findMany({
-    where: { organizationId: session.organizationId },
+    where: { organizationId: session!.organizationId },
     orderBy: { createdAt: 'desc' },
   });
 
@@ -17,6 +18,7 @@ export const GET = withApi(async ({ session }) => {
 }, { requireAuth: true, requireAdmin: true });
 
 export const POST = withApi(async ({ req, session }) => {
+  if (!session) throw new Error("Session required");
   const body = await req.json();
   const { name, type, subject, content, targetSegments, scheduledAt } = body;
 
@@ -24,7 +26,7 @@ export const POST = withApi(async ({ req, session }) => {
 
   const campaign = await prisma.marketingCampaign.create({
     data: {
-      organizationId: session.organizationId,
+      organizationId: session!.organizationId,
       name,
       type,
       subject,

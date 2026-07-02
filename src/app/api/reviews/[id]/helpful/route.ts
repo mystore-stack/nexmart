@@ -10,17 +10,18 @@ export const dynamic = "force-dynamic";
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await requireAuth();
+    const resolvedParams = await params;
 
     const rl = await rateLimit(`review-helpful:${session.userId}`, 30, 60 * 60 * 1000);
     if (!rl.success) {
       return error("Rate limit exceeded", 429);
     }
 
-    const { id } = paramsSchema.parse(params);
+    const { id } = paramsSchema.parse(resolvedParams);
     const review = await prisma.review.findUnique({ where: { id }, select: { id: true } });
     if (!review) return notFound("Review not found");
 

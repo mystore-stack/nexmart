@@ -1,21 +1,21 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { getDefaultOrganizationId } from "@/lib/tenant";
 
 export async function GET() {
   try {
+    const organizationId = await getDefaultOrganizationId();
+    
     // Get active bundle deals
-    const bundleDeals = await (prisma as any).bundleDeal.findMany({
+    const bundleDeals = await prisma.bundleDeal.findMany({
       where: {
         enabled: true,
+        organizationId,
       },
       include: {
         products: {
           include: {
-            product: {
-              where: {
-                published: true,
-              },
-            },
+            product: true,
           },
           orderBy: {
             order: "asc",
@@ -29,7 +29,7 @@ export async function GET() {
 
     return NextResponse.json({
       success: true,
-      data: bundleDeals.map((bundle: any) => ({
+      data: bundleDeals.map((bundle) => ({
         id: bundle.id,
         name: bundle.name,
         description: bundle.description,
@@ -39,13 +39,15 @@ export async function GET() {
         gradient: bundle.gradient,
         buttonText: bundle.buttonText,
         buttonUrl: bundle.buttonUrl,
-        products: bundle.products.map((bp: any) => ({
-          id: bp.product.id,
-          name: bp.product.name,
-          slug: bp.product.slug,
-          image: bp.product.images[0],
-          price: bp.product.price,
-        })),
+        products: bundle.products
+          .filter((bp) => bp.product.published)
+          .map((bp) => ({
+            id: bp.product.id,
+            name: bp.product.name,
+            slug: bp.product.slug,
+            image: bp.product.images[0],
+            price: bp.product.price,
+          })),
       })),
     });
   } catch (error) {

@@ -1,8 +1,10 @@
 // src/app/api/bi/revenue/route.ts
 import { NextRequest } from 'next/server';
 import { withApi } from '@/lib/withApi';
+import { requireAuth } from '@/lib/auth-api';
 
-export const GET = withApi(async ({ req, session }) => {
+export const GET = withApi(async ({ req }) => {
+  const session = await requireAuth();
   const { searchParams } = new URL(req.url);
   const startDate = searchParams.get('startDate') || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
   const endDate = searchParams.get('endDate') || new Date().toISOString();
@@ -13,12 +15,12 @@ export const GET = withApi(async ({ req, session }) => {
   // Get total revenue for the period
   const totalRevenue = await prisma.order.aggregate({
     where: {
-      organizationId: session.organizationId,
+      organizationId: session?.organizationId,
       createdAt: {
         gte: new Date(startDate),
         lte: new Date(endDate),
       },
-      status: 'COMPLETED',
+      status: 'COMPLETED' as any,
     },
     _sum: { total: true },
   });
@@ -30,26 +32,26 @@ export const GET = withApi(async ({ req, session }) => {
 
   const previousRevenue = await prisma.order.aggregate({
     where: {
-      organizationId: session.organizationId,
+      organizationId: session?.organizationId,
       createdAt: {
         gte: new Date(previousStartDate),
         lte: new Date(previousEndDate),
       },
-      status: 'COMPLETED',
+      status: 'COMPLETED' as any,
     },
     _sum: { total: true },
   });
 
   // Calculate change percentage
-  const currentTotal = totalRevenue._sum.total || 0;
-  const previousTotal = previousRevenue._sum.total || 0;
+  const currentTotal = totalRevenue._sum?.total || 0;
+  const previousTotal = previousRevenue._sum?.total || 0;
   const changePercent = previousTotal > 0 ? ((currentTotal - previousTotal) / previousTotal) * 100 : 0;
 
   // Get revenue by period
-  const revenueByPeriod = await getRevenueByPeriod(session.organizationId, startDate, endDate, granularity);
+  const revenueByPeriod = await getRevenueByPeriod(session?.organizationId || '', startDate, endDate, granularity);
 
   // Get revenue by category
-  const revenueByCategory = await getRevenueByCategory(session.organizationId, startDate, endDate);
+  const revenueByCategory = await getRevenueByCategory(session?.organizationId || '', startDate, endDate);
 
   return {
     success: true,
@@ -70,7 +72,7 @@ async function getRevenueByPeriod(organizationId: string, startDate: string, end
     where: {
       organizationId,
       createdAt: { gte: new Date(startDate), lte: new Date(endDate) },
-      status: 'COMPLETED',
+      status: 'COMPLETED' as any,
     },
     select: { createdAt: true, total: true },
     orderBy: { createdAt: 'asc' },
@@ -94,16 +96,16 @@ async function getRevenueByCategory(organizationId: string, startDate: string, e
     where: {
       organizationId,
       createdAt: { gte: new Date(startDate), lte: new Date(endDate) },
-      status: 'COMPLETED',
+      status: 'COMPLETED' as any,
     },
-    include: { items: { include: { product: { include: { category: true } } } } },
+    include: { items: { include: { product: { include: { category: true } } } } } as any,
   });
 
   const categoryRevenue = new Map<string, number>();
 
-  for (const order of orders) {
+  for (const order of orders as any[]) {
     for (const item of order.items) {
-      const categoryName = item.product.category.name;
+      const categoryName = item.product.category?.name || 'Uncategorized';
       categoryRevenue.set(categoryName, (categoryRevenue.get(categoryName) || 0) + item.price * item.quantity);
     }
   }

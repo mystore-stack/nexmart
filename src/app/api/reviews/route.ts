@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/auth-api";
+import { getDefaultOrganizationId } from "@/lib/tenant";
 import { z } from "zod";
 
 export const dynamic = "force-dynamic";
@@ -53,7 +54,7 @@ export async function POST(req: NextRequest) {
     }
 
     const review = await prisma.review.create({
-      data: { ...body, userId: user.userId, images: [] },
+      data: { ...body, userId: session.userId, images: [] },
       include: { user: { select: { id: true, name: true, avatar: true } } },
     });
 

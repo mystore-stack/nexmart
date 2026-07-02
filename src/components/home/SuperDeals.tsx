@@ -70,7 +70,7 @@ export function SuperDeals({ deals }: SuperDealsProps) {
   const hasFlashSale = deals.some(d => d.flashSale);
   const earliestEndDate = deals
     .filter(d => d.endDate)
-    .map(d => new Date(d.endDate))
+    .map(d => new Date(d.endDate!))
     .sort((a, b) => a.getTime() - b.getTime())[0];
 
   return (

@@ -4,28 +4,30 @@ import { withApi } from '@/lib/withApi';
 import { UserProfileService } from '@/lib/personalization/user-profile.service';
 
 export const GET = withApi(async ({ session }) => {
+  if (!session) throw new Error("Session required");
   const profile = await UserProfileService.getOrCreateProfile(
-    session.userId,
-    session.organizationId
+    session!.userId,
+    session!.organizationId
   );
 
   // Get personalized recommendations
-  const recommendations = await getPersonalizedRecommendations(session.userId, session.organizationId);
+  const recommendations = await getPersonalizedRecommendations(session!.userId, session!.organizationId);
 
   // Get personalized offers
-  const offers = await getPersonalizedOffers(session.userId, session.organizationId, profile.segment);
+  const offers = await getPersonalizedOffers(session!.userId, session!.organizationId, profile.segment);
 
   return { success: true, profile, recommendations, offers };
 }, { requireAuth: true });
 
 export const POST = withApi(async ({ req, session }) => {
+  if (!session) throw new Error("Session required");
   const body = await req.json();
   const { preferences } = body;
 
   const { prisma } = await import('@/lib/prisma');
 
   const profile = await prisma.userProfile.update({
-    where: { userId: session.userId },
+    where: { userId: session!.userId },
     data: {
       preferredCategories: preferences?.categories || [],
       preferredPriceRange: preferences?.priceRange || {},
@@ -34,7 +36,7 @@ export const POST = withApi(async ({ req, session }) => {
   });
 
   // Clear cache
-  await UserProfileService.clearCache(session.userId);
+  await UserProfileService.clearCache(session!.userId);
 
   return { success: true, profile };
 }, { requireAuth: true });

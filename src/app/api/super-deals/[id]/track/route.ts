@@ -3,9 +3,10 @@ import { prisma } from "@/lib/prisma";
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await req.json();
     const { eventType, sessionId, userId, ipAddress, userAgent, metadata } = body;
 
@@ -24,7 +25,7 @@ export async function POST(
 
     await (prisma as any).superDealAnalytics.create({
       data: {
-        superDealId: params.id,
+        superDealId: id,
         eventType,
         sessionId,
         userId,

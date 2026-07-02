@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
         id: true,
         organizationId: true,
         role: true,
-        organization: {
+        Organization: {
           select: {
             id: true,
             name: true,
@@ -74,13 +74,13 @@ export async function GET(req: NextRequest) {
 
     // Add warnings
     if (memberships.length === 0 && ownedOrganizations.length === 0) {
-      diagnostics.warnings.push(
+      (diagnostics.warnings as any[]).push(
         "User has no memberships and does not own any organizations. Using default organization fallback."
       );
     }
 
     if (orderCount === 0 && ordersInOtherOrgs.length > 0) {
-      diagnostics.warnings.push(
+      (diagnostics.warnings as any[]).push(
         `No orders found in resolved organization, but ${ordersInOtherOrgs.length} other organization(s) have orders. The user may need a membership to access those organizations.`
       );
     }

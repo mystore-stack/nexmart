@@ -9,14 +9,15 @@ import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const session = await requireAuth(req);
-    if (!session || session.user.role !== 'ADMIN') {
+    const session = await requireAuth();
+    if (!session || session.role !== 'ADMIN') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
-    const stats = await getSegmentStatistics(params.id);
+    const { id } = await params;
+    const stats = await getSegmentStatistics(id);
 
     if (!stats) {
       return NextResponse.json({ error: 'Segment not found' }, { status: 404 });
@@ -29,10 +30,10 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   }
 }
 
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const session = await requireAuth(req);
-    if (!session || session.user.role !== 'ADMIN') {
+    const session = await requireAuth();
+    if (!session || session.role !== 'ADMIN') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
@@ -40,8 +41,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     const { action } = body;
 
     if (action === 'assign') {
-      const result = await assignUsersToSegment(params.id);
-      return NextResponse.json({ success: true, assigned: result.count });
+      const { id } = await params;
+      const result = await assignUsersToSegment(id);
+      return NextResponse.json({ success: true, assigned: result?.count || 0 });
     }
 
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
@@ -51,15 +53,16 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   }
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const session = await requireAuth(req);
-    if (!session || session.user.role !== 'ADMIN') {
+    const session = await requireAuth();
+    if (!session || session.role !== 'ADMIN') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
+    const { id } = await params;
     await prisma.marketingSegment.delete({
-      where: { id: params.id },
+      where: { id },
     });
 
     return NextResponse.json({ success: true });

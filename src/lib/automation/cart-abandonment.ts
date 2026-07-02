@@ -217,9 +217,9 @@ export async function getCartReminders(userId?: string, includeRecovered = false
 }
 
 export async function getCartRecoveryStats(organizationId?: string) {
-  const where = organizationId ? { user: { organizationId } } : {};
+  const where = organizationId ? { user: { organizationId } } as any : {};
 
-  const [totalAbandoned, totalRecovered, recoveryRate] = await Promise.all([
+  const [totalAbandoned, totalRecovered] = await Promise.all([
     prisma.cartReminder.count({ where }),
     prisma.cartReminder.count({ where: { ...where, recovered: true } }),
   ]);

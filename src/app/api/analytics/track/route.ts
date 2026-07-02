@@ -115,8 +115,8 @@ export async function POST(req: NextRequest) {
         deviceType,
         browser,
         os,
-        country: data.country || req.headers.get("cf-ipcountry") || undefined,
-      },
+        // country: data.country || req.headers.get("cf-ipcountry") || undefined, // TODO: Add country field to schema
+      } as any,
     });
 
     return NextResponse.json({ success: true, sessionId });

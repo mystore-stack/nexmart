@@ -75,7 +75,7 @@ export async function POST(req: NextRequest) {
         if (paymentIntentId && organizationId) {
           await prisma.order.updateMany({
             where: { organizationId, stripePaymentId: paymentIntentId },
-            data: { paymentStatus: PaymentStatus.REFUNDED, status: OrderStatus.REFUNDED },
+            data: { paymentStatus: "REFUNDED" as any, status: "REFUNDED" as any },
           });
         }
         break;

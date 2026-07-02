@@ -3,6 +3,7 @@ import { withAdmin } from "@/lib/withApi";
 import { ok, created } from "@/lib/api-response";
 import { advertisementSchema, parseDate } from "@/lib/marketing/schemas";
 import { revalidateTag } from "next/cache";
+import { prisma } from "@/lib/prisma";
 
 export const GET = withAdmin(async ({ req }) => {
   const { organizationId } = await requireAdmin();

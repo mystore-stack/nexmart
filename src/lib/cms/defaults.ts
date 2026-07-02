@@ -91,7 +91,7 @@ export function mapSiteSettings(row: SiteSettings): SiteSettingsData {
     address: row.address,
     businessHours: row.businessHours,
     supportEmail: row.supportEmail,
-    socialLinks: (row.socialLinks as SocialLink[]) ?? [],
+    socialLinks: (row.socialLinks as unknown as SocialLink[]) ?? [],
     seoTitle: row.seoTitle,
     seoDescription: row.seoDescription,
     seoKeywords: row.seoKeywords ?? [],

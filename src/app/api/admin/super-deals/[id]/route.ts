@@ -5,13 +5,14 @@ import { prisma } from "@/lib/prisma";
 // GET - Get single super deal
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const session = await requireAdmin();
 
-    const superDeal = await (prisma as any).superDeal.findUnique({
-      where: { id: params.id },
+    const superDeal = await (prisma as any).superDeal.findFirst({
+      where: { id, organizationId: session.organizationId },
       include: {
         product: true,
         analytics: {
@@ -44,9 +45,10 @@ export async function GET(
 // PATCH - Update super deal
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const session = await requireAdmin();
     const body = await req.json();
 
@@ -88,7 +90,24 @@ export async function PATCH(
     } = body;
 
     const updateData: any = {};
-    if (productId !== undefined) updateData.productId = productId;
+    if (productId !== undefined) {
+      const product = await prisma.product.findFirst({
+        where: { id: productId, organizationId: session.organizationId },
+        select: { id: true },
+      });
+
+      if (!product) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: `Product ${productId} was not found in organization ${session.organizationId}. Refresh the product selector and choose an available product.`,
+          },
+          { status: 404 }
+        );
+      }
+
+      updateData.productId = productId;
+    }
     if (order !== undefined) updateData.order = order;
     if (enabled !== undefined) updateData.enabled = enabled;
     if (discountType !== undefined) updateData.discountType = discountType;
@@ -123,8 +142,20 @@ export async function PATCH(
     if (aiGenerated !== undefined) updateData.aiGenerated = aiGenerated;
     if (aiPrompt !== undefined) updateData.aiPrompt = aiPrompt;
 
+    const existingDeal = await (prisma as any).superDeal.findFirst({
+      where: { id, organizationId: session.organizationId },
+      select: { id: true },
+    });
+
+    if (!existingDeal) {
+      return NextResponse.json(
+        { success: false, error: "Super deal not found in this organization" },
+        { status: 404 }
+      );
+    }
+
     const superDeal = await (prisma as any).superDeal.update({
-      where: { id: params.id },
+      where: { id },
       data: updateData,
       include: {
         product: true,
@@ -147,13 +178,26 @@ export async function PATCH(
 // DELETE - Delete super deal
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const session = await requireAdmin();
 
+    const existingDeal = await (prisma as any).superDeal.findFirst({
+      where: { id, organizationId: session.organizationId },
+      select: { id: true },
+    });
+
+    if (!existingDeal) {
+      return NextResponse.json(
+        { success: false, error: "Super deal not found in this organization" },
+        { status: 404 }
+      );
+    }
+
     await (prisma as any).superDeal.delete({
-      where: { id: params.id },
+      where: { id },
     });
 
     return NextResponse.json({

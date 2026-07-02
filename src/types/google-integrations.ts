@@ -33,7 +33,7 @@ export interface GoogleIntegration {
   organizationId: string;
   service: GoogleService;
   enabled: boolean;
-  config: Record<string, any> | null;
+  config: any;
   status: IntegrationStatus;
   lastSyncAt: Date | null;
   lastSyncStatus: string | null;

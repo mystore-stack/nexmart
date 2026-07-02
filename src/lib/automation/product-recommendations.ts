@@ -13,7 +13,7 @@ export async function getPersonalizedRecommendations(userId: string, organizatio
         organizationId,
       },
       include: {
-        OrderItem: {
+        orderItems: {
           include: {
             product: {
               include: {
@@ -22,7 +22,7 @@ export async function getPersonalizedRecommendations(userId: string, organizatio
             },
           },
         },
-      },
+      } as any,
       orderBy: {
         createdAt: 'desc',
       },
@@ -33,8 +33,8 @@ export async function getPersonalizedRecommendations(userId: string, organizatio
     const purchasedCategories = new Set<string>();
     const purchasedProductIds = new Set<string>();
 
-    for (const order of orders) {
-      for (const item of order.OrderItem) {
+    for (const order of orders as any[]) {
+      for (const item of order.orderItems) {
         if (item.product) {
           purchasedCategories.add(item.product.categoryId);
           purchasedProductIds.add(item.product.id);
@@ -108,7 +108,7 @@ export async function getPersonalizedRecommendations(userId: string, organizatio
       where: {
         organizationId,
         published: true,
-        OrderItem: {
+        orderItems: {
           some: {
             order: {
               createdAt: { gte: thirtyDaysAgo },
@@ -118,19 +118,19 @@ export async function getPersonalizedRecommendations(userId: string, organizatio
       },
       include: {
         category: true,
-        OrderItem: {
+        orderItems: {
           where: {
             order: {
               createdAt: { gte: thirtyDaysAgo },
             },
           },
         },
-      },
+      } as any,
       take: limit * 2,
     });
 
     // Sort trending by sales count
-    trendingProducts.sort((a, b) => b.OrderItem.length - a.OrderItem.length);
+    trendingProducts.sort((a, b) => (b as any).orderItems.length - (a as any).orderItems.length);
 
     // Combine and deduplicate recommendations
     const allRecommendations = new Map<string, any>();
@@ -219,15 +219,15 @@ export async function sendRecommendationsToInactiveUsers() {
       where: {
         Membership: {
           some: {
-            role: 'MEMBER',
+            role: 'MEMBER' as any,
           },
         },
-        Order: {
+        orders: {
           none: {
             createdAt: { gte: thirtyDaysAgo },
           },
         },
-      },
+      } as any,
       select: {
         id: true,
         email: true,
@@ -244,7 +244,7 @@ export async function sendRecommendationsToInactiveUsers() {
     let sentCount = 0;
     const results = [];
 
-    for (const user of inactiveUsers) {
+    for (const user of inactiveUsers as any[]) {
       const organizationId = user.Membership[0]?.organizationId;
       if (!organizationId) continue;
 

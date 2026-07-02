@@ -5,16 +5,17 @@ import { prisma } from "@/lib/prisma";
 // PATCH - Update bundle deal
 export async function PATCH(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const admin = await requireAdmin();
     const body = await req.json();
 
     const { enabled, order, name, description, bundlePrice, discountPercent, backgroundColor, gradient, buttonText, buttonUrl } = body;
 
     const bundleDeal = await (prisma as any).bundleDeal.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         ...(enabled !== undefined && { enabled }),
         ...(order !== undefined && { order }),
@@ -52,13 +53,14 @@ export async function PATCH(
 // DELETE - Delete bundle deal
 export async function DELETE(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const admin = await requireAdmin();
 
     await (prisma as any).bundleDeal.delete({
-      where: { id: params.id },
+      where: { id },
     });
 
     return NextResponse.json({

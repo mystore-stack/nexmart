@@ -18,10 +18,11 @@ export const Button: React.FC<ButtonProps> = ({
   className, asLink, loading, disabled, ...rest
 }) => {
   const variantClass =
-    variant === "primary" ? "btn-primary" :
-    variant === "gold" ? "btn-gold" :
-    variant === "outline" ? "btn-outline" :
-    variant === "brand" ? "btn-primary" :
+    (variant as string) === "primary" ? "btn-primary" :
+    (variant as string) === "gold" ? "btn-gold" :
+    (variant as string) === "outline" ? "btn-outline" :
+    (variant as string) === "brand" ? "btn-primary" :
+    (variant as string) === "destructive" ? "btn-outline text-red-600 hover:text-red-700" :
     "btn-ghost";
   const sizeClass = size === "lg" ? "btn-lg" : size === "sm" ? "btn-sm" : "btn-md";
   const classes = cn("btn", variantClass, sizeClass, className, loading ? "loading" : "");

@@ -19,7 +19,7 @@ export const POST = withApi(async ({ req, params, session }) => {
   // Get existing exposure
   const exposure = await prisma.experimentExposure.findFirst({
     where: {
-      experimentId: params.id,
+      experimentId: params!.id,
       userId: session?.userId || null,
       sessionId: req.headers.get('x-session-id') || null,
       variantId: validated.variantId,
@@ -42,7 +42,7 @@ export const POST = withApi(async ({ req, params, session }) => {
   // Update experiment and variant metrics
   await prisma.$transaction([
     prisma.experiment.update({
-      where: { id: params.id },
+      where: { id: params!.id },
       data: {
         totalConversions: { increment: 1 },
         variantRevenue: { increment: validated.value || 0 },
@@ -59,8 +59,8 @@ export const POST = withApi(async ({ req, params, session }) => {
 
   // Track conversion event
   const { eventTracker } = await import('@/lib/event-tracking/client');
-  eventTracker.track('EXPERIMENT_CONVERSION', {
-    experimentId: params.id,
+  eventTracker.track("EXPERIMENT_CONVERSION" as any, {
+    experimentId: params!.id,
     variantId: validated.variantId,
     goal: validated.goal,
     value: validated.value,

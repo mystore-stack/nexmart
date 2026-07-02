@@ -168,7 +168,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
       // PRODUCTION PROTECTION: Validate user exists in database on every token refresh
       // This prevents sessions from remaining valid after user deletion
-      if (token.userId && (trigger === "session" || !user)) {
+      if (token.userId && (trigger === "update" || !user)) {
         try {
           const dbUser = await prisma.user.findUnique({
             where: { id: token.userId as string },
@@ -216,14 +216,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       
       if (session.user && token.userId) {
         session.user.id = token.userId as string;
-        session.user.role = (token.role as string) ?? "USER";
+        (session.user as any).role = (token.role as string) ?? "USER";
         (session.user as any).provider = (token.provider as string) ?? "credentials";
         (session.user as any).isVerified = Boolean(token.isVerified);
         
         console.log("[NEXTAUTH] Session user populated:", {
           id: session.user.id,
           email: session.user.email,
-          role: session.user.role,
+          role: (session.user as any).role,
         });
       } else {
         console.error("[NEXTAUTH] Session callback failed - missing session.user or token.userId", {

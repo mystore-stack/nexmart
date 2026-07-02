@@ -15,9 +15,9 @@ export async function GET(req: NextRequest) {
     const organizationId = "a884ca35-332c-4997-8262-36b762c96ccf";
     console.log("[PRODUCTS-TEST] Using organizationId:", organizationId);
 
-    const { page = 1, limit = 20, skip = 0 } = Object.fromEntries(
-      req.nextUrl.searchParams.entries()
-    );
+    const page = Number(req.nextUrl.searchParams.get("page")) || 1;
+    const limit = Number(req.nextUrl.searchParams.get("limit")) || 20;
+    const skip = Number(req.nextUrl.searchParams.get("skip")) || 0;
     const search = req.nextUrl.searchParams.get("search") || undefined;
     const published = req.nextUrl.searchParams.get("published");
 
@@ -45,8 +45,8 @@ export async function GET(req: NextRequest) {
         where,
         include: { category: true, variants: true, _count: { select: { reviews: true, orderItems: true } } },
         orderBy: { createdAt: "desc" },
-        skip,
-        take: limit,
+        skip: Number(skip),
+        take: Number(limit),
       }),
       prisma.product.count({ where }),
     ]);
@@ -60,7 +60,7 @@ export async function GET(req: NextRequest) {
 
     const productsArray = Array.isArray(products) ? products : [];
     
-    const responseData = { data: productsArray, pagination: { total, page, limit, totalPages: Math.ceil(total / limit) } };
+    const responseData = { data: productsArray, pagination: { total, page, limit: Number(limit), totalPages: Math.ceil(total / Number(limit)) } };
     console.log("[PRODUCTS-TEST] Raw API response:", JSON.stringify({
       success: true,
       dataLength: productsArray.length,

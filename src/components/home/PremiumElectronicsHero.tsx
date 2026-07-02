@@ -78,13 +78,14 @@ export function PremiumElectronicsHero() {
       try {
         const response = await fetch("/api/hero");
         const data = await response.json();
+        
         if (data.success && data.banners && data.banners.length > 0) {
           setBanners(data.banners);
         } else {
           setBanners([FALLBACK_BANNER]);
         }
       } catch (error) {
-        console.error("Failed to fetch hero banners:", error);
+        console.error("[PremiumElectronicsHero] Failed to fetch hero banners:", error);
         setBanners([FALLBACK_BANNER]);
       } finally {
         setLoading(false);

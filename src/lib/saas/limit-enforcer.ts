@@ -80,9 +80,10 @@ export class LimitEnforcer {
     
     for (const [metric, limit] of Object.entries(limits)) {
       const used = usage[metric] || 0;
-      const percentage = limit === -1 || limit === undefined ? 0 : (used / limit) * 100;
+      const limitNum = typeof limit === 'number' ? limit : 0;
+      const percentage = limitNum === -1 || limitNum === undefined ? 0 : (used / limitNum) * 100;
       
-      stats[metric] = { used, limit, percentage };
+      stats[metric] = { used, limit: limitNum, percentage };
     }
     
     return stats;

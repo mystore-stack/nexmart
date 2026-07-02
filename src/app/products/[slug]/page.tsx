@@ -11,7 +11,7 @@ import { RelatedProducts } from "@/components/product/RelatedProducts";
 import type { Product } from "@/types";
 
 interface Props {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }
 
 async function getProduct(slug: string): Promise<Product | null> {
@@ -38,7 +38,8 @@ async function getProduct(slug: string): Promise<Product | null> {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const product = await getProduct(params.slug);
+  const { slug } = await params;
+  const product = await getProduct(slug);
   if (!product) return { title: "Product Not Found" };
 
   return {
@@ -65,7 +66,8 @@ export const dynamic = "force-dynamic";
 export const revalidate = 300;
 
 export default async function ProductPage({ params }: Props) {
-  const product = await getProduct(params.slug);
+  const { slug } = await params;
+  const product = await getProduct(slug);
   if (!product) notFound();
   const organizationId = await getDefaultOrganizationId();
 

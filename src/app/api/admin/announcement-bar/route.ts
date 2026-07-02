@@ -4,6 +4,7 @@ import { requireAdmin } from "@/lib/auth-server";
 import { getDefaultOrganizationId } from "@/lib/tenant";
 import { invalidateCMSCache } from "@/lib/cms/cache";
 import { emitCMSEvent, CMSEventType } from "@/lib/cms/event-bus";
+import { revalidateSiteContent } from "@/lib/cms/revalidate";
 import { z } from "zod";
 
 const announcementBarSchema = z.object({
@@ -73,6 +74,9 @@ export async function POST(req: NextRequest) {
       data: announcement,
       metadata: { source: 'admin' },
     });
+
+    // Revalidate site content
+    await revalidateSiteContent(organizationId);
 
     return NextResponse.json({ success: true, announcement });
   } catch (error: any) {

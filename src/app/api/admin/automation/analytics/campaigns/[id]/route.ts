@@ -5,14 +5,15 @@ import { getCampaignPerformance } from '@/lib/automation/email-analytics';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const session = await requireAuth(req);
-    if (!session || session.user.role !== 'ADMIN') {
+    const session = await requireAuth();
+    if (!session || session.role !== 'ADMIN') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
-    const performance = await getCampaignPerformance(params.id);
+    const { id } = await params;
+    const performance = await getCampaignPerformance(id);
 
     if (!performance) {
       return NextResponse.json({ error: 'Campaign not found' }, { status: 404 });

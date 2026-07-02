@@ -20,15 +20,16 @@ const updateSchema = z.object({
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const { organizationId } = await requireAdmin();
     const body = await req.json();
     const data = updateSchema.parse(body);
 
     const coupon = await prisma.coupon.update({
-      where: { id: params.id, organizationId },
+      where: { id, organizationId },
       data: {
         ...data,
         endDate: data.endDate ? new Date(data.endDate) : data.endDate === null ? null : undefined,
@@ -44,11 +45,12 @@ export async function PATCH(
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const { organizationId } = await requireAdmin();
-    await prisma.coupon.delete({ where: { id: params.id, organizationId } });
+    await prisma.coupon.delete({ where: { id, organizationId } });
     return noContent();
   } catch (err: any) {
     if ((err as Error).message === "Forbidden") return forbidden();

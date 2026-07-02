@@ -7,8 +7,8 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await requireAuth(req);
-    if (!session || session.user.role !== 'ADMIN') {
+    const session = await requireAuth();
+    if (!session || session.role !== 'ADMIN') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
@@ -26,8 +26,8 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await requireAuth(req);
-    if (!session || session.user.role !== 'ADMIN') {
+    const session = await requireAuth();
+    if (!session || session.role !== 'ADMIN') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
     const { alertId, action } = body;
 
     if (action === 'acknowledge') {
-      await acknowledgeStockAlert(alertId, session.user.id);
+      await acknowledgeStockAlert(alertId, session.userId);
     } else if (action === 'resolve') {
       await resolveStockAlert(alertId);
     }

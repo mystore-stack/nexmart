@@ -6,16 +6,17 @@ import { ok, unauthorized, notFound, handleApiError } from "@/lib/api";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { orderNumber: string } }
+  { params }: { params: Promise<{ orderNumber: string }> }
 ) {
   try {
+    const { orderNumber } = await params;
     const session = await requireAuth();
     const organizationId = session.organizationId;
 
     const order = await prisma.order.findFirst({
       where: {
         organizationId,
-        orderNumber: params.orderNumber,
+        orderNumber,
         // Admins can view any order; users only their own
         ...(session.role === "USER" ? { userId: session.userId } : {}),
       },

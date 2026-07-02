@@ -1,11 +1,15 @@
 import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getDefaultOrganizationId } from "@/lib/tenant";
 
 // GET - List all bundle deals
 export async function GET() {
   try {
+    const organizationId = await getDefaultOrganizationId();
+    
     const bundleDeals = await (prisma as any).bundleDeal.findMany({
+      where: { organizationId },
       include: {
         products: {
           include: {
@@ -38,12 +42,14 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const admin = await requireAdmin();
+    const organizationId = await getDefaultOrganizationId();
     const body = await req.json();
 
     const { name, description, bundlePrice, discountPercent, enabled, backgroundColor, gradient, buttonText, buttonUrl, order, products } = body;
 
     const bundleDeal = await (prisma as any).bundleDeal.create({
       data: {
+        organizationId,
         name,
         description,
         bundlePrice,

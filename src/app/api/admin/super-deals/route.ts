@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
     const enabled = searchParams.get("enabled");
     const featured = searchParams.get("featured");
 
-    const where: any = {};
+    const where: any = { organizationId: session.organizationId };
     if (enabled === "true") where.enabled = true;
     if (featured === "true") where.featured = true;
 
@@ -48,7 +48,6 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
 
     const {
-      organizationId,
       productId,
       order,
       enabled,
@@ -85,9 +84,27 @@ export async function POST(req: NextRequest) {
       aiPrompt,
     } = body;
 
+    const product = await prisma.product.findFirst({
+      where: {
+        id: productId,
+        organizationId: session.organizationId,
+      },
+      select: { id: true, name: true },
+    });
+
+    if (!product) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Product ${productId || "(missing)"} was not found in organization ${session.organizationId}. Refresh the product selector and choose an available product.`,
+        },
+        { status: 404 }
+      );
+    }
+
     const superDeal = await (prisma as any).superDeal.create({
       data: {
-        organizationId,
+        organizationId: session.organizationId,
         productId,
         order: order || 0,
         enabled: enabled !== undefined ? enabled : true,

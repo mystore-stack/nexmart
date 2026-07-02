@@ -61,9 +61,8 @@ export default function AdminProductsPage() {
         data = JSON.parse(text);
         console.log("[FRONTEND] Parsed data:", data);
         console.log("[FRONTEND] data.success:", data.success);
-        console.log("[FRONTEND] data.data type:", typeof data.data);
-        console.log("[FRONTEND] data.data is array:", Array.isArray(data.data));
-        console.log("[FRONTEND] data.data length:", data.data?.length);
+        console.log("[FRONTEND] products is array:", Array.isArray(data.products));
+        console.log("[FRONTEND] products length:", data.products?.length);
       } catch (parseError) {
         console.error("[FRONTEND] Failed to parse JSON response:", parseError);
         console.error("[FRONTEND] Raw response text:", text);
@@ -72,19 +71,14 @@ export default function AdminProductsPage() {
       }
       
       if (data.success) {
-        // Handle nested response structure: { success: true, data: { data: [...], pagination: {...} } }
-        const responseData = data.data;
-        let prods = Array.isArray(responseData?.data) ? responseData.data : Array.isArray(data.data) ? data.data : [];
-        const pagination = responseData?.pagination || data.pagination;
+        let prods = Array.isArray(data.products) ? data.products : [];
+        const pagination = data.pagination;
         
         console.log("========== FULL API RESPONSE ==========");
         console.log(JSON.stringify(data, null, 2));
         console.log("success =", data.success);
-        console.log("data =", data.data);
-        console.log("responseData =", responseData);
-        console.log("responseData.data =", responseData?.data);
-        console.log("responseData.pagination =", responseData?.pagination);
-        console.log("isArray(responseData.data) =", Array.isArray(responseData?.data));
+        console.log("products =", data.products);
+        console.log("pagination =", data.pagination);
         console.log("products length =", prods.length);
         
         if (filter === "lowstock") {
@@ -102,7 +96,7 @@ export default function AdminProductsPage() {
         // CRITICAL FIX: Log warning if API returns success but no data
         if (prods.length === 0 && pagination?.total === 0) {
           console.warn("[FRONTEND] WARNING: API returned success but no products found");
-          console.warn("[FRONTEND] This may indicate an organizationId mismatch in the backend");
+          console.warn("[FRONTEND] This may indicate an empty database, an organizationId mismatch, or filters excluding all products");
           console.warn("[FRONTEND] Check server logs for [TENANT] and [ADMIN PRODUCTS] warnings");
         }
       } else {

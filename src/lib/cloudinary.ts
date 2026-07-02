@@ -1,12 +1,25 @@
 // src/lib/cloudinary.ts
 import { v2 as cloudinary } from "cloudinary";
 
+// Validate Cloudinary configuration
+const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+const apiKey = process.env.CLOUDINARY_API_KEY;
+const apiSecret = process.env.CLOUDINARY_API_SECRET;
+
+if (!cloudName || !apiKey || !apiSecret) {
+  throw new Error(
+    "Missing Cloudinary configuration. Please set CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET environment variables."
+  );
+}
+
 cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
+  cloud_name: cloudName,
+  api_key: apiKey,
+  api_secret: apiSecret,
   secure: true,
 });
+
+console.log("[CLOUDINARY] Configuration loaded successfully");
 
 export interface UploadResult {
   url: string;
@@ -22,6 +35,8 @@ export async function uploadImage(
   folder: string = "nexmart",
   options: Record<string, unknown> = {}
 ): Promise<UploadResult> {
+  console.log("[UPLOAD] Upload started", { folder, options });
+  
   const result = await new Promise<UploadResult>((resolve, reject) => {
     const uploadOptions = {
       folder,
@@ -31,9 +46,20 @@ export async function uploadImage(
       ...options,
     };
 
+    console.log("[UPLOAD] Cloudinary upload options", uploadOptions);
+
     if (typeof file === "string") {
       cloudinary.uploader.upload(file, uploadOptions, (error, result) => {
-        if (error || !result) return reject(error || new Error("Upload failed"));
+        if (error || !result) {
+          console.error("[UPLOAD] Cloudinary upload failed", error);
+          return reject(error || new Error("Upload failed"));
+        }
+        console.log("[UPLOAD] Cloudinary success", {
+          publicId: result.public_id,
+          url: result.secure_url,
+          width: result.width,
+          height: result.height,
+        });
         resolve({
           url: result.secure_url,
           publicId: result.public_id,
@@ -45,7 +71,16 @@ export async function uploadImage(
       });
     } else {
       const stream = cloudinary.uploader.upload_stream(uploadOptions, (error, result) => {
-        if (error || !result) return reject(error || new Error("Upload failed"));
+        if (error || !result) {
+          console.error("[UPLOAD] Cloudinary stream upload failed", error);
+          return reject(error || new Error("Upload failed"));
+        }
+        console.log("[UPLOAD] Cloudinary stream success", {
+          publicId: result.public_id,
+          url: result.secure_url,
+          width: result.width,
+          height: result.height,
+        });
         resolve({
           url: result.secure_url,
           publicId: result.public_id,

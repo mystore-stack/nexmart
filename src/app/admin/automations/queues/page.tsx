@@ -267,7 +267,7 @@ export default function AutomationQueuesPage() {
                           </Button>
                         )}
                         <Button
-                          variant="destructive"
+                          variant={"destructive" as any}
                           size="sm"
                           onClick={() => handleDelete(job.jobId)}
                         >
@@ -389,7 +389,7 @@ export default function AutomationQueuesPage() {
                     Retry Job
                   </Button>
                 )}
-                <Button variant="destructive" onClick={() => handleDelete(selectedJob.jobId)}>
+                <Button variant={"destructive" as any} onClick={() => handleDelete(selectedJob.jobId)}>
                   Delete Job
                 </Button>
               </div>

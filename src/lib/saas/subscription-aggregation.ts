@@ -15,8 +15,8 @@ export class SubscriptionAggregation {
     
     const cancelledSubscriptions = await prisma.subscription.count({
       where: {
-        status: 'CANCELLED',
-        cancelledAt: { gte: thirtyDaysAgo },
+        status: 'CANCELED',
+        updatedAt: { gte: thirtyDaysAgo },
       },
     });
     
@@ -27,7 +27,7 @@ export class SubscriptionAggregation {
   
   static async getSubscriptionsByPlan() {
     const subscriptions = await prisma.subscription.groupBy({
-      by: ['planId'],
+      by: ['plan'],
       _count: true,
     });
     
@@ -35,11 +35,11 @@ export class SubscriptionAggregation {
     
     for (const item of subscriptions) {
       const plan = await prisma.plan.findUnique({
-        where: { id: item.planId },
+        where: { id: item.plan },
       });
       
       if (plan) {
-        result[plan.name] = item._count;
+        result[plan.name] = item._count as number;
       }
     }
     

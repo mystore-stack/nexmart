@@ -9,7 +9,7 @@ export class ChurnPredictor {
     const user = await prisma.user.findUnique({
       where: { id: userId },
       include: {
-        orders: { where: { status: 'COMPLETED' } },
+        orders: { where: { status: 'COMPLETED' as any } },
         loyaltyPoints: true,
       },
     });
@@ -31,7 +31,7 @@ export class ChurnPredictor {
         organizationId,
         userId,
         riskScore,
-        riskLevel,
+        riskLevel: riskLevel as any,
         confidence: 0.85,
         factors: features,
         validUntil,
@@ -45,6 +45,7 @@ export class ChurnPredictor {
    * Calculate churn risk features for a user
    */
   private static async calculateFeatures(user: any, organizationId: string) {
+    const userId = user.id;
     const now = new Date();
     const thirtyDaysAgo = new Date(now);
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
@@ -178,7 +179,7 @@ export class ChurnPredictor {
    */
   static async predictForOrganization(organizationId: string) {
     const users = await prisma.user.findMany({
-      where: { organizationId },
+      where: { organizationId } as any,
     });
 
     const predictions = [];

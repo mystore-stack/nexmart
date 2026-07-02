@@ -17,13 +17,14 @@ const abTestUpdateSchema = z.object({
 // GET single A/B test
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     await requireAdmin();
 
     const test = await prisma.aBTest.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         variants: true,
       },
@@ -55,16 +56,17 @@ export async function GET(
 // PUT update A/B test
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     await requireAdmin();
 
     const body = await req.json();
     const data = abTestUpdateSchema.parse(body);
 
     const test = await prisma.aBTest.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         ...data,
         startDate: data.startDate ? new Date(data.startDate) : undefined,
@@ -100,13 +102,14 @@ export async function PUT(
 // DELETE A/B test
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     await requireAdmin();
 
     await prisma.aBTest.delete({
-      where: { id: params.id },
+      where: { id },
     });
 
     return NextResponse.json({ success: true });

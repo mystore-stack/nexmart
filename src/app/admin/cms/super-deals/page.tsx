@@ -5,10 +5,11 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
   Save, Plus, Trash2, Edit, ArrowLeft, Clock,
-  ToggleLeft, ToggleRight, Tag, Calendar
+  ToggleLeft, ToggleRight, Tag, Calendar, X
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { ImageUpload } from "@/components/admin/ImageUpload";
+import { ProductSelector } from "@/components/admin/ProductSelector";
 
 export default function SuperDealsPage() {
   const router = useRouter();
@@ -18,6 +19,7 @@ export default function SuperDealsPage() {
   const [superDeals, setSuperDeals] = useState<any[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<any>(null);
+  const [showProductSelector, setShowProductSelector] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -26,15 +28,19 @@ export default function SuperDealsPage() {
   const fetchData = async () => {
     try {
       const [productsRes, dealsRes] = await Promise.all([
-        fetch("/api/products"),
-        fetch("/api/admin/super-deals"),
+        fetch("/api/admin/products", {
+          credentials: "include",
+        }),
+        fetch("/api/admin/super-deals", {
+          credentials: "include",
+        }),
       ]);
 
       const productsData = await productsRes.json();
       const dealsData = await dealsRes.json();
 
       if (productsData.success) {
-        setProducts(productsData.data || []);
+        setProducts(Array.isArray(productsData.products) ? productsData.products : []);
       }
       if (dealsData.success) {
         setSuperDeals(dealsData.data || []);
@@ -82,33 +88,56 @@ export default function SuperDealsPage() {
     }
   };
 
-  const handleAdd = async () => {
-    if (products.length === 0) {
-      toast.error("No products available");
+  const handleAdd = () => {
+    setShowProductSelector(true);
+  };
+
+  const handleProductSelect = (productId: string) => {
+    // If editing, update the edit form with the selected product
+    if (editingId && editForm) {
+      const product = Array.isArray(products) ? products.find(p => p.id === productId) : null;
+      if (product) {
+        setEditForm({ ...editForm, productId: productId });
+      }
+      setShowProductSelector(false);
       return;
     }
 
-    const productId = products[0].id;
+    // If adding, create a new super deal
+    const product = Array.isArray(products) ? products.find(p => p.id === productId) : null;
+    if (!product) {
+      toast.error("Product not found in the admin products response. Refresh products and try again.");
+      setShowProductSelector(false);
+      return;
+    }
 
     try {
-      const res = await fetch("/api/admin/super-deals", {
+      fetch("/api/admin/super-deals", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          productId,
+          productId: productId,
           order: superDeals.length,
           enabled: true,
           countdown: true,
         }),
+      })
+      .then(res => {
+        if (!res.ok) throw new Error("Failed to create");
+        return res.json();
+      })
+      .then(data => {
+        setSuperDeals([...superDeals, data.data]);
+        toast.success("Added successfully");
+        setShowProductSelector(false);
+      })
+      .catch(error => {
+        toast.error("Failed to add");
+        setShowProductSelector(false);
       });
-
-      if (!res.ok) throw new Error("Failed to create");
-
-      const data = await res.json();
-      setSuperDeals([...superDeals, data.data]);
-      toast.success("Added successfully");
     } catch (error) {
       toast.error("Failed to add");
+      setShowProductSelector(false);
     }
   };
 
@@ -124,6 +153,7 @@ export default function SuperDealsPage() {
       image: deal.image || "",
     });
     setEditingId(deal.id);
+    setShowProductSelector(false);
   };
 
   const handleSaveEdit = async () => {
@@ -217,6 +247,25 @@ export default function SuperDealsPage() {
             {editingId === deal.id && editForm ? (
               <div className="space-y-4">
                 <div>
+                  <label className="block text-sm font-medium mb-2">Product</label>
+                  <button
+                    type="button"
+                    onClick={() => setShowProductSelector(true)}
+                    className="w-full px-3 py-2 rounded-lg border border-border text-left flex items-center gap-2 hover:bg-muted transition-colors"
+                  >
+                    {editForm.productId ? (
+                      <>
+                        <span className="flex-1">
+                          {products.find(p => p.id === editForm.productId)?.name || 'Selected Product'}
+                        </span>
+                        <Edit className="w-4 h-4 text-muted-foreground" />
+                      </>
+                    ) : (
+                      <span className="text-muted-foreground">Select a product</span>
+                    )}
+                  </button>
+                </div>
+                <div>
                   <label className="block text-sm font-medium mb-2">Custom Image</label>
                   <ImageUpload
                     value={editForm.image}
@@ -278,10 +327,10 @@ export default function SuperDealsPage() {
                       className="w-full h-full object-cover"
                     />
                   </div>
-                ) : deal.product?.image && (
+                ) : deal.product?.images?.[0] && (
                   <div className="relative aspect-square rounded-xl overflow-hidden bg-muted">
                     <img
-                      src={deal.product.image}
+                      src={deal.product.images[0]}
                       alt={deal.product.name}
                       className="w-full h-full object-cover"
                     />
@@ -349,6 +398,27 @@ export default function SuperDealsPage() {
             <Plus className="w-4 h-4" />
             Add First Super Deal
           </button>
+        </div>
+      )}
+
+      {/* Product Selector Modal */}
+      {showProductSelector && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-card rounded-lg shadow-lg max-w-2xl w-full p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">Select a Product</h3>
+              <button
+                onClick={() => setShowProductSelector(false)}
+                className="p-2 hover:bg-muted rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <ProductSelector
+              onChange={handleProductSelect}
+              filterPublished={undefined}
+            />
+          </div>
         </div>
       )}
     </div>

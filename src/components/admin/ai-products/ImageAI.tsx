@@ -173,7 +173,7 @@ export function ImageAI({ images, onImagesChange, disabled = false }: ImageAIPro
                   </Badge>
                 )}
                 <Button
-                  variant="destructive"
+                  variant={"destructive" as any}
                   size="sm"
                   className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
                   onClick={(e) => {

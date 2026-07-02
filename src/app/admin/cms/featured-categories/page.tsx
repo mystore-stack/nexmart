@@ -297,10 +297,10 @@ export default function FeaturedCategoriesPage() {
                       className="w-full h-full object-cover"
                     />
                   </div>
-                ) : fc.category?.image && (
+                ) : fc.category?.images?.[0] && (
                   <div className="relative aspect-video rounded-xl overflow-hidden bg-muted">
                     <img
-                      src={fc.category.image}
+                      src={fc.category.images[0]}
                       alt={fc.category.name}
                       className="w-full h-full object-cover"
                     />

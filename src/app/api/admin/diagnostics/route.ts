@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
 
     // 2. DATABASE LAYER: Check for NULL organizationId
     const productsWithNullOrg = await prisma.product.count({
-      where: { organizationId: null }
+      where: { organizationId: null as any }
     });
     console.log("[DIAGNOSTICS] Products with NULL organizationId:", productsWithNullOrg);
 
@@ -86,7 +86,7 @@ export async function GET(req: NextRequest) {
     // 10. TENANT RESOLUTION: Check all user memberships
     const allUserMemberships = await prisma.membership.findMany({
       where: { userId },
-      include: { organization: { select: { id: true, name: true, slug: true } } },
+      include: { Organization: { select: { id: true, name: true, slug: true } } },
     });
     console.log("[DIAGNOSTICS] All user memberships:", allUserMemberships);
 

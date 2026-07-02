@@ -18,10 +18,7 @@ export async function createWeeklyNewsletter(config: NewsletterConfig) {
     const organization = await prisma.organization.findUnique({
       where: { id: config.organizationId },
       include: {
-        User: {
-          where: { role: 'ADMIN' },
-          take: 1,
-        },
+        User: true,
       },
     });
 
@@ -37,7 +34,7 @@ export async function createWeeklyNewsletter(config: NewsletterConfig) {
       where: {
         organizationId: config.organizationId,
         published: true,
-        OrderItem: {
+        orderItems: {
           some: {
             order: {
               createdAt: { gte: oneWeekAgo },
@@ -46,19 +43,19 @@ export async function createWeeklyNewsletter(config: NewsletterConfig) {
         },
       },
       include: {
-        OrderItem: {
+        orderItems: {
           where: {
             order: {
               createdAt: { gte: oneWeekAgo },
             },
           },
         },
-      },
+      } as any,
       take: 5,
     });
 
     // Sort by sales count
-    topProducts.sort((a, b) => b.OrderItem.length - a.OrderItem.length);
+    topProducts.sort((a, b) => (b as any).orderItems.length - (a as any).orderItems.length);
 
     // Get new products from the last week
     const newProducts = await prisma.product.findMany({

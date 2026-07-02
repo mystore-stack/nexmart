@@ -1,52 +1,64 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth-server";
+import { requireAuth } from "@/lib/auth-api";
 import { getDefaultOrganizationId } from "@/lib/tenant";
+import { deleteImage as deleteCloudinaryImage } from "@/lib/cloudinary";
 
 // GET - List all media assets
 export async function GET(req: NextRequest) {
   try {
-    await requireAdmin();
+    const session = await requireAuth();
+    const organizationId = await getDefaultOrganizationId();
 
     const searchParams = req.nextUrl.searchParams;
-    const category = searchParams.get("category");
-    const tags = searchParams.get("tags")?.split(",");
+    const folder = searchParams.get("folder");
+    const mimeType = searchParams.get("mimeType");
     const search = searchParams.get("search");
-
-    const organizationId = await getDefaultOrganizationId();
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = parseInt(searchParams.get("limit") || "24");
 
     const where: any = { organizationId };
     
-    if (category) {
-      where.category = category;
+    if (folder) {
+      where.folder = folder;
     }
     
-    if (tags && tags.length > 0) {
-      where.tags = { hasSome: tags };
+    if (mimeType) {
+      where.mimeType = mimeType;
     }
     
     if (search) {
       where.OR = [
         { originalName: { contains: search, mode: "insensitive" } },
         { alt: { contains: search, mode: "insensitive" } },
+        { caption: { contains: search, mode: "insensitive" } },
       ];
     }
 
-    const media = await prisma.mediaAsset.findMany({
-      where,
-      orderBy: { createdAt: "desc" },
-      take: 50,
-    });
+    const [media, total] = await Promise.all([
+      prisma.media.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      prisma.media.count({ where }),
+    ]);
 
-    return NextResponse.json({ success: true, media });
+    return NextResponse.json({ 
+      success: true, 
+      media,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit),
+        hasNext: page * limit < total,
+        hasPrev: page > 1,
+      },
+    });
   } catch (error: any) {
     console.error("[MEDIA GET ERROR]", error);
-    if (error.statusCode) {
-      return NextResponse.json(
-        { success: false, error: error.message },
-        { status: error.statusCode }
-      );
-    }
     return NextResponse.json(
       { success: false, error: "Failed to fetch media" },
       { status: 500 }
@@ -54,83 +66,109 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// POST - Upload new media asset
-export async function POST(req: NextRequest) {
+// DELETE - Delete media asset
+export async function DELETE(req: NextRequest) {
   try {
-    await requireAdmin();
+    const session = await requireAuth();
+    const organizationId = await getDefaultOrganizationId();
 
-    const formData = await req.formData();
-    const file = formData.get("file") as File;
-    const category = formData.get("category") as string;
-    const alt = formData.get("alt") as string;
-    const tags = formData.get("tags") as string;
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get("id");
 
-    if (!file) {
+    if (!id) {
       return NextResponse.json(
-        { success: false, error: "No file provided" },
+        { success: false, error: "Media ID is required" },
         { status: 400 }
       );
     }
 
-    // Upload to Cloudinary (using existing upload API)
-    const uploadFormData = new FormData();
-    uploadFormData.append("file", file);
-    
-    const uploadResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/admin/upload`, {
-      method: "POST",
-      body: uploadFormData,
+    const media = await prisma.media.findUnique({
+      where: { id },
     });
-    
-    const uploadData = await uploadResponse.json();
-    
-    if (!uploadData.success) {
+
+    if (!media) {
       return NextResponse.json(
-        { success: false, error: "Upload failed" },
-        { status: 500 }
+        { success: false, error: "Media not found" },
+        { status: 404 }
       );
     }
 
-    const organizationId = await getDefaultOrganizationId();
-
-    // Get image dimensions if it's an image
-    let width: number | undefined;
-    let height: number | undefined;
-    
-    if (file.type.startsWith("image/")) {
-      const buffer = await file.arrayBuffer();
-      const sharp = await import("sharp");
-      const metadata = await sharp.default(Buffer.from(buffer)).metadata();
-      width = metadata.width;
-      height = metadata.height;
+    if (media.organizationId !== organizationId) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 403 }
+      );
     }
 
-    const mediaAsset = await prisma.mediaAsset.create({
+    // Delete from Cloudinary
+    if (media.publicId) {
+      await deleteCloudinaryImage(media.publicId);
+    }
+
+    // Delete from database
+    await prisma.media.delete({
+      where: { id },
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    console.error("[MEDIA DELETE ERROR]", error);
+    return NextResponse.json(
+      { success: false, error: "Failed to delete media" },
+      { status: 500 }
+    );
+  }
+}
+
+// PATCH - Update media asset metadata
+export async function PATCH(req: NextRequest) {
+  try {
+    const session = await requireAuth();
+    const organizationId = await getDefaultOrganizationId();
+
+    const body = await req.json();
+    const { id, alt, caption, tags, folder } = body;
+
+    if (!id) {
+      return NextResponse.json(
+        { success: false, error: "Media ID is required" },
+        { status: 400 }
+      );
+    }
+
+    const media = await prisma.media.findUnique({
+      where: { id },
+    });
+
+    if (!media) {
+      return NextResponse.json(
+        { success: false, error: "Media not found" },
+        { status: 404 }
+      );
+    }
+
+    if (media.organizationId !== organizationId) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized" },
+        { status: 403 }
+      );
+    }
+
+    const updatedMedia = await prisma.media.update({
+      where: { id },
       data: {
-        organizationId,
-        filename: uploadData.filename || file.name,
-        originalName: file.name,
-        mimeType: file.type,
-        size: file.size,
-        url: uploadData.url,
-        width,
-        height,
-        alt: alt || null,
-        category: category || null,
-        tags: tags ? tags.split(",").map(t => t.trim()) : [],
+        ...(alt !== undefined && { alt }),
+        ...(caption !== undefined && { caption }),
+        ...(tags !== undefined && { tags }),
+        ...(folder !== undefined && { folder }),
       },
     });
 
-    return NextResponse.json({ success: true, media: mediaAsset });
+    return NextResponse.json({ success: true, media: updatedMedia });
   } catch (error: any) {
-    console.error("[MEDIA POST ERROR]", error);
-    if (error.statusCode) {
-      return NextResponse.json(
-        { success: false, error: error.message },
-        { status: error.statusCode }
-      );
-    }
+    console.error("[MEDIA PATCH ERROR]", error);
     return NextResponse.json(
-      { success: false, error: "Failed to upload media" },
+      { success: false, error: "Failed to update media" },
       { status: 500 }
     );
   }

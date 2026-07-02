@@ -7,6 +7,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Plus, Edit, Trash2, X, Check, Image as ImageIcon, Upload, Eye, EyeOff, Monitor, Smartphone, Copy, ArrowUp, ArrowDown, Video, Calendar, Palette } from "lucide-react";
 import Image from "next/image";
 import toast from "react-hot-toast";
+import { HeroLivePreview } from "@/components/admin/cms/hero/HeroLivePreview";
+import { cmsContentStatusSchema } from "@/lib/cms/schemas/common";
 
 const emptyToUndefined = (value: unknown) =>
   typeof value === "string" && value.trim() === "" ? undefined : value;
@@ -60,11 +62,15 @@ const heroBannerSchema = z.object({
   seoDescription: z.string().optional(),
   displayOrder: z.number().default(0),
   isActive: z.boolean().default(true),
+  status: cmsContentStatusSchema.default("PUBLISHED"),
   publishDate: z.string().optional(),
   expireDate: z.string().optional(),
 });
 
 type HeroBannerFormData = z.infer<typeof heroBannerSchema>;
+
+// Export the form data type for use in preview components
+export type { HeroBannerFormData };
 
 interface HeroBanner {
   id: string;
@@ -126,6 +132,7 @@ const defaultValues: HeroBannerFormData = {
   seoDescription: "",
   displayOrder: 0,
   isActive: true,
+  status: "PUBLISHED" as any,
   publishDate: "",
   expireDate: "",
 };
@@ -151,6 +158,13 @@ export default function AdminHeroPage() {
   });
 
   const watchedValues = watch();
+  
+  // Debug: Log watched values to verify real-time updates (only when preview is shown)
+  useEffect(() => {
+    if (showPreview) {
+      console.log("[Hero CMS] watchedValues updated:", watchedValues);
+    }
+  }, [watchedValues, showPreview]);
 
   useEffect(() => {
     fetchBanners();
@@ -200,27 +214,30 @@ export default function AdminHeroPage() {
   const handleSave = async (data: HeroBannerFormData) => {
     setSaving(true);
     try {
-      const url = editId ? `/api/admin/hero/${editId}` : "/api/admin/hero";
-      const method = editId ? "PUT" : "POST";
+      const url = editId ? `/api/admin/cms/hero` : "/api/admin/cms/hero";
+      const method = editId ? "PATCH" : "POST";
+      const body = editId ? { ...data, id: editId } : data;
+      
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify(data),
+        body: JSON.stringify(body),
       });
       const responseData = await res.json();
       if (responseData.success) {
         if (editId) {
           setBanners((prev) => prev.map((b) => b.id === editId ? responseData.banner : b));
-          toast.success("Banner updated!");
+          toast.success("Banner updated! Homepage revalidated.");
         } else {
           setBanners((prev) => [...prev, responseData.banner]);
-          toast.success("Banner created!");
+          toast.success("Banner created! Homepage revalidated.");
         }
         setShowForm(false);
         setShowPreview(false);
         reset(defaultValues);
         setEditId(null);
+        fetchBanners(); // Refresh banners from database
       } else {
         toast.error(responseData.error || "Failed to save");
       }
@@ -899,6 +916,22 @@ export default function AdminHeroPage() {
                   {errors.seoDescription && <p className="text-red-500 text-sm mt-1">{errors.seoDescription.message}</p>}
                 </div>
 
+                {/* Status */}
+                <div>
+                  <label className="block text-sm font-medium mb-2">Status</label>
+                  <select
+                    {...register('status')}
+                    className="w-full px-4 py-2 rounded-lg border border-border bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+                  >
+                    <option value="DRAFT">Draft</option>
+                    <option value="PUBLISHED">Published</option>
+                    <option value="SCHEDULED">Scheduled</option>
+                    <option value="ARCHIVED">Archived</option>
+                    <option value="EXPIRED">Expired</option>
+                  </select>
+                  {errors.status && <p className="text-red-500 text-sm mt-1">{errors.status.message}</p>}
+                </div>
+
                 {/* Active Toggle */}
                 <div className="flex items-center gap-3">
                   <input
@@ -915,59 +948,15 @@ export default function AdminHeroPage() {
 
                 {/* Live Preview */}
                 {showPreview && (
-                  <div className="w-full lg:w-[400px] bg-slate-900 rounded-xl overflow-hidden">
-                    <div className="p-3 bg-slate-800 text-white text-sm font-medium border-b border-slate-700">
-                      Live Preview
+                  <div className="w-full lg:w-[500px] bg-background rounded-xl overflow-hidden border border-border">
+                    <div className="p-4 bg-muted border-b border-border">
+                      <h3 className="text-sm font-semibold">Live Preview</h3>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Changes appear instantly without saving
+                      </p>
                     </div>
-                    <div className="relative aspect-[16/9] bg-gradient-to-br from-[#0a192f] via-[#020c1b] to-[#000000]">
-                      {watchedValues.desktopImageUrl && (
-                        <Image
-                          src={watchedValues.desktopImageUrl}
-                          alt="Preview"
-                          fill
-                          className="object-cover"
-                        />
-                      )}
-                      {watchedValues.backgroundOverlayColor && (
-                        <div 
-                          className="absolute inset-0"
-                          style={{ backgroundColor: watchedValues.backgroundOverlayColor + '80' }}
-                        />
-                      )}
-                      <div className="absolute inset-0 flex items-center justify-center p-6">
-                        <div className="text-center">
-                          {watchedValues.badgeText && (
-                            <div className="inline-block mb-4 px-3 py-1 bg-amber-400/20 border border-amber-400/30 rounded-full text-amber-300 text-xs font-bold uppercase tracking-wider">
-                              {watchedValues.badgeText}
-                            </div>
-                          )}
-                          <h2 className="text-2xl font-bold text-white mb-2">
-                            {watchedValues.title}
-                          </h2>
-                          {watchedValues.highlightedText && (
-                            <p className="text-xl text-amber-400 mb-2">
-                              {watchedValues.highlightedText}
-                            </p>
-                          )}
-                          {watchedValues.description && (
-                            <p className="text-white/70 text-sm mb-4">
-                              {watchedValues.description}
-                            </p>
-                          )}
-                          <div className="flex gap-2 justify-center">
-                            {watchedValues.primaryButtonText && (
-                              <button className="px-4 py-2 bg-teal-500 text-white rounded-lg text-sm">
-                                {watchedValues.primaryButtonText}
-                              </button>
-                            )}
-                            {watchedValues.secondaryButtonText && (
-                              <button className="px-4 py-2 border border-white/30 text-white rounded-lg text-sm">
-                                {watchedValues.secondaryButtonText}
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      </div>
+                    <div className="p-4 bg-slate-950">
+                      <HeroLivePreview bannerData={watchedValues} />
                     </div>
                   </div>
                 )}

@@ -8,7 +8,6 @@ export {
   getNavigationMenu,
   getHeroBanners,
   getAnnouncementBar,
-  getHomepageSections,
   getSiteConfigBundle,
 } from "./data";
 

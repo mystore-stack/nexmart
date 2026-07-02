@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth-api";
+import { getDefaultOrganizationId } from "@/lib/tenant";
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 const emptyToUndefined = (value: unknown) =>
@@ -62,18 +64,20 @@ const heroBannerSchema = z.object({
 // PUT update hero banner (admin only)
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await requireAdmin();
-    const { id } = params;
+    const { id } = await params;
+
+    const organizationId = await getDefaultOrganizationId();
 
     const body = await req.json();
     const validatedData = heroBannerSchema.parse(body);
 
-    // Check if banner exists
-    const existingBanner = await prisma.heroBanner.findUnique({
-      where: { id },
+    // Check if banner exists and belongs to organization
+    const existingBanner = await prisma.heroBanner.findFirst({
+      where: { id, organizationId },
     });
 
     if (!existingBanner) {
@@ -94,6 +98,10 @@ export async function PUT(
       where: { id },
       data,
     });
+
+    // Revalidate homepage to show updated banner
+    revalidatePath("/");
+    revalidatePath("/api/hero");
 
     return NextResponse.json({ success: true, banner });
   } catch (error: any) {
@@ -120,15 +128,17 @@ export async function PUT(
 // DELETE hero banner (admin only)
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await requireAdmin();
-    const { id } = params;
+    const { id } = await params;
 
-    // Check if banner exists
-    const existingBanner = await prisma.heroBanner.findUnique({
-      where: { id },
+    const organizationId = await getDefaultOrganizationId();
+
+    // Check if banner exists and belongs to organization
+    const existingBanner = await prisma.heroBanner.findFirst({
+      where: { id, organizationId },
     });
 
     if (!existingBanner) {
@@ -141,6 +151,10 @@ export async function DELETE(
     await prisma.heroBanner.delete({
       where: { id },
     });
+
+    // Revalidate homepage to remove deleted banner
+    revalidatePath("/");
+    revalidatePath("/api/hero");
 
     return NextResponse.json({ success: true, message: "Hero banner deleted" });
   } catch (error: any) {

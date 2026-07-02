@@ -9,7 +9,7 @@ import {
   Tag, FolderOpen, Menu, X, LogOut, ChevronRight,
   Home, Store, Truck, FileText, Upload, Bell, Settings, Image,
   BarChart3, LineChart, Megaphone, FlaskConical, ChevronDown,
-  Bot, FileQuestion, AlertCircle, Cpu, LayoutTemplate, Image as ImageIcon, BellRing, Layers, Award, GitBranch, Target, Zap
+  Bot, FileQuestion, AlertCircle, Cpu, LayoutTemplate, Image as ImageIcon, BellRing, Layers, Award, GitBranch, Target, Zap, Gift
 } from "lucide-react";
 import { useAuthStore } from "@/store/index";
 
@@ -69,6 +69,11 @@ const MARKETING_GROUP: NavItem = {
     { icon: Target, label: "Campaigns", href: "/admin/marketing/campaigns" },
     { icon: Tag, label: "Sponsored Products", href: "/admin/marketing/sponsored-products" },
     { icon: Zap, label: "Flash Deals", href: "/admin/marketing/flash-deals" },
+    { icon: Package, label: "Frequently Bought Together", href: "/admin/marketing/frequently-bought-together" },
+    { icon: Tag, label: "Buy More Save More", href: "/admin/marketing/buy-more-save-more" },
+    { icon: Gift, label: "Mystery Boxes", href: "/admin/marketing/mystery-box" },
+    { icon: Layers, label: "Build Your Own Bundle", href: "/admin/marketing/build-your-own-bundle" },
+    { icon: LayoutTemplate, label: "Page Builder", href: "/admin/page-builder" },
     { icon: BarChart3, label: "Marketing Analytics", href: "/admin/marketing/analytics" },
   ]
 };
@@ -164,20 +169,22 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           Main
         </p>
         {NAV.map(({ icon: Icon, label, href }) => (
-          <Link
-            key={href}
-            href={href}
-            onClick={() => setSidebarOpen(false)}
-            className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all group ${
-              isActive(href)
-                ? "bg-white text-foreground shadow-lg"
-                : "text-white/58 hover:text-white hover:bg-white/10"
-            }`}
-          >
-            <Icon className="w-4 h-4 flex-shrink-0" />
-            {label}
-            {isActive(href) && <ChevronRight className="w-3.5 h-3.5 ml-auto" />}
-          </Link>
+          href ? (
+            <Link
+              key={href}
+              href={href}
+              onClick={() => setSidebarOpen(false)}
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all group ${
+                isActive(href)
+                  ? "bg-white text-foreground shadow-lg"
+                  : "text-white/58 hover:text-white hover:bg-white/10"
+              }`}
+            >
+              <Icon className="w-4 h-4 flex-shrink-0" />
+              {label}
+              {isActive(href) && <ChevronRight className="w-3.5 h-3.5 ml-auto" />}
+            </Link>
+          ) : null
         ))}
 
         {/* Analytics Group */}

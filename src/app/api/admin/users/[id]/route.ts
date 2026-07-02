@@ -12,13 +12,14 @@ const updateSchema = z.object({
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const { organizationId } = await requireAdmin();
     // Prevent demoting super admins
     const membership = await prisma.membership.findUnique({
-      where: { userId_organizationId: { userId: params.id, organizationId } },
+      where: { userId_organizationId: { userId: id, organizationId } },
       include: { User: true },
     });
     const target = membership?.User;
@@ -29,7 +30,7 @@ export async function PATCH(
     const data = updateSchema.parse(body);
 
     const user = await prisma.user.update({
-      where: { id: params.id },
+      where: { id },
       data,
       select: { id: true, name: true, email: true, role: true },
     });

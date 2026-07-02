@@ -1,4 +1,6 @@
 /** @type {import('next').NextConfig} */
+const path = require('path');
+
 const nextConfig = {
   experimental: {
     optimizePackageImports: ["lucide-react", "framer-motion"],
@@ -11,6 +13,8 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+
+  outputFileTracingRoot: path.join(__dirname),
 
   images: {
     remotePatterns: [

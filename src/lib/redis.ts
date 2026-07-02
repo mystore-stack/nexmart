@@ -185,13 +185,13 @@ export function subscribeToChannel(
 ): () => void {
   const subscriber = redis.duplicate();
 
-  subscriber.subscribe(channel, (err) => {
+  subscriber.subscribe(channel, (err: Error | null) => {
     if (err && process.env.NODE_ENV !== "production") {
       console.error(`Redis subscribe error for ${channel}:`, err);
     }
   });
 
-  subscriber.on("message", (receivedChannel, message) => {
+  subscriber.on("message", (receivedChannel: string, message: string) => {
     if (receivedChannel === channel) {
       try {
         if (!message || message === "") return;

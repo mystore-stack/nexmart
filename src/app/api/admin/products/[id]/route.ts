@@ -22,11 +22,12 @@ const updateSchema = z.object({
   featured: z.boolean().optional(),
 }).partial();
 
-export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params;
     const { organizationId } = await requireAdmin();
     const product = await prisma.product.findFirst({
-      where: { id: params.id, organizationId },
+      where: { id, organizationId },
       include: { category: true, variants: true, reviews: { take: 10, include: { user: { select: { name: true } } } } },
     });
     if (!product) return notFound("Product not found");
@@ -36,19 +37,20 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
   }
 }
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params;
     const { organizationId } = await requireAdmin();
     const body = await req.json();
     const data = updateSchema.parse(body);
 
     const product = await prisma.product.update({
-      where: { id: params.id, organizationId },
+      where: { id, organizationId },
       data,
       include: { category: true, variants: true },
     });
 
-    await invalidateProductCache(params.id);
+    await invalidateProductCache(id);
     return ok(product);
   } catch (err: any) {
     if ((err as Error).message === "Forbidden") return forbidden();
@@ -57,23 +59,24 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   }
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params;
     const { organizationId } = await requireAdmin();
 
     // Soft delete by unpublishing, or hard delete
     const force = req.nextUrl.searchParams.get("force") === "true";
 
     if (force) {
-      await prisma.product.delete({ where: { id: params.id, organizationId } });
+      await prisma.product.delete({ where: { id, organizationId } });
     } else {
       await prisma.product.update({
-        where: { id: params.id, organizationId },
+        where: { id, organizationId },
         data: { published: false },
       });
     }
 
-    await invalidateProductCache(params.id);
+    await invalidateProductCache(id);
     return noContent();
   } catch (err: any) {
     if ((err as Error).message === "Forbidden") return forbidden();

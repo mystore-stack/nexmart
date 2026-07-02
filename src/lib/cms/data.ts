@@ -12,7 +12,6 @@ import {
   type SiteSettingsData,
 } from "@/lib/cms/defaults";
 import type { FooterConfigSchema } from "@/lib/cms/types";
-import type { HomepageSectionData } from "@/components/home/HomepageSections";
 
 export interface NavigationItemData {
   id: string;
@@ -268,54 +267,6 @@ export async function getAnnouncementBar(organizationId?: string) {
       error instanceof Error ? error.message : error
     );
     return null;
-  }
-}
-
-// ─── Homepage Sections ─────────────────────────────────────────────────
-
-export async function getHomepageSections(organizationId?: string): Promise<{
-  sections: HomepageSectionData[];
-  config: { newsletterEnabled: boolean; newsletterTitle?: string | null; newsletterSubtitle?: string | null } | null;
-}> {
-  const orgId = await resolvePublicOrganizationId(organizationId);
-  if (!orgId) return { sections: [], config: null };
-
-  const cached = unstable_cache(
-    async () => {
-      const config = await prisma.homepageConfig.findFirst({
-        where: { organizationId: orgId, isActive: true, status: "PUBLISHED" },
-        include: { sections: { where: { isVisible: true }, orderBy: { displayOrder: "asc" } } },
-      });
-      if (!config) return { sections: [], config: null };
-      return {
-        sections: config.sections.map((s) => ({
-          id: s.id,
-          type: s.type,
-          title: s.title,
-          subtitle: s.subtitle,
-          config: (s.config as Record<string, unknown>) ?? {},
-          isVisible: s.isVisible,
-          displayOrder: s.displayOrder,
-        })),
-        config: {
-          newsletterEnabled: config.newsletterEnabled,
-          newsletterTitle: config.newsletterTitle,
-          newsletterSubtitle: config.newsletterSubtitle,
-        },
-      };
-    },
-    [`homepage-sections-${orgId}`],
-    { tags: [CMS_TAGS.homepage(orgId)], revalidate: 60 }
-  );
-
-  try {
-    return await cached();
-  } catch (error) {
-    console.warn(
-      "[CMS] Failed to load homepage sections; rendering legacy homepage.",
-      error instanceof Error ? error.message : error
-    );
-    return { sections: [], config: null };
   }
 }
 

@@ -70,7 +70,7 @@ export function CategoriesSection({ categories }: Props) {
                 </div>
                 <div className="text-center">
                   <p className="text-xs font-semibold leading-tight text-foreground group-hover:text-brand-700 dark:group-hover:text-brand-400 transition-colors">{cat.name}</p>
-                  {cat._count && (
+                  {cat._count?.products && (
                     <p className="text-[9px] text-muted-foreground mt-0.5 font-medium">
                       {cat._count.products} produits
                     </p>

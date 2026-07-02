@@ -329,7 +329,7 @@ export default function AutomationErrorsPage() {
                           Retry
                         </Button>
                         <Button
-                          variant="destructive"
+                          variant={"outline" as any}
                           size="sm"
                           onClick={() => handleDelete(job.jobId)}
                         >
@@ -435,7 +435,7 @@ export default function AutomationErrorsPage() {
                 <Button onClick={() => handleRetry(selectedJob.jobId)}>
                   Retry Job
                 </Button>
-                <Button variant="destructive" onClick={() => handleDelete(selectedJob.jobId)}>
+                <Button variant={"destructive" as any} onClick={() => handleDelete(selectedJob.jobId)}>
                   Delete Job
                 </Button>
               </div>

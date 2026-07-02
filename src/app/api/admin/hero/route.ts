@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth-api";
+import { getDefaultOrganizationId } from "@/lib/tenant";
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
 const emptyToUndefined = (value: unknown) =>
@@ -64,11 +66,16 @@ export async function GET(req: NextRequest) {
   try {
     const session = await requireAdmin();
 
+    const organizationId = await getDefaultOrganizationId();
+
     const { searchParams } = new URL(req.url);
     const includeInactive = searchParams.get("includeInactive") === "true";
 
     const banners = await prisma.heroBanner.findMany({
-      where: includeInactive ? undefined : { isActive: true },
+      where: {
+        organizationId,
+        ...(!includeInactive && { isActive: true }),
+      },
       orderBy: [{ displayOrder: "asc" }, { createdAt: "desc" }],
     });
 
@@ -93,12 +100,15 @@ export async function POST(req: NextRequest) {
   try {
     const session = await requireAdmin();
 
+    const organizationId = await getDefaultOrganizationId();
+
     const body = await req.json();
     const validatedData = heroBannerSchema.parse(body);
 
     // Convert date strings to Date objects
     const data = {
       ...validatedData,
+      organizationId,
       publishDate: validatedData.publishDate ? new Date(validatedData.publishDate) : null,
       expireDate: validatedData.expireDate ? new Date(validatedData.expireDate) : null,
     };
@@ -106,6 +116,10 @@ export async function POST(req: NextRequest) {
     const banner = await prisma.heroBanner.create({
       data,
     });
+
+    // Revalidate homepage to show new banner
+    revalidatePath("/");
+    revalidatePath("/api/hero");
 
     return NextResponse.json({ success: true, banner }, { status: 201 });
   } catch (error: any) {

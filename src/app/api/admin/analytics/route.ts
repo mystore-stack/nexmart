@@ -93,10 +93,10 @@ export const GET = withAdmin(async ({ req }) => {
     // Calculate conversion rates
     const addToCartRate = productViews > 0 ? (addToCartEvents / productViews) * 100 : 0;
     const checkoutRate = addToCartEvents > 0 ? (checkoutStartedEvents / addToCartEvents) * 100 : 0;
-    const overallConversionRate = totalVisitors > 0 ? (executiveMetrics.orders / totalVisitors) * 100 : 0;
+    const overallConversionRate = totalVisitors > 0 ? ((executiveMetrics as any).orders / totalVisitors) * 100 : 0;
 
     // Get average order value
-    const avgOrderValue = executiveMetrics.orders > 0 ? executiveMetrics.revenue / executiveMetrics.orders : 0;
+    const avgOrderValue = (executiveMetrics as any).orders > 0 ? (executiveMetrics as any).revenue / (executiveMetrics as any).orders : 0;
 
     // Get chart data
     const revenueByDay = await prisma.order.findMany({
@@ -200,6 +200,11 @@ export const GET = withAdmin(async ({ req }) => {
           outOfStock: inventoryMetrics.outOfStock,
           lowStock: inventoryMetrics.lowStock,
           overstocked: inventoryMetrics.overstocked,
+        },
+        products: {
+          total: inventoryMetrics.products.length,
+          lowStock: inventoryMetrics.lowStock,
+          outOfStock: inventoryMetrics.outOfStock,
         },
         conversion: executiveMetrics.conversion,
         visitors: totalVisitors,

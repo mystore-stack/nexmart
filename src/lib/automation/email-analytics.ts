@@ -125,7 +125,7 @@ export async function trackConversion(emailLogId: string, orderValue: number, or
     // Update campaign conversion count if linked
     const emailLog = await prisma.emailLog.findUnique({
       where: { id: emailLogId },
-      select: { campaignId: true },
+      select: { campaignId: true } as any,
     });
 
     if (emailLog?.campaignId) {
@@ -135,7 +135,7 @@ export async function trackConversion(emailLogId: string, orderValue: number, or
           conversionCount: { increment: 1 },
           revenue: { increment: orderValue },
         },
-      });
+      } as any);
     }
 
     console.log(`[Email Analytics] Tracked conversion for email ${emailLogId}, value: ${orderValue}`);
@@ -169,9 +169,9 @@ export async function getEmailAnalytics(organizationId: string, startDate?: Date
       prisma.emailLog.count({ where: { ...where, status: 'SENT' } }),
       prisma.emailLog.count({ where: { ...where, openedAt: { not: null } } }),
       prisma.emailLog.count({ where: { ...where, clickedAt: { not: null } } }),
-      prisma.emailTracking.count({ where: { emailLog: { ...where }, converted: true } }),
+      prisma.emailTracking.count({ where: { converted: true, emailLog: { organizationId } } as any }),
       prisma.emailTracking.aggregate({
-        where: { emailLog: { ...where }, converted: true },
+        where: { converted: true, emailLog: { organizationId } } as any,
         _sum: { orderValue: true },
       }),
     ]);
@@ -236,20 +236,20 @@ export async function getEmailTypeBreakdown(organizationId: string, startDate?: 
       if (track.opened) {
         // Find the email type for this tracking record
         const emailLog = await prisma.emailLog.findUnique({
-          where: { id: track.emailLogId },
-          select: { type: true },
+          where: { id: (track as any).emailLogId },
+          select: { type: true } as any,
         });
-        if (emailLog && breakdown[emailLog.type]) {
-          breakdown[emailLog.type].opened++;
+        if (emailLog && breakdown[(emailLog as any).type]) {
+          breakdown[(emailLog as any).type].opened++;
         }
       }
       if (track.clicked) {
         const emailLog = await prisma.emailLog.findUnique({
-          where: { id: track.emailLogId },
-          select: { type: true },
+          where: { id: (track as any).emailLogId },
+          select: { type: true } as any,
         });
-        if (emailLog && breakdown[emailLog.type]) {
-          breakdown[emailLog.type].clicked++;
+        if (emailLog && breakdown[(emailLog as any).type]) {
+          breakdown[(emailLog as any).type].clicked++;
         }
       }
     }

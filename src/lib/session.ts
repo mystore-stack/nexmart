@@ -60,7 +60,7 @@ async function legacyFromRequest(req: NextRequest): Promise<AuthSession | null> 
             return null;
           }
           console.log("[SESSION] User verified for legacy auth (cached):", session.userId);
-          return { ...session, role: cached.role };
+          return { ...session, role: cached.role as "USER" | "ADMIN" | "SUPER_ADMIN" };
         }
         
         const { prisma } = await import("@/lib/prisma");
@@ -101,7 +101,7 @@ async function legacyFromRequest(req: NextRequest): Promise<AuthSession | null> 
             return null;
           }
           console.log("[SESSION] User verified for legacy auth cookie (cached):", session.userId);
-          return { ...session, role: cached.role };
+          return { ...session, role: cached.role as "USER" | "ADMIN" | "SUPER_ADMIN" };
         }
         
         const { prisma } = await import("@/lib/prisma");
@@ -133,7 +133,7 @@ async function legacyFromRequest(req: NextRequest): Promise<AuthSession | null> 
 async function legacyFromCookies(): Promise<AuthSession | null> {
   console.log("[SESSION] Checking legacy auth from cookies");
   const { cookies } = await import("next/headers");
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const cookieToken = cookieStore.get(AUTH_COOKIE)?.value;
   if (cookieToken) {
     console.log("[SESSION] Found auth cookie");
@@ -150,7 +150,7 @@ async function legacyFromCookies(): Promise<AuthSession | null> {
             return null;
           }
           console.log("[SESSION] User verified for legacy auth cookie (cached):", session.userId);
-          return { ...session, role: cached.role };
+          return { ...session, role: cached.role as "USER" | "ADMIN" | "SUPER_ADMIN" };
         }
         
         const { prisma } = await import("@/lib/prisma");
@@ -202,7 +202,7 @@ export async function getSessionFromRequest(req: NextRequest): Promise<AuthSessi
         return null;
       }
       console.log("[SESSION] User verified for NextAuth token (cached):", payload.userId);
-      return { ...payload, role: cached.role };
+      return { ...payload, role: cached.role as "USER" | "ADMIN" | "SUPER_ADMIN" };
     }
     
     const { prisma } = await import("@/lib/prisma");
@@ -248,7 +248,7 @@ export async function getSession(): Promise<AuthSession | null> {
       return {
         userId: u.id,
         email: u.email ?? "",
-        role: cached.role,
+        role: cached.role as "USER" | "ADMIN" | "SUPER_ADMIN",
       };
     }
     

@@ -3,14 +3,15 @@ import { NextRequest } from 'next/server';
 import { withApi } from '@/lib/withApi';
 
 export const GET = withApi(async ({ req, session }) => {
+  if (!session) throw new Error("Session required");
   const { searchParams } = new URL(req.url);
   const type = searchParams.get('type') || 'product';
   const limit = parseInt(searchParams.get('limit') || '10');
   const context = searchParams.get('context') || 'homepage';
 
   const recommendations = await getRecommendations(
-    session.userId,
-    session.organizationId,
+    session!.userId,
+    session!.organizationId,
     type,
     limit,
     context

@@ -22,22 +22,23 @@ model User {
   createdAt               DateTime                 @default(now())
   updatedAt               DateTime                 @updatedAt
   locale                  LocaleCode               @default(fr)
+  AIBulkImports           AIBulkImport[]
+  AIProductJobs           AIProductJob[]
   addresses               Address[]
   AiConversation          AiConversation[]
   AiEvent                 AiEvent[]
   AiProductGeneration     AiProductGeneration[]
-  AIProductJobs           AIProductJob[]
-  AIBulkImports           AIBulkImport[]
   analyticsEvents         AnalyticsEvent[]
   analyticsSessions       AnalyticsSession[]
   AuditLog                AuditLog[]
-  eventTracking           EventTracking[]
   campaignEvents          CampaignEvent[]
   cart                    CartItem[]
   cartReminders           CartReminder[]
   churnPredictions        ChurnPrediction[]
   customerSegment         CustomerSegment[]
   emailLogs               EmailLog[]
+  eventTracking           EventTracking[]
+  googleOAuthAccount      GoogleOAuthAccount?
   loyaltyPoints           LoyaltyPoints[]
   marketingSegmentMembers MarketingSegmentMember[]
   Membership              Membership[]
@@ -54,7 +55,6 @@ model User {
   userProfile             UserProfile?
   welcomeSeries           WelcomeSeries?
   wishlist                WishlistItem[]
-  googleOAuthAccount      GoogleOAuthAccount[]
 
   @@index([email])
 }
@@ -79,74 +79,77 @@ model Address {
 }
 
 model Category {
-  id              String           @id @default(uuid()) @db.Uuid
-  organizationId  String           @db.Uuid
-  name            String
-  slug            String
-  description     String?
-  image           String?
-  parentId        String?          @db.Uuid
-  createdAt       DateTime         @default(now())
-  analyticsEvents AnalyticsEvent[]
-  eventTracking   EventTracking[]
-  Organization    Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  parent          Category?        @relation("SubCategories", fields: [parentId], references: [id])
-  children        Category[]       @relation("SubCategories")
-  products        Product[]
-  featuredCategories FeaturedCategory[]
+  id                           String                       @id @default(uuid()) @db.Uuid
+  organizationId               String                       @db.Uuid
+  name                         String
+  slug                         String
+  description                  String?
+  image                        String?
+  parentId                     String?                      @db.Uuid
+  createdAt                    DateTime                     @default(now())
+  analyticsEvents              AnalyticsEvent[]
+  buildYourOwnBundleCategories BuildYourOwnBundleCategory[]
+  Organization                 Organization                 @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  parent                       Category?                    @relation("SubCategories", fields: [parentId], references: [id])
+  children                     Category[]                   @relation("SubCategories")
+  eventTracking                EventTracking[]
+  featuredCategories           FeaturedCategory[]
+  products                     Product[]
 
   @@unique([organizationId, slug])
   @@index([organizationId])
 }
 
 model Product {
-  id                 String                 @id @default(uuid()) @db.Uuid
-  organizationId     String                 @db.Uuid
-  name               String
-  slug               String
-  description        String
-  price              Float
-  comparePrice       Float?
-  cost               Float?
-  categoryId         String                 @db.Uuid
-  images             String[]
-  tags               String[]
-  sku                String
-  stock              Int                    @default(0)
-  lowStockAt         Int                    @default(5)
-  weight             Float?
-  published          Boolean                @default(false)
-  featured           Boolean                @default(false)
-  rating             Float                  @default(0)
-  reviewCount        Int                    @default(0)
-  soldCount          Int                    @default(0)
-  createdAt          DateTime               @default(now())
-  updatedAt          DateTime               @updatedAt
-  AiEvent            AiEvent[]
-  AiProductEmbedding AiProductEmbedding?
-  AiProductGeneration AiProductGeneration[]
-  analyticsEvents    AnalyticsEvent[]
-  cartItems          CartItem[]
-  dynamicPrice       DynamicPrice?
-  reservations       InventoryReservation[]
-  orderItems         OrderItem[]
-  category           Category               @relation(fields: [categoryId], references: [id])
-  Organization       Organization           @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  variants           ProductVariant[]
-  recentlyViewed     RecentlyViewed[]
-  reviews            Review[]
-  ProductPublishingHistory ProductPublishingHistory[]
-  ProductRevision    ProductRevision[]
-  stockAlertLogs     StockAlertLog[]
-  wishlistItems      WishlistItem[]
-  eventTracking      EventTracking[]
-  sponsoredProducts  SponsoredProduct[]
-  flashDealProducts  FlashDealProduct[]
-  aiProductSEOs      AIProductSEO[]
-  aiProductImages    AIProductImage[]
-  aiProductPricing  AIProductPricing[]
-  superDeals         SuperDeal[]
-  bundleProducts     BundleProduct[]
+  id                               String                            @id @default(uuid()) @db.Uuid
+  organizationId                   String                            @db.Uuid
+  name                             String
+  slug                             String
+  description                      String
+  price                            Float
+  comparePrice                     Float?
+  cost                             Float?
+  categoryId                       String                            @db.Uuid
+  images                           String[]
+  tags                             String[]
+  sku                              String
+  stock                            Int                               @default(0)
+  lowStockAt                       Int                               @default(5)
+  weight                           Float?
+  published                        Boolean                           @default(false)
+  featured                         Boolean                           @default(false)
+  rating                           Float                             @default(0)
+  reviewCount                      Int                               @default(0)
+  soldCount                        Int                               @default(0)
+  createdAt                        DateTime                          @default(now())
+  updatedAt                        DateTime                          @updatedAt
+  aiProductImages                  AIProductImage[]
+  aiProductPricing                 AIProductPricing[]
+  aiProductSEOs                    AIProductSEO[]
+  AiEvent                          AiEvent[]
+  AiProductEmbedding               AiProductEmbedding?
+  AiProductGeneration              AiProductGeneration[]
+  analyticsEvents                  AnalyticsEvent[]
+  bundleProducts                   BundleProduct[]
+  cartItems                        CartItem[]
+  dynamicPrice                     DynamicPrice?
+  eventTracking                    EventTracking[]
+  flashDealProducts                FlashDealProduct[]
+  frequentlyBoughtTogetherProducts FrequentlyBoughtTogetherProduct[]
+  reservations                     InventoryReservation[]
+  mysteryBoxProducts               MysteryBoxProduct[]
+  orderItems                       OrderItem[]
+  category                         Category                          @relation(fields: [categoryId], references: [id])
+  Organization                     Organization                      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  ProductPublishingHistory         ProductPublishingHistory[]
+  ProductRevision                  ProductRevision[]
+  variants                         ProductVariant[]
+  recentlyViewed                   RecentlyViewed[]
+  reviews                          Review[]
+  sponsoredProducts                SponsoredProduct[]
+  stockAlertLogs                   StockAlertLog[]
+  superDeals                       SuperDeal[]
+  wishlistItems                    WishlistItem[]
 
   @@unique([organizationId, sku])
   @@unique([organizationId, slug])
@@ -239,9 +242,9 @@ model Order {
   estimatedDelivery DateTime?
   idempotencyKey    String?              @unique
   analyticsEvents   AnalyticsEvent[]
-  eventTracking     EventTracking[]
   CmiPayment        CmiPayment?
   emailLogs         EmailLog[]
+  eventTracking     EventTracking[]
   Invoice           Invoice?
   notifications     NotificationLog[]    @relation("OrderNotifications")
   address           Address              @relation(fields: [addressId], references: [id])
@@ -311,7 +314,7 @@ model Coupon {
   endDate        DateTime?
   active         Boolean      @default(true)
   createdAt      DateTime     @default(now())
-  Organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   orders         Order[]
 
   @@unique([organizationId, code])
@@ -331,54 +334,53 @@ model WishlistItem {
 }
 
 model HeroBanner {
-  id                     String    @id @default(uuid()) @db.Uuid
-  badgeText              String?
+  id                     String                @id @default(uuid()) @db.Uuid
   title                  String
-  highlightedText        String?
-  subtitle               String?
   description            String?
-  desktopImageUrl        String?
   mobileImageUrl         String?
-  videoUrl               String?
-  primaryButtonText      String?
-  primaryButtonLink      String?
-  secondaryButtonText    String?
-  secondaryButtonLink    String?
-  backgroundColor        String?
+  isActive               Boolean               @default(true)
+  createdAt              DateTime              @default(now())
+  updatedAt              DateTime              @updatedAt
   backgroundOverlayColor String?
-  overlayOpacity         Float     @default(0.5)
-  textColor              String?
-  primaryButtonColor     String?
-  secondaryButtonColor   String?
-  heroHeight             String    @default("90vh")
-  heroPosition           String    @default("center")
-  seoTitle               String?
-  seoDescription         String?
-  displayOrder           Int       @default(0)
-  isActive               Boolean   @default(true)
-  publishDate            DateTime?
+  badgeText              String?
+  desktopImageUrl        String?
+  highlightedText        String?
+  primaryButtonLink      String?
+  primaryButtonText      String?
+  secondaryButtonLink    String?
+  secondaryButtonText    String?
+  backgroundColor        String?
+  displayOrder           Int                   @default(0)
   expireDate             DateTime?
-  impressions            Int       @default(0)
-  primaryButtonClicks    Int       @default(0)
-  secondaryButtonClicks  Int       @default(0)
-  organizationId         String?   @db.Uuid
-  status                 CMSContentStatus @default(PUBLISHED)
-  ctaButtons             Json      @default("[]")
+  heroHeight             String                @default("90vh")
+  heroPosition           String                @default("center")
+  overlayOpacity         Float                 @default(0.5)
+  primaryButtonColor     String?
+  publishDate            DateTime?
+  secondaryButtonColor   String?
+  seoDescription         String?
+  seoTitle               String?
+  subtitle               String?
+  textColor              String?
+  videoUrl               String?
+  impressions            Int                   @default(0)
+  primaryButtonClicks    Int                   @default(0)
+  secondaryButtonClicks  Int                   @default(0)
+  abTestGroupId          String?               @db.Uuid
   animationSettings      Json?
-  priorityScore          Int       @default(0)
-  templateId             String?   @db.Uuid
-  abTestGroupId          String?   @db.Uuid
-  conversionCount        Int       @default(0)
-  revenueGenerated       Float     @default(0)
-  createdBy              String?   @db.Uuid
+  conversionCount        Int                   @default(0)
+  createdBy              String?               @db.Uuid
+  ctaButtons             Json                  @default("[]")
+  organizationId         String?               @db.Uuid
+  priorityScore          Int                   @default(0)
   publishedAt            DateTime?
-  createdAt              DateTime  @default(now())
-  updatedAt              DateTime  @updatedAt
-
-  analytics     HeroBannerAnalytics[]
-  eventTracking EventTracking[]
-  template      HeroBannerTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
-  abTestGroup   HeroBannerABTest?   @relation(fields: [abTestGroupId], references: [id], onDelete: SetNull)
+  revenueGenerated       Float                 @default(0)
+  status                 CMSContentStatus      @default(PUBLISHED)
+  templateId             String?               @db.Uuid
+  eventTracking          EventTracking[]
+  abTestGroup            HeroBannerABTest?     @relation(fields: [abTestGroupId], references: [id])
+  template               HeroBannerTemplate?   @relation(fields: [templateId], references: [id])
+  analytics              HeroBannerAnalytics[]
 
   @@index([isActive])
   @@index([displayOrder])
@@ -391,19 +393,18 @@ model HeroBanner {
 }
 
 model HeroBannerAnalytics {
-  id          String   @id @default(uuid()) @db.Uuid
-  bannerId    String   @db.Uuid
-  eventType   String // "impression", "primaryClick", "secondaryClick"
-  deviceType  String? // "mobile", "desktop", "tablet"
+  id          String     @id @default(uuid()) @db.Uuid
+  bannerId    String     @db.Uuid
+  eventType   String
+  deviceType  String?
   country     String?
   referrer    String?
   landingPage String?
   sessionId   String?
   userAgent   String?
   ipAddress   String?
-  createdAt   DateTime @default(now())
-
-  banner HeroBanner @relation(fields: [bannerId], references: [id], onDelete: Cascade)
+  createdAt   DateTime   @default(now())
+  banner      HeroBanner @relation(fields: [bannerId], references: [id], onDelete: Cascade)
 
   @@index([bannerId])
   @@index([eventType])
@@ -455,15 +456,15 @@ model AuditLog {
 }
 
 model EventTracking {
-  id          String   @id @default(uuid()) @db.Uuid
-  eventType   String // "page_view", "product_view", "search", "add_to_cart", "remove_from_cart", "checkout_started", "payment_success", "order_completed", "banner_click", "category_click"
+  id          String      @id @default(uuid()) @db.Uuid
+  eventType   String
   sessionId   String?
-  userId      String?  @db.Uuid
-  productId   String?  @db.Uuid
-  categoryId  String?  @db.Uuid
-  bannerId    String?  @db.Uuid
-  orderId     String?  @db.Uuid
-  deviceType  String? // "mobile", "desktop", "tablet"
+  userId      String?     @db.Uuid
+  productId   String?     @db.Uuid
+  categoryId  String?     @db.Uuid
+  bannerId    String?     @db.Uuid
+  orderId     String?     @db.Uuid
+  deviceType  String?
   browser     String?
   country     String?
   referrer    String?
@@ -475,13 +476,12 @@ model EventTracking {
   utmContent  String?
   metadata    Json?
   ipAddress   String?
-  createdAt   DateTime @default(now())
-
-  user     User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
-  product  Product?    @relation(fields: [productId], references: [id], onDelete: SetNull)
-  category Category?   @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  banner   HeroBanner? @relation(fields: [bannerId], references: [id], onDelete: SetNull)
-  order    Order?      @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  createdAt   DateTime    @default(now())
+  banner      HeroBanner? @relation(fields: [bannerId], references: [id])
+  category    Category?   @relation(fields: [categoryId], references: [id])
+  order       Order?      @relation(fields: [orderId], references: [id])
+  product     Product?    @relation(fields: [productId], references: [id])
+  user        User?       @relation(fields: [userId], references: [id])
 
   @@index([eventType])
   @@index([sessionId])
@@ -492,21 +492,20 @@ model EventTracking {
 }
 
 model ABTest {
-  id             String    @id @default(uuid()) @db.Uuid
+  id             String          @id @default(uuid()) @db.Uuid
   name           String
   description    String?
-  variantA       Json // Configuration for variant A
-  variantB       Json // Configuration for variant B
-  trafficSplit   Int       @default(50) // Percentage for variant A
-  status         String    @default("draft") // "draft", "running", "completed", "paused"
+  variantA       Json
+  variantB       Json
+  trafficSplit   Int             @default(50)
+  status         String          @default("draft")
   startDate      DateTime?
   endDate        DateTime?
-  winningVariant String? // "A", "B", or null
-  confidence     Float? // Statistical confidence percentage
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-
-  variants ABTestVariant[]
+  winningVariant String?
+  confidence     Float?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  variants       ABTestVariant[]
 
   @@index([status])
   @@index([startDate])
@@ -516,15 +515,14 @@ model ABTest {
 model ABTestVariant {
   id          String   @id @default(uuid()) @db.Uuid
   testId      String   @db.Uuid
-  variant     String // "A" or "B"
+  variant     String
   impressions Int      @default(0)
   clicks      Int      @default(0)
   conversions Int      @default(0)
   revenue     Float    @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-
-  test ABTest @relation(fields: [testId], references: [id], onDelete: Cascade)
+  test        ABTest   @relation(fields: [testId], references: [id], onDelete: Cascade)
 
   @@index([testId])
   @@index([variant])
@@ -533,9 +531,9 @@ model ABTestVariant {
 model AdCampaign {
   id          String    @id @default(uuid()) @db.Uuid
   name        String
-  platform    String // "facebook", "google", "tiktok", "email", "other"
-  campaignId  String? // External campaign ID
-  status      String    @default("active") // "active", "paused", "completed"
+  platform    String
+  campaignId  String?
+  status      String    @default("active")
   budget      Float?
   spent       Float     @default(0)
   impressions Int       @default(0)
@@ -727,84 +725,91 @@ model Membership {
 }
 
 model Organization {
-  id                      String                   @id @default(uuid()) @db.Uuid
-  name                    String
-  slug                    String                   @unique
-  logo                    String?
-  ownerId                 String                   @db.Uuid
-  stripeCustomerId        String?                  @unique
-  createdAt               DateTime                 @default(now())
-  updatedAt               DateTime                 @updatedAt
-  defaultLocale           LocaleCode               @default(fr)
-  ice                     String?
-  ifNumber                String?
-  legalAddress            String?
-  legalName               String?
-  customDomain            String?                  @unique
-  paymentMethods          PaymentMethod[]
-  planId                  String?                  @db.Uuid
-  primaryColor            String?
-  status                  OrganizationStatus       @default(ACTIVE)
-  subscriptionId          String?                  @unique @db.Uuid
-  trialEndsAt             DateTime?
-  AiConversation          AiConversation[]
-  AiEvent                 AiEvent[]
-  AiProductEmbedding      AiProductEmbedding[]
-  AiProductGeneration     AiProductGeneration[]
-  AnalyticsMetric         AnalyticsMetric[]
-  AuditLog                AuditLog[]
-  BICustomerSegment       BICustomerSegment[]
-  Category                Category[]
-  ChurnPrediction         ChurnPrediction[]
-  CohortAnalysis          CohortAnalysis[]
-  Coupon                  Coupon[]
-  Customer                Customer[]
-  dailySalesReports       DailySalesReport[]
-  DynamicPrice            DynamicPrice[]
-  emailCampaigns          EmailCampaign[]
-  Experiment              Experiment[]
-  Invoice                 Invoice[]
-  MarketingCampaign       MarketingCampaign[]
-  marketingSegments       MarketingSegment[]
-  marketingSegmentMembers MarketingSegmentMember[]
-  MarketingWorkflow       MarketingWorkflow[]
-  Membership              Membership[]
-  Order                   Order[]
-  User                    User                     @relation("OrganizationOwner", fields: [ownerId], references: [id])
-  plan                    Plan?                    @relation(fields: [planId], references: [id])
-  Personalization         Personalization[]
-  PersonalizedOffer       PersonalizedOffer[]
-  PredictiveModel         PredictiveModel[]
-  Product                 Product[]
-  ProductPublishingHistory ProductPublishingHistory[]
-  ProductRevision         ProductRevision[]
-  ProductBundle           ProductBundle[]
-  RetentionCampaign       RetentionCampaign[]
-  RevenueAction           RevenueAction[]
-  stockAlertLogs          StockAlertLog[]
-  Subscription            Subscription?
-  usageRecords            UsageRecord[]
-  UserProfile             UserProfile[]
-  welcomeSeries           WelcomeSeries[]
-  promoCampaigns          PromoCampaign[]
-  advertisements          Advertisement[]
-  sponsoredProducts       SponsoredProduct[]
-  flashDeals              FlashDeal[]
-  superDeals              SuperDeal[]
-  aiModelConfig           AIModelConfig?
-  aiProductJobs           AIProductJob[]
-  aiProductSEOs           AIProductSEO[]
-  aiProductImages         AIProductImage[]
-  aiProductPricing       AIProductPricing[]
-  aiProductCategories    AIProductCategory[]
-  aiBulkImports           AIBulkImport[]
-  aiProductAnalytics      AIProductAnalytics[]
-  googleIntegrations      GoogleIntegration[]
-  googleAnalyticsEvents   GoogleAnalyticsEvent[]
-  googleMerchantFeeds     GoogleMerchantFeed[]
-  googleSearchConsoleSites GoogleSearchConsoleSite[]
-  googleBusinessProfiles  GoogleBusinessProfile[]
-  googleMapsLocations     GoogleMapsLocation[]
+  id                        String                     @id @default(uuid()) @db.Uuid
+  name                      String
+  slug                      String                     @unique
+  logo                      String?
+  ownerId                   String                     @db.Uuid
+  stripeCustomerId          String?                    @unique
+  createdAt                 DateTime                   @default(now())
+  updatedAt                 DateTime                   @updatedAt
+  defaultLocale             LocaleCode                 @default(fr)
+  ice                       String?
+  ifNumber                  String?
+  legalAddress              String?
+  legalName                 String?
+  customDomain              String?                    @unique
+  paymentMethods            PaymentMethod[]
+  planId                    String?                    @db.Uuid
+  primaryColor              String?
+  status                    OrganizationStatus         @default(ACTIVE)
+  subscriptionId            String?                    @unique @db.Uuid
+  trialEndsAt               DateTime?
+  aiBulkImports             AIBulkImport[]
+  aiModelConfig             AIModelConfig?
+  aiProductAnalytics        AIProductAnalytics[]
+  aiProductCategories       AIProductCategory[]
+  aiProductImages           AIProductImage[]
+  aiProductJobs             AIProductJob[]
+  aiProductPricing          AIProductPricing[]
+  aiProductSEOs             AIProductSEO[]
+  advertisements            Advertisement[]
+  AiConversation            AiConversation[]
+  AiEvent                   AiEvent[]
+  AiProductEmbedding        AiProductEmbedding[]
+  AiProductGeneration       AiProductGeneration[]
+  AnalyticsMetric           AnalyticsMetric[]
+  AuditLog                  AuditLog[]
+  BICustomerSegment         BICustomerSegment[]
+  buildYourOwnBundles       BuildYourOwnBundle[]
+  buyMoreSaveMores          BuyMoreSaveMore[]
+  Category                  Category[]
+  ChurnPrediction           ChurnPrediction[]
+  CohortAnalysis            CohortAnalysis[]
+  Coupon                    Coupon[]
+  Customer                  Customer[]
+  dailySalesReports         DailySalesReport[]
+  DynamicPrice              DynamicPrice[]
+  emailCampaigns            EmailCampaign[]
+  Experiment                Experiment[]
+  flashDeals                FlashDeal[]
+  frequentlyBoughtTogethers FrequentlyBoughtTogether[]
+  globalComponents          GlobalComponent[]
+  googleAnalyticsEvents     GoogleAnalyticsEvent[]
+  googleBusinessProfiles    GoogleBusinessProfile[]
+  googleIntegrations        GoogleIntegration[]
+  googleMapsLocations       GoogleMapsLocation[]
+  googleMerchantFeeds       GoogleMerchantFeed[]
+  googleSearchConsoleSites  GoogleSearchConsoleSite[]
+  Invoice                   Invoice[]
+  MarketingCampaign         MarketingCampaign[]
+  marketingSegments         MarketingSegment[]
+  marketingSegmentMembers   MarketingSegmentMember[]
+  MarketingWorkflow         MarketingWorkflow[]
+  mediaFolders              MediaFolder[]
+  Membership                Membership[]
+  mysteryBoxes              MysteryBox[]
+  Order                     Order[]
+  User                      User                       @relation("OrganizationOwner", fields: [ownerId], references: [id])
+  plan                      Plan?                      @relation(fields: [planId], references: [id])
+  pageBuilderPages          PageBuilderPage[]
+  Personalization           Personalization[]
+  PersonalizedOffer         PersonalizedOffer[]
+  PredictiveModel           PredictiveModel[]
+  Product                   Product[]
+  ProductBundle             ProductBundle[]
+  ProductPublishingHistory  ProductPublishingHistory[]
+  ProductRevision           ProductRevision[]
+  promoCampaigns            PromoCampaign[]
+  RetentionCampaign         RetentionCampaign[]
+  RevenueAction             RevenueAction[]
+  sponsoredProducts         SponsoredProduct[]
+  stockAlertLogs            StockAlertLog[]
+  Subscription              Subscription?
+  superDeals                SuperDeal[]
+  usageRecords              UsageRecord[]
+  UserProfile               UserProfile[]
+  welcomeSeries             WelcomeSeries[]
 
   @@index([ownerId])
   @@index([slug])
@@ -980,38 +985,38 @@ model AiProductEmbedding {
 }
 
 model AiProductGeneration {
-  id                 String                    @id @default(uuid()) @db.Uuid
-  organizationId     String                    @db.Uuid
-  productId          String?                   @db.Uuid
-  createdById        String?                   @db.Uuid
-  kind               AIProductGenerationKind   @default(CREATE)
-  status             AIProductGenerationStatus @default(DRAFT)
-  workflow           AIProductPublishWorkflow  @default(DRAFT)
-  input              Json                      @default("{}")
-  output             Json                      @default("{}")
-  imageAnalysis      Json                      @default("[]")
-  translations       Json                      @default("{}")
-  seo                Json                      @default("{}")
-  qualityScore       Int                       @default(0)
-  qualityBreakdown   Json                      @default("{}")
-  suggestions        Json                      @default("[]")
-  selectedCategoryId String?                   @db.Uuid
-  selectedBrand      String?
-  productType        String?
-  revisionNote       String?
-  publishedAt        DateTime?
-  createdAt          DateTime                  @default(now())
-  updatedAt          DateTime                  @updatedAt
-  Organization       Organization              @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  Product            Product?                  @relation(fields: [productId], references: [id], onDelete: SetNull)
-  User               User?                     @relation(fields: [createdById], references: [id], onDelete: SetNull)
-  revisions          ProductRevision[]
-  publishingHistory  ProductPublishingHistory[]
-  aiProductJobs      AIProductJob[]
-  aiProductSEOs      AIProductSEO[]
-  aiProductImages    AIProductImage[]
-  aiProductPricing   AIProductPricing[]
+  id                  String                     @id @default(uuid()) @db.Uuid
+  organizationId      String                     @db.Uuid
+  productId           String?                    @db.Uuid
+  createdById         String?                    @db.Uuid
+  kind                AIProductGenerationKind    @default(CREATE)
+  status              AIProductGenerationStatus  @default(DRAFT)
+  workflow            AIProductPublishWorkflow   @default(DRAFT)
+  input               Json                       @default("{}")
+  output              Json                       @default("{}")
+  imageAnalysis       Json                       @default("[]")
+  translations        Json                       @default("{}")
+  seo                 Json                       @default("{}")
+  qualityScore        Int                        @default(0)
+  qualityBreakdown    Json                       @default("{}")
+  suggestions         Json                       @default("[]")
+  selectedCategoryId  String?                    @db.Uuid
+  selectedBrand       String?
+  productType         String?
+  revisionNote        String?
+  publishedAt         DateTime?
+  createdAt           DateTime                   @default(now())
+  updatedAt           DateTime                   @updatedAt
   aiProductCategories AIProductCategory[]
+  aiProductImages     AIProductImage[]
+  aiProductJobs       AIProductJob[]
+  aiProductPricing    AIProductPricing?
+  aiProductSEOs       AIProductSEO?
+  User                User?                      @relation(fields: [createdById], references: [id])
+  Organization        Organization               @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  Product             Product?                   @relation(fields: [productId], references: [id])
+  publishingHistory   ProductPublishingHistory[]
+  revisions           ProductRevision[]
 
   @@index([organizationId, status, createdAt])
   @@index([productId])
@@ -1020,20 +1025,20 @@ model AiProductGeneration {
 }
 
 model ProductRevision {
-  id             String                    @id @default(uuid()) @db.Uuid
-  organizationId String                    @db.Uuid
-  productId      String                    @db.Uuid
-  generationId   String?                   @db.Uuid
-  createdById    String?                   @db.Uuid
-  source         ProductRevisionSource     @default(AI_PRODUCT_MANAGER)
+  id             String                @id @default(uuid()) @db.Uuid
+  organizationId String                @db.Uuid
+  productId      String                @db.Uuid
+  generationId   String?               @db.Uuid
+  createdById    String?               @db.Uuid
+  source         ProductRevisionSource @default(AI_PRODUCT_MANAGER)
   version        Int
   title          String
   snapshot       Json
   note           String?
-  createdAt      DateTime                  @default(now())
-  Organization   Organization              @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  Product        Product                   @relation(fields: [productId], references: [id], onDelete: Cascade)
-  generation     AiProductGeneration?      @relation(fields: [generationId], references: [id], onDelete: SetNull)
+  createdAt      DateTime              @default(now())
+  generation     AiProductGeneration?  @relation(fields: [generationId], references: [id])
+  Organization   Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  Product        Product               @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@unique([productId, version])
   @@index([organizationId, createdAt])
@@ -1041,20 +1046,20 @@ model ProductRevision {
 }
 
 model ProductPublishingHistory {
-  id             String                    @id @default(uuid()) @db.Uuid
-  organizationId String                    @db.Uuid
-  productId      String                    @db.Uuid
-  generationId   String?                   @db.Uuid
-  actorId        String?                   @db.Uuid
+  id             String                   @id @default(uuid()) @db.Uuid
+  organizationId String                   @db.Uuid
+  productId      String                   @db.Uuid
+  generationId   String?                  @db.Uuid
+  actorId        String?                  @db.Uuid
   workflow       AIProductPublishWorkflow
   action         ProductPublishingAction
   fromStatus     String?
   toStatus       String?
   metadata       Json?
-  createdAt      DateTime                  @default(now())
-  Organization   Organization              @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  Product        Product                   @relation(fields: [productId], references: [id], onDelete: Cascade)
-  generation     AiProductGeneration?      @relation(fields: [generationId], references: [id], onDelete: SetNull)
+  createdAt      DateTime                 @default(now())
+  generation     AiProductGeneration?     @relation(fields: [generationId], references: [id])
+  Organization   Organization             @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  Product        Product                  @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@index([organizationId, createdAt])
   @@index([productId, createdAt])
@@ -2031,6 +2036,1466 @@ model EmailTracking {
   @@index([converted])
 }
 
+model MediaAsset {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @db.Uuid
+  filename       String
+  originalName   String
+  mimeType       String
+  size           Int
+  url            String
+  width          Int?
+  height         Int?
+  alt            String?
+  category       String?
+  tags           String[]
+  uploadedBy     String?      @db.Uuid
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  aiTags         String[]
+  folderId       String?      @db.Uuid
+  usageCount     Int          @default(0)
+  viewCount      Int          @default(0)
+  webpUrl        String?
+  folder         MediaFolder? @relation(fields: [folderId], references: [id])
+  usages         MediaUsage[]
+
+  @@index([organizationId])
+  @@index([category])
+  @@index([uploadedBy])
+  @@index([folderId])
+}
+
+model AnnouncementBar {
+  id              String                     @id @default(uuid()) @db.Uuid
+  organizationId  String                     @db.Uuid
+  text            String
+  icon            String?
+  backgroundColor String                     @default("#000000")
+  textColor       String                     @default("#ffffff")
+  isActive        Boolean                    @default(true)
+  displayOrder    Int                        @default(0)
+  startDate       DateTime?
+  endDate         DateTime?
+  createdAt       DateTime                   @default(now())
+  updatedAt       DateTime                   @updatedAt
+  clicks          Int                        @default(0)
+  countdownEnd    DateTime?
+  ctaLink         String?
+  ctaText         String?
+  deviceTargeting DeviceTarget               @default(ALL)
+  dismissible     Boolean                    @default(true)
+  geoTargeting    Json?
+  impressions     Int                        @default(0)
+  status          CMSContentStatus           @default(PUBLISHED)
+  stickyMode      Boolean                    @default(true)
+  utmCampaign     String?
+  utmMedium       String?
+  utmSource       String?
+  analytics       AnnouncementBarAnalytics[]
+
+  @@index([organizationId])
+  @@index([isActive])
+  @@index([displayOrder])
+  @@index([status])
+}
+
+model HomepageConfig {
+  id                 String            @id @default(uuid()) @db.Uuid
+  organizationId     String            @db.Uuid
+  featuredCategories String[]
+  featuredProducts   String[]
+  featuredBrands     String[]
+  testimonials       Json[]
+  newsletterEnabled  Boolean           @default(true)
+  newsletterTitle    String?
+  newsletterSubtitle String?
+  isActive           Boolean           @default(true)
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+  publishedAt        DateTime?
+  status             CMSContentStatus  @default(DRAFT)
+  version            Int               @default(1)
+  sections           HomepageSection[]
+  versions           HomepageVersion[]
+
+  @@index([organizationId])
+  @@index([isActive])
+  @@index([status])
+}
+
+model FooterConfig {
+  id                 String   @id @default(uuid()) @db.Uuid
+  organizationId     String   @db.Uuid
+  logoUrl            String?
+  description        String?
+  socialLinks        Json[]
+  contactInfo        Json
+  quickLinks         Json[]
+  legalLinks         Json[]
+  isActive           Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  columns            Json[]
+  copyrightText      String?
+  newsletterSettings Json?
+  paymentIcons       Json[]
+  storeBadges        Json[]
+  translations       Json?
+
+  @@index([organizationId])
+  @@index([isActive])
+}
+
+model Testimonial {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @db.Uuid
+  name           String
+  role           String?
+  avatarUrl      String?
+  rating         Int      @default(5)
+  content        String
+  productId      String?  @db.Uuid
+  isActive       Boolean  @default(true)
+  displayOrder   Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([organizationId])
+  @@index([isActive])
+  @@index([productId])
+  @@index([displayOrder])
+}
+
+model HeroBannerTemplate {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String?      @db.Uuid
+  name           String
+  description    String?
+  thumbnail      String?
+  config         Json
+  isSystem       Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  banners        HeroBanner[]
+
+  @@index([organizationId])
+}
+
+model HeroBannerABTest {
+  id             String           @id @default(uuid()) @db.Uuid
+  organizationId String           @db.Uuid
+  name           String
+  status         CMSContentStatus @default(DRAFT)
+  variantAId     String?          @db.Uuid
+  variantBId     String?          @db.Uuid
+  trafficSplit   Float            @default(0.5)
+  winnerId       String?          @db.Uuid
+  startedAt      DateTime?
+  endedAt        DateTime?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  banners        HeroBanner[]
+
+  @@index([organizationId])
+  @@index([status])
+}
+
+model HomepageSection {
+  id           String              @id @default(uuid()) @db.Uuid
+  homepageId   String              @db.Uuid
+  type         HomepageSectionType
+  title        String?
+  subtitle     String?
+  config       Json                @default("{}")
+  isVisible    Boolean             @default(true)
+  displayOrder Int                 @default(0)
+  templateId   String?
+  impressions  Int                 @default(0)
+  clicks       Int                 @default(0)
+  conversions  Int                 @default(0)
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+  homepage     HomepageConfig      @relation(fields: [homepageId], references: [id], onDelete: Cascade)
+
+  @@index([homepageId])
+  @@index([displayOrder])
+  @@index([type])
+}
+
+model HomepageVersion {
+  id          String         @id @default(uuid()) @db.Uuid
+  homepageId  String         @db.Uuid
+  version     Int
+  snapshot    Json
+  publishedBy String?        @db.Uuid
+  note        String?
+  createdAt   DateTime       @default(now())
+  homepage    HomepageConfig @relation(fields: [homepageId], references: [id], onDelete: Cascade)
+
+  @@index([homepageId])
+  @@index([version])
+}
+
+model AnnouncementBarAnalytics {
+  id         String          @id @default(uuid()) @db.Uuid
+  barId      String          @db.Uuid
+  eventType  String
+  deviceType String?
+  country    String?
+  sessionId  String?
+  utmSource  String?
+  createdAt  DateTime        @default(now())
+  bar        AnnouncementBar @relation(fields: [barId], references: [id], onDelete: Cascade)
+
+  @@index([barId])
+  @@index([eventType])
+  @@index([createdAt])
+}
+
+model MediaFolder {
+  id             String        @id @default(uuid()) @db.Uuid
+  organizationId String        @db.Uuid
+  name           String
+  parentId       String?       @db.Uuid
+  slug           String
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  assetCount     Int           @default(0)
+  path           String
+  assets         MediaAsset[]
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  parent         MediaFolder?  @relation("FolderTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children       MediaFolder[] @relation("FolderTree")
+
+  @@unique([organizationId, slug])
+  @@unique([organizationId, path])
+  @@index([organizationId])
+  @@index([parentId])
+}
+
+model MediaUsage {
+  id         String     @id @default(uuid()) @db.Uuid
+  assetId    String     @db.Uuid
+  entityType String
+  entityId   String
+  fieldName  String?
+  createdAt  DateTime   @default(now())
+  asset      MediaAsset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@index([assetId])
+  @@index([entityType, entityId])
+}
+
+model NavigationMenu {
+  id             String                 @id @default(uuid()) @db.Uuid
+  organizationId String                 @db.Uuid
+  name           String
+  location       NavigationMenuLocation @default(HEADER)
+  isActive       Boolean                @default(true)
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+  items          NavigationMenuItem[]
+
+  @@index([organizationId])
+  @@index([location])
+}
+
+model NavigationMenuItem {
+  id           String               @id @default(uuid()) @db.Uuid
+  menuId       String               @db.Uuid
+  parentId     String?              @db.Uuid
+  label        String
+  url          String?
+  icon         String?
+  target       String               @default("_self")
+  isVisible    Boolean              @default(true)
+  displayOrder Int                  @default(0)
+  badge        String?
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+  menu         NavigationMenu       @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  parent       NavigationMenuItem?  @relation("MenuItemTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children     NavigationMenuItem[] @relation("MenuItemTree")
+
+  @@index([menuId])
+  @@index([parentId])
+  @@index([displayOrder])
+}
+
+model Brand {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @db.Uuid
+  name           String
+  slug           String
+  logoUrl        String?
+  bannerUrl      String?
+  description    String?
+  website        String?
+  isActive       Boolean  @default(true)
+  isFeatured     Boolean  @default(false)
+  displayOrder   Int      @default(0)
+  productCount   Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([organizationId, slug])
+  @@index([organizationId])
+  @@index([isActive])
+  @@index([isFeatured])
+}
+
+model CmsActivityLog {
+  id             String         @id @default(uuid()) @db.Uuid
+  organizationId String         @db.Uuid
+  userId         String?        @db.Uuid
+  entityType     String
+  entityId       String?
+  action         CmsAuditAction
+  metadata       Json?
+  ipAddress      String?
+  createdAt      DateTime       @default(now())
+
+  @@index([organizationId])
+  @@index([userId])
+  @@index([entityType])
+  @@index([action])
+  @@index([createdAt])
+}
+
+model SiteSettings {
+  id                    String   @id @default(uuid()) @db.Uuid
+  organizationId        String   @unique @db.Uuid
+  storeName             String   @default("NexMart")
+  storeTagline          String?
+  logoUrl               String?
+  faviconUrl            String?
+  ogImageUrl            String?
+  email                 String?
+  phone                 String?
+  whatsapp              String?
+  address               String?
+  businessHours         String?
+  supportEmail          String?
+  socialLinks           Json     @default("[]")
+  seoTitle              String?
+  seoDescription        String?
+  seoKeywords           String[]
+  siteUrl               String?
+  twitterHandle         String?
+  locale                String   @default("fr_MA")
+  primaryColor          String   @default("#0F766E")
+  secondaryColor        String   @default("#D4AF37")
+  accentColor           String?
+  themeColorLight       String   @default("#F5F1E8")
+  themeColorDark        String   @default("#0F172A")
+  currency              String   @default("MAD")
+  freeShippingThreshold Float?
+  freeShippingMessage   String?
+  searchPlaceholder     String?
+  copyrightText         String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@index([organizationId])
+}
+
+model PromoCampaign {
+  id             String            @id @default(uuid()) @db.Uuid
+  organizationId String            @db.Uuid
+  name           String
+  slug           String
+  type           PromoCampaignType @default(CUSTOM)
+  description    String?
+  status         CMSContentStatus  @default(DRAFT)
+  startDate      DateTime?
+  endDate        DateTime?
+  bannerColor    String?
+  metadata       Json?
+  impressions    Int               @default(0)
+  clicks         Int               @default(0)
+  conversions    Int               @default(0)
+  revenue        Float             @default(0)
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  advertisements Advertisement[]
+  flashDeals     FlashDeal[]
+  organization   Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, slug])
+  @@index([organizationId])
+  @@index([status])
+  @@index([type])
+  @@index([startDate])
+  @@index([endDate])
+}
+
+model Advertisement {
+  id              String                   @id @default(uuid()) @db.Uuid
+  organizationId  String                   @db.Uuid
+  campaignId      String?                  @db.Uuid
+  title           String
+  subtitle        String?
+  description     String?
+  imageDesktop    String?
+  imageMobile     String?
+  videoUrl        String?
+  ctaText         String?
+  ctaUrl          String?
+  backgroundColor String                   @default("#0F766E")
+  textColor       String                   @default("#FFFFFF")
+  placement       AdPlacement              @default(HOMEPAGE_HERO)
+  priority        Int                      @default(0)
+  status          CMSContentStatus         @default(DRAFT)
+  startDate       DateTime?
+  endDate         DateTime?
+  targetCountries String[]
+  targetLanguages String[]
+  targetDevices   DeviceTarget             @default(ALL)
+  visitorTarget   VisitorTarget            @default(ALL)
+  impressions     Int                      @default(0)
+  clicks          Int                      @default(0)
+  conversions     Int                      @default(0)
+  revenue         Float                    @default(0)
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
+  campaign        PromoCampaign?           @relation(fields: [campaignId], references: [id])
+  organization    Organization             @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  analytics       AdvertisementAnalytics[]
+
+  @@index([organizationId])
+  @@index([campaignId])
+  @@index([placement])
+  @@index([status])
+  @@index([priority])
+  @@index([startDate])
+  @@index([endDate])
+}
+
+model AdvertisementAnalytics {
+  id            String        @id @default(uuid()) @db.Uuid
+  adId          String        @db.Uuid
+  eventType     String
+  deviceType    String?
+  country       String?
+  sessionId     String?
+  revenue       Float?
+  createdAt     DateTime      @default(now())
+  advertisement Advertisement @relation(fields: [adId], references: [id], onDelete: Cascade)
+
+  @@index([adId])
+  @@index([eventType])
+  @@index([createdAt])
+}
+
+model SponsoredProduct {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @db.Uuid
+  productId      String       @db.Uuid
+  priority       Int          @default(0)
+  badgeText      String       @default("Sponsored")
+  startDate      DateTime?
+  endDate        DateTime?
+  isActive       Boolean      @default(true)
+  impressions    Int          @default(0)
+  clicks         Int          @default(0)
+  conversions    Int          @default(0)
+  revenue        Float        @default(0)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  product        Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, productId])
+  @@index([organizationId])
+  @@index([productId])
+  @@index([isActive])
+  @@index([priority])
+  @@index([startDate])
+  @@index([endDate])
+}
+
+model FlashDeal {
+  id              String             @id @default(uuid()) @db.Uuid
+  organizationId  String             @db.Uuid
+  campaignId      String?            @db.Uuid
+  name            String
+  slug            String
+  discountPercent Float?
+  discountAmount  Float?
+  startDate       DateTime
+  endDate         DateTime
+  autoStart       Boolean            @default(true)
+  autoEnd         Boolean            @default(true)
+  status          CMSContentStatus   @default(DRAFT)
+  isActive        Boolean            @default(false)
+  impressions     Int                @default(0)
+  clicks          Int                @default(0)
+  conversions     Int                @default(0)
+  revenue         Float              @default(0)
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  campaign        PromoCampaign?     @relation(fields: [campaignId], references: [id])
+  organization    Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  products        FlashDealProduct[]
+
+  @@unique([organizationId, slug])
+  @@index([organizationId])
+  @@index([campaignId])
+  @@index([status])
+  @@index([isActive])
+  @@index([startDate])
+  @@index([endDate])
+}
+
+model FlashDealProduct {
+  id              String    @id @default(uuid()) @db.Uuid
+  flashDealId     String    @db.Uuid
+  productId       String    @db.Uuid
+  discountPercent Float?
+  discountPrice   Float?
+  displayOrder    Int       @default(0)
+  createdAt       DateTime  @default(now())
+  flashDeal       FlashDeal @relation(fields: [flashDealId], references: [id], onDelete: Cascade)
+  product         Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([flashDealId, productId])
+  @@index([flashDealId])
+  @@index([productId])
+}
+
+model AIModelConfig {
+  id              String       @id @default(uuid()) @db.Uuid
+  organizationId  String       @unique @db.Uuid
+  defaultModel    AIModel      @default(GPT_4)
+  apiKey          String?
+  enabledModels   AIModel[]
+  monthlyQuota    Int          @default(1000)
+  usedQuota       Int          @default(0)
+  quotaResetDate  DateTime
+  rateLimitPerMin Int          @default(60)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  Organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+}
+
+model AIProductJob {
+  id              String               @id @default(uuid()) @db.Uuid
+  organizationId  String               @db.Uuid
+  userId          String?              @db.Uuid
+  generationId    String?              @db.Uuid
+  bulkImportId    String?              @db.Uuid
+  inputType       AIProductInputType
+  status          AIJobStatus          @default(QUEUED)
+  priority        AIJobPriority        @default(NORMAL)
+  progress        Float                @default(0)
+  input           Json                 @default("{}")
+  output          Json?                @default("{}")
+  error           String?
+  model           AIModel              @default(GPT_4)
+  language        AIProductLanguage    @default(EN)
+  tone            AIProductTone        @default(PROFESSIONAL)
+  estimatedTokens Int?
+  actualTokens    Int?
+  cost            Float?
+  startedAt       DateTime?
+  completedAt     DateTime?
+  retryCount      Int                  @default(0)
+  maxRetries      Int                  @default(3)
+  metadata        Json?                @default("{}")
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+  bulkImport      AIBulkImport?        @relation(fields: [bulkImportId], references: [id])
+  generation      AiProductGeneration? @relation(fields: [generationId], references: [id])
+  Organization    Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  User            User?                @relation(fields: [userId], references: [id])
+
+  @@index([organizationId, status, createdAt])
+  @@index([userId])
+  @@index([generationId])
+  @@index([priority, status])
+  @@index([createdAt])
+}
+
+model AIProductSEO {
+  id                String              @id @default(uuid()) @db.Uuid
+  organizationId    String              @db.Uuid
+  generationId      String              @unique @db.Uuid
+  productId         String?             @db.Uuid
+  seoScore          Int                 @default(0)
+  readability       Int                 @default(0)
+  keywordDensity    Float?
+  missingKeywords   String[]
+  titleLength       Int
+  descriptionLength Int
+  slugQuality       Int
+  headingStructure  Json
+  imageOptimization Int
+  suggestions       Json[]
+  oneClickFixes     Json[]
+  analyzedAt        DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  generation        AiProductGeneration @relation(fields: [generationId], references: [id], onDelete: Cascade)
+  Organization      Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  Product           Product?            @relation(fields: [productId], references: [id])
+
+  @@index([organizationId])
+  @@index([generationId])
+  @@index([productId])
+}
+
+model AIProductImage {
+  id                  String                @id @default(uuid()) @db.Uuid
+  organizationId      String                @db.Uuid
+  generationId        String?               @db.Uuid
+  productId           String?               @db.Uuid
+  originalUrl         String?
+  processedUrl        String?
+  altText             String?
+  title               String?
+  caption             String?
+  backgroundRemoved   Boolean               @default(false)
+  enhanced            Boolean               @default(false)
+  compressed          Boolean               @default(false)
+  tags                String[]
+  dominantColors      String[]
+  width               Int?
+  height              Int?
+  fileSize            Int?
+  analysis            Json?
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+  aspectRatio         Float?
+  cloudinaryPublicId  String?
+  cloudinarySecureUrl String?
+  cloudinaryUrl       String?
+  error               String?
+  fileSizeBytes       Int?
+  format              String?
+  generatedAt         DateTime?
+  generationModel     String?
+  generationPrompt    String?
+  generationStatus    ImageGenerationStatus @default(PENDING)
+  imageTitle          String?
+  imageType           ProductImageType      @default(MAIN)
+  isApproved          Boolean               @default(false)
+  isMain              Boolean               @default(false)
+  largeUrl            String?
+  maxRetries          Int                   @default(3)
+  mediumUrl           String?
+  metadata            Json?
+  qualityScore        Int?
+  resourceType        String?
+  retryCount          Int                   @default(0)
+  seoFilename         String?
+  signature           String?
+  smallUrl            String?
+  sortOrder           Int                   @default(0)
+  thumbnailUrl        String?
+  uploadedAt          DateTime?
+  upscaled            Boolean               @default(false)
+  version             Int?
+  viewType            ProductImageView?
+  generation          AiProductGeneration?  @relation(fields: [generationId], references: [id])
+  Organization        Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  Product             Product?              @relation(fields: [productId], references: [id])
+
+  @@index([organizationId])
+  @@index([generationId])
+  @@index([productId])
+  @@index([imageType])
+  @@index([generationStatus])
+  @@index([isMain])
+  @@index([sortOrder])
+}
+
+model AIProductPricing {
+  id               String              @id @default(uuid()) @db.Uuid
+  organizationId   String              @db.Uuid
+  generationId     String              @unique @db.Uuid
+  productId        String?             @db.Uuid
+  suggestedPrice   Float
+  profitMargin     Float
+  shippingEstimate Float?
+  competitorPrice  Float?
+  discountPrice    Float?
+  wholesalePrice   Float?
+  taxEstimate      Float?
+  currency         String              @default("MAD")
+  pricingStrategy  Json?
+  marketAnalysis   Json?
+  confidence       Float?
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+  generation       AiProductGeneration @relation(fields: [generationId], references: [id], onDelete: Cascade)
+  Organization     Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  Product          Product?            @relation(fields: [productId], references: [id])
+
+  @@index([organizationId])
+  @@index([generationId])
+  @@index([productId])
+}
+
+model AIProductCategory {
+  id                  String              @id @default(uuid()) @db.Uuid
+  organizationId      String              @db.Uuid
+  generationId        String              @db.Uuid
+  categoryId          String?             @db.Uuid
+  detectedCategory    String
+  detectedSubcategory String?
+  tags                String[]
+  attributes          Json?
+  collections         String[]
+  confidence          Float?
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  generation          AiProductGeneration @relation(fields: [generationId], references: [id], onDelete: Cascade)
+  Organization        Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([generationId])
+  @@index([categoryId])
+}
+
+model AIBulkImport {
+  id             String         @id @default(uuid()) @db.Uuid
+  organizationId String         @db.Uuid
+  userId         String?        @db.Uuid
+  sourceType     String
+  sourceUrl      String?
+  fileUrl        String?
+  totalItems     Int
+  processedItems Int            @default(0)
+  failedItems    Int            @default(0)
+  status         AIJobStatus    @default(QUEUED)
+  inputFormat    String
+  mapping        Json?
+  results        Json?
+  error          String?
+  startedAt      DateTime?
+  completedAt    DateTime?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  Organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  User           User?          @relation(fields: [userId], references: [id])
+  jobs           AIProductJob[]
+
+  @@index([organizationId, status, createdAt])
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model AIProductAnalytics {
+  id              String       @id @default(uuid()) @db.Uuid
+  organizationId  String       @db.Uuid
+  date            DateTime     @db.Date
+  totalGenerated  Int          @default(0)
+  totalPublished  Int          @default(0)
+  averageQuality  Float?
+  averageSeoScore Float?
+  generationTime  Int?
+  aiUsage         Json?
+  costPerProduct  Float?
+  topCategories   Json?
+  modelUsage      Json?
+  languageUsage   Json?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  Organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, date])
+  @@index([organizationId])
+  @@index([date])
+}
+
+model GoogleIntegration {
+  id              String                 @id @default(uuid()) @db.Uuid
+  organizationId  String                 @db.Uuid
+  service         GoogleService
+  enabled         Boolean                @default(false)
+  config          Json?
+  status          IntegrationStatus      @default(DISCONNECTED)
+  lastSyncAt      DateTime?
+  lastSyncStatus  String?
+  error           String?
+  healthScore     Int                    @default(0)
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+  analyticsEvents GoogleAnalyticsEvent[]
+  Organization    Organization           @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  merchantFeeds   GoogleMerchantFeed[]
+
+  @@unique([organizationId, service])
+  @@index([organizationId])
+  @@index([service])
+  @@index([status])
+}
+
+model GoogleAnalyticsEvent {
+  id             String            @id @default(uuid()) @db.Uuid
+  organizationId String            @db.Uuid
+  integrationId  String            @db.Uuid
+  eventType      String
+  eventData      Json
+  userId         String?           @db.Uuid
+  sessionId      String?
+  timestamp      DateTime          @default(now())
+  integration    GoogleIntegration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+  Organization   Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, timestamp])
+  @@index([integrationId, timestamp])
+  @@index([eventType])
+  @@index([userId])
+}
+
+model GoogleMerchantFeed {
+  id                String            @id @default(uuid()) @db.Uuid
+  organizationId    String            @db.Uuid
+  integrationId     String            @db.Uuid
+  feedName          String
+  feedUrl           String?
+  feedId            String?
+  status            FeedStatus        @default(PENDING)
+  totalProducts     Int               @default(0)
+  processedProducts Int               @default(0)
+  lastGeneratedAt   DateTime?
+  lastSyncAt        DateTime?
+  error             String?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  integration       GoogleIntegration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+  Organization      Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, feedName])
+  @@index([organizationId])
+  @@index([integrationId])
+  @@index([status])
+}
+
+model GoogleOAuthAccount {
+  id             String    @id @default(uuid()) @db.Uuid
+  userId         String    @unique @db.Uuid
+  googleId       String    @unique
+  email          String
+  name           String?
+  picture        String?
+  accessToken    String
+  refreshToken   String?
+  tokenExpiresAt DateTime?
+  scopes         String[]
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([email])
+}
+
+model GoogleSearchConsoleSite {
+  id                 String       @id @default(uuid()) @db.Uuid
+  organizationId     String       @db.Uuid
+  siteUrl            String
+  verified           Boolean      @default(false)
+  verificationMethod String?
+  sitemapUrl         String?
+  lastCrawlAt        DateTime?
+  crawlErrors        Int          @default(0)
+  indexedPages       Int          @default(0)
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+  Organization       Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, siteUrl])
+  @@index([organizationId])
+  @@index([verified])
+}
+
+model GoogleBusinessProfile {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @db.Uuid
+  placeId        String
+  name           String
+  address        String?
+  phone          String?
+  website        String?
+  categories     String[]
+  rating         Float?
+  reviewCount    Int?
+  verified       Boolean      @default(false)
+  lastSyncAt     DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  Organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, placeId])
+  @@index([organizationId])
+  @@index([verified])
+}
+
+model GoogleMapsLocation {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @db.Uuid
+  name           String
+  address        String
+  latitude       Float
+  longitude      Float
+  locationType   LocationType
+  deliveryZone   Json?
+  warehouse      Boolean      @default(false)
+  store          Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  Organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([locationType])
+}
+
+model FeaturedCategory {
+  id              String   @id @default(uuid()) @db.Uuid
+  categoryId      String   @db.Uuid
+  order           Int      @default(0)
+  enabled         Boolean  @default(true)
+  backgroundColor String?  @default("#ffffff")
+  gradient        String?
+  buttonText      String   @default("Shop Now")
+  buttonUrl       String?
+  description     String?
+  image           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  category        Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@index([categoryId])
+  @@index([enabled])
+}
+
+model SuperDeal {
+  id              String                @id @default(uuid()) @db.Uuid
+  organizationId  String                @db.Uuid
+  productId       String                @db.Uuid
+  order           Int                   @default(0)
+  enabled         Boolean               @default(true)
+  discountType    SuperDealDiscountType @default(PERCENTAGE)
+  discountValue   Float
+  originalPrice   Float?
+  dealPrice       Float?
+  startDate       DateTime?
+  endDate         DateTime?
+  autoStart       Boolean               @default(false)
+  autoEnd         Boolean               @default(true)
+  countdown       Boolean               @default(false)
+  featured        Boolean               @default(false)
+  flashSale       Boolean               @default(false)
+  stockLimit      Int?
+  image           String?
+  bannerImage     String?
+  backgroundColor String?               @default("#ffffff")
+  gradient        String?
+  buttonText      String                @default("Buy Now")
+  buttonUrl       String?
+  title           String?
+  description     String?
+  seoTitle        String?
+  seoDescription  String?
+  ogImage         String?
+  titleAr         String?
+  titleFr         String?
+  descriptionAr   String?
+  descriptionFr   String?
+  buttonTextAr    String?
+  buttonTextFr    String?
+  aiGenerated     Boolean               @default(false)
+  aiPrompt        String?
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+  organization    Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  product         Product               @relation(fields: [productId], references: [id], onDelete: Cascade)
+  analytics       SuperDealAnalytics[]
+
+  @@index([organizationId])
+  @@index([productId])
+  @@index([enabled])
+  @@index([startDate])
+  @@index([endDate])
+  @@index([featured])
+  @@index([order])
+}
+
+model SuperDealAnalytics {
+  id          String             @id @default(uuid()) @db.Uuid
+  superDealId String             @db.Uuid
+  eventType   SuperDealEventType
+  sessionId   String?
+  userId      String?            @db.Uuid
+  ipAddress   String?
+  userAgent   String?
+  metadata    Json?
+  createdAt   DateTime           @default(now())
+  superDeal   SuperDeal          @relation(fields: [superDealId], references: [id], onDelete: Cascade)
+
+  @@index([superDealId])
+  @@index([eventType])
+  @@index([createdAt])
+  @@index([userId])
+}
+
+model BundleDeal {
+  id              String          @id @default(uuid()) @db.Uuid
+  organizationId  String?         @db.Uuid
+  name            String
+  description     String?
+  bundlePrice     Float
+  discountPercent Float
+  enabled         Boolean         @default(true)
+  backgroundColor String?         @default("#ffffff")
+  gradient        String?
+  buttonText      String          @default("Buy Bundle")
+  buttonUrl       String?
+  image           String?
+  order           Int             @default(0)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  products        BundleProduct[]
+
+  @@index([enabled])
+  @@index([organizationId])
+}
+
+model Media {
+  id             String   @id @default(uuid()) @db.Uuid
+  filename       String
+  originalName   String
+  url            String
+  secureUrl      String?
+  publicId       String
+  mimeType       String
+  size           Int
+  width          Int?
+  height         Int?
+  format         String?
+  resourceType   String   @default("image")
+  folder         String?
+  alt            String?
+  caption        String?
+  tags           String[] @default([])
+  uploadedBy     String?  @db.Uuid
+  organizationId String?  @db.Uuid
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([organizationId])
+  @@index([uploadedBy])
+  @@index([mimeType])
+  @@index([folder])
+  @@index([createdAt])
+}
+
+model BundleProduct {
+  id        String     @id @default(uuid()) @db.Uuid
+  bundleId  String     @db.Uuid
+  productId String     @db.Uuid
+  order     Int        @default(0)
+  createdAt DateTime   @default(now())
+  bundle    BundleDeal @relation(fields: [bundleId], references: [id], onDelete: Cascade)
+  product   Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([bundleId])
+  @@index([productId])
+}
+
+model FrequentlyBoughtTogether {
+  id                 String                            @id @default(uuid()) @db.Uuid
+  organizationId     String                            @db.Uuid
+  name               String
+  slug               String
+  description        String?
+  heroTitle          String?
+  heroSubtitle       String?
+  heroImage          String?
+  heroBannerColor    String?                           @default("#0F766E")
+  ctaText            String?                           @default("Shop Now")
+  ctaUrl             String?
+  sectionTitle       String?
+  sectionDescription String?
+  backgroundColor    String?                           @default("#ffffff")
+  status             CMSContentStatus                  @default(DRAFT)
+  enabled            Boolean                           @default(true)
+  featured           Boolean                           @default(false)
+  startDate          DateTime?
+  endDate            DateTime?
+  displayOrder       Int                               @default(0)
+  seoTitle           String?
+  seoDescription     String?
+  ogImage            String?
+  createdAt          DateTime                          @default(now())
+  updatedAt          DateTime                          @updatedAt
+  organization       Organization                      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  products           FrequentlyBoughtTogetherProduct[]
+
+  @@unique([organizationId, slug])
+  @@index([organizationId])
+  @@index([status])
+  @@index([enabled])
+  @@index([featured])
+  @@index([startDate])
+  @@index([endDate])
+  @@index([displayOrder])
+}
+
+model FrequentlyBoughtTogetherProduct {
+  id           String                   @id @default(uuid()) @db.Uuid
+  bundleId     String                   @db.Uuid
+  productId    String                   @db.Uuid
+  displayOrder Int                      @default(0)
+  createdAt    DateTime                 @default(now())
+  bundle       FrequentlyBoughtTogether @relation(fields: [bundleId], references: [id], onDelete: Cascade)
+  product      Product                  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([bundleId, productId])
+  @@index([bundleId])
+  @@index([productId])
+}
+
+model BuyMoreSaveMore {
+  id                 String                @id @default(uuid()) @db.Uuid
+  organizationId     String                @db.Uuid
+  name               String
+  slug               String
+  description        String?
+  heroTitle          String?
+  heroSubtitle       String?
+  heroImage          String?
+  heroBannerColor    String?               @default("#0F766E")
+  ctaText            String?               @default("Shop Now")
+  ctaUrl             String?
+  sectionTitle       String?
+  sectionDescription String?
+  backgroundColor    String?               @default("#ffffff")
+  status             CMSContentStatus      @default(DRAFT)
+  enabled            Boolean               @default(true)
+  featured           Boolean               @default(false)
+  startDate          DateTime?
+  endDate            DateTime?
+  displayOrder       Int                   @default(0)
+  seoTitle           String?
+  seoDescription     String?
+  ogImage            String?
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
+  organization       Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  rules              BuyMoreSaveMoreRule[]
+
+  @@unique([organizationId, slug])
+  @@index([organizationId])
+  @@index([status])
+  @@index([enabled])
+  @@index([featured])
+  @@index([startDate])
+  @@index([endDate])
+  @@index([displayOrder])
+}
+
+model BuyMoreSaveMoreRule {
+  id                   String          @id @default(uuid()) @db.Uuid
+  bundleId             String          @db.Uuid
+  minQuantity          Int
+  discountType         String          @default("PERCENTAGE")
+  discountValue        Float
+  maxDiscount          Float?
+  applicableCategories String[]
+  createdAt            DateTime        @default(now())
+  bundle               BuyMoreSaveMore @relation(fields: [bundleId], references: [id], onDelete: Cascade)
+
+  @@index([bundleId])
+}
+
+model MysteryBox {
+  id                 String              @id @default(uuid()) @db.Uuid
+  organizationId     String              @db.Uuid
+  name               String
+  slug               String
+  description        String?
+  heroTitle          String?
+  heroSubtitle       String?
+  heroImage          String?
+  heroBannerColor    String?             @default("#0F766E")
+  ctaText            String?             @default("Buy Now")
+  ctaUrl             String?
+  sectionTitle       String?
+  sectionDescription String?
+  backgroundColor    String?             @default("#ffffff")
+  price              Float
+  originalValue      Float
+  stockLimit         Int?
+  stockRemaining     Int                 @default(0)
+  status             CMSContentStatus    @default(DRAFT)
+  enabled            Boolean             @default(true)
+  featured           Boolean             @default(false)
+  startDate          DateTime?
+  endDate            DateTime?
+  displayOrder       Int                 @default(0)
+  seoTitle           String?
+  seoDescription     String?
+  ogImage            String?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  organization       Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  products           MysteryBoxProduct[]
+
+  @@unique([organizationId, slug])
+  @@index([organizationId])
+  @@index([status])
+  @@index([enabled])
+  @@index([featured])
+  @@index([startDate])
+  @@index([endDate])
+  @@index([displayOrder])
+}
+
+model MysteryBoxProduct {
+  id           String     @id @default(uuid()) @db.Uuid
+  boxId        String     @db.Uuid
+  productId    String     @db.Uuid
+  probability  Float      @default(1.0)
+  displayOrder Int        @default(0)
+  createdAt    DateTime   @default(now())
+  box          MysteryBox @relation(fields: [boxId], references: [id], onDelete: Cascade)
+  product      Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([boxId, productId])
+  @@index([boxId])
+  @@index([productId])
+}
+
+model BuildYourOwnBundle {
+  id                 String                           @id @default(uuid()) @db.Uuid
+  organizationId     String                           @db.Uuid
+  name               String
+  slug               String
+  description        String?
+  heroTitle          String?
+  heroSubtitle       String?
+  heroImage          String?
+  heroBannerColor    String?                          @default("#0F766E")
+  ctaText            String?                          @default("Build Bundle")
+  ctaUrl             String?
+  sectionTitle       String?
+  sectionDescription String?
+  backgroundColor    String?                          @default("#ffffff")
+  minProducts        Int                              @default(2)
+  maxProducts        Int                              @default(10)
+  baseDiscount       Float                            @default(0)
+  status             CMSContentStatus                 @default(DRAFT)
+  enabled            Boolean                          @default(true)
+  featured           Boolean                          @default(false)
+  startDate          DateTime?
+  endDate            DateTime?
+  displayOrder       Int                              @default(0)
+  seoTitle           String?
+  seoDescription     String?
+  ogImage            String?
+  createdAt          DateTime                         @default(now())
+  updatedAt          DateTime                         @updatedAt
+  organization       Organization                     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  categories         BuildYourOwnBundleCategory[]
+  discountTiers      BuildYourOwnBundleDiscountTier[]
+
+  @@unique([organizationId, slug])
+  @@index([organizationId])
+  @@index([status])
+  @@index([enabled])
+  @@index([featured])
+  @@index([startDate])
+  @@index([endDate])
+  @@index([displayOrder])
+}
+
+model BuildYourOwnBundleCategory {
+  id           String             @id @default(uuid()) @db.Uuid
+  bundleId     String             @db.Uuid
+  categoryId   String             @db.Uuid
+  required     Boolean            @default(false)
+  displayOrder Int                @default(0)
+  createdAt    DateTime           @default(now())
+  bundle       BuildYourOwnBundle @relation(fields: [bundleId], references: [id], onDelete: Cascade)
+  category     Category           @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([bundleId, categoryId])
+  @@index([bundleId])
+  @@index([categoryId])
+}
+
+model BuildYourOwnBundleDiscountTier {
+  id              String             @id @default(uuid()) @db.Uuid
+  bundleId        String             @db.Uuid
+  minProducts     Int
+  discountPercent Float
+  createdAt       DateTime           @default(now())
+  bundle          BuildYourOwnBundle @relation(fields: [bundleId], references: [id], onDelete: Cascade)
+
+  @@unique([bundleId, minProducts])
+  @@index([bundleId])
+}
+
+model PageBuilderPage {
+  id                String              @id @default(uuid()) @db.Uuid
+  organizationId    String              @db.Uuid
+  pageType          PageBuilderPageType
+  name              String
+  slug              String
+  status            CMSContentStatus    @default(DRAFT)
+  enabled           Boolean             @default(true)
+  featured          Boolean             @default(false)
+  publishDate       DateTime?
+  unpublishDate     DateTime?
+  displayOrder      Int                 @default(0)
+  seoTitle          String?
+  seoDescription    String?
+  seoKeywords       String?
+  canonicalUrl      String?
+  ogImage           String?
+  twitterImage      String?
+  accentColor       String?             @default("#0F766E")
+  sectionBackground String?             @default("#ffffff")
+  buttonStyle       String?             @default("default")
+  cardStyle         String?             @default("default")
+  borderRadius      String?             @default("medium")
+  shadow            String?             @default("medium")
+  gradient          String?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  analytics         PageAnalytics[]
+  banners           PageBanner[]
+  organization      Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  sections          PageSection[]
+  versions          PageVersion[]
+
+  @@unique([organizationId, slug])
+  @@index([organizationId])
+  @@index([pageType])
+  @@index([status])
+  @@index([enabled])
+  @@index([featured])
+  @@index([publishDate])
+  @@index([unpublishDate])
+  @@index([displayOrder])
+}
+
+model PageSection {
+  id              String          @id @default(uuid()) @db.Uuid
+  pageId          String          @db.Uuid
+  sectionType     PageSectionType
+  enabled         Boolean         @default(true)
+  displayOrder    Int             @default(0)
+  visibility      Visibility      @default(ALL)
+  backgroundColor String?         @default("#ffffff")
+  backgroundImage String?
+  overlayColor    String?
+  overlayOpacity  Float?          @default(0)
+  layoutStyle     String?         @default("default")
+  themeVariant    String?         @default("light")
+  spacing         String?         @default("medium")
+  config          Json
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  endDate         DateTime?
+  startDate       DateTime?
+  page            PageBuilderPage @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+  @@index([pageId])
+  @@index([sectionType])
+  @@index([enabled])
+  @@index([displayOrder])
+  @@index([startDate])
+  @@index([endDate])
+}
+
+model PageBanner {
+  id             String          @id @default(uuid()) @db.Uuid
+  pageId         String          @db.Uuid
+  organizationId String          @db.Uuid
+  image          String
+  mobileImage    String?
+  link           String?
+  openInNewTab   Boolean         @default(false)
+  startDate      DateTime?
+  endDate        DateTime?
+  active         Boolean         @default(true)
+  priority       Int             @default(0)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  page           PageBuilderPage @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+  @@index([pageId])
+  @@index([organizationId])
+  @@index([active])
+  @@index([startDate])
+  @@index([endDate])
+  @@index([priority])
+}
+
+model PageAnalytics {
+  id             String          @id @default(uuid()) @db.Uuid
+  pageId         String          @db.Uuid
+  date           DateTime        @default(now())
+  views          Int             @default(0)
+  clicks         Int             @default(0)
+  orders         Int             @default(0)
+  revenue        Float           @default(0)
+  ctr            Float?
+  conversionRate Float?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  page           PageBuilderPage @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+  @@unique([pageId, date])
+  @@index([pageId])
+  @@index([date])
+  @@index([views])
+  @@index([orders])
+  @@index([revenue])
+}
+
+model PageVersion {
+  id            String          @id @default(uuid()) @db.Uuid
+  pageId        String          @db.Uuid
+  versionNumber Int
+  createdBy     String?         @db.Uuid
+  changeNote    String?
+  snapshot      Json
+  isAutoSave    Boolean         @default(false)
+  createdAt     DateTime        @default(now())
+  page          PageBuilderPage @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+  @@unique([pageId, versionNumber])
+  @@index([pageId])
+  @@index([createdAt])
+  @@index([isAutoSave])
+}
+
+model GlobalComponent {
+  id             String          @id @default(uuid()) @db.Uuid
+  organizationId String          @db.Uuid
+  name           String
+  slug           String
+  componentType  PageSectionType
+  config         Json
+  enabled        Boolean         @default(true)
+  usageCount     Int             @default(0)
+  createdBy      String?         @db.Uuid
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, slug])
+  @@index([organizationId])
+  @@index([componentType])
+  @@index([enabled])
+}
+
 enum AuditEventType {
   CHECKOUT_START
   CHECKOUT_STEP_ADDRESS
@@ -2553,149 +4018,13 @@ enum EmailStatus {
   RETRYING
 }
 
-// CMS Models
-model MediaAsset {
-  id          String   @id @default(uuid()) @db.Uuid
-  organizationId String @db.Uuid
-  folderId    String?  @db.Uuid
-  filename    String
-  originalName String
-  mimeType    String
-  size        Int
-  url         String
-  webpUrl     String?
-  width       Int?
-  height      Int?
-  alt         String?
-  category    String? // "hero", "product", "brand", "testimonial", "other"
-  tags        String[]
-  aiTags      String[]
-  usageCount  Int      @default(0)
-  viewCount   Int      @default(0)
-  uploadedBy  String?  @db.Uuid
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  folder      MediaFolder? @relation(fields: [folderId], references: [id], onDelete: SetNull)
-  usages      MediaUsage[]
-
-  @@index([organizationId])
-  @@index([category])
-  @@index([uploadedBy])
-  @@index([folderId])
-}
-
-model AnnouncementBar {
-  id          String   @id @default(uuid()) @db.Uuid
-  organizationId String @db.Uuid
-  text        String
-  icon        String?  // icon name or emoji
-  backgroundColor String @default("#000000")
-  textColor   String @default("#ffffff")
-  isActive    Boolean  @default(true)
-  displayOrder Int     @default(0)
-  startDate   DateTime?
-  endDate     DateTime?
-  status      CMSContentStatus @default(PUBLISHED)
-  geoTargeting Json?
-  deviceTargeting DeviceTarget @default(ALL)
-  utmSource   String?
-  utmMedium   String?
-  utmCampaign String?
-  ctaText     String?
-  ctaLink     String?
-  countdownEnd DateTime?
-  stickyMode  Boolean  @default(true)
-  dismissible Boolean  @default(true)
-  impressions Int      @default(0)
-  clicks      Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  analytics   AnnouncementBarAnalytics[]
-
-  @@index([organizationId])
-  @@index([isActive])
-  @@index([displayOrder])
-  @@index([status])
-}
-
-model HomepageConfig {
-  id          String   @id @default(uuid()) @db.Uuid
-  organizationId String @db.Uuid
-  featuredCategories String[] // category IDs
-  featuredProducts    String[] // product IDs
-  featuredBrands      String[] // brand names or IDs
-  testimonials        Json[] // array of testimonial objects
-  newsletterEnabled   Boolean @default(true)
-  newsletterTitle     String?
-  newsletterSubtitle  String?
-  isActive    Boolean  @default(true)
-  status      CMSContentStatus @default(DRAFT)
-  publishedAt DateTime?
-  version     Int      @default(1)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  sections    HomepageSection[]
-  versions    HomepageVersion[]
-
-  @@index([organizationId])
-  @@index([isActive])
-  @@index([status])
-}
-
-model FooterConfig {
-  id          String   @id @default(uuid()) @db.Uuid
-  organizationId String @db.Uuid
-  logoUrl     String?
-  description String?
-  socialLinks Json[] // [{ platform: "twitter", url: "...", icon: "..." }]
-  contactInfo Json   // { email: "...", phone: "...", address: "..." }
-  quickLinks  Json[] // [{ title: "...", url: "..." }]
-  legalLinks  Json[] // [{ title: "...", url: "..." }]
-  columns     Json[]
-  paymentIcons Json[]
-  storeBadges Json[]
-  copyrightText String?
-  newsletterSettings Json?
-  translations Json?
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@index([organizationId])
-  @@index([isActive])
-}
-
-model Testimonial {
-  id          String   @id @default(uuid()) @db.Uuid
-  organizationId String @db.Uuid
-  name        String
-  role        String?
-  avatarUrl   String?
-  rating      Int      @default(5)
-  content     String
-  productId   String?  @db.Uuid // optional: associated product
-  isActive    Boolean  @default(true)
-  displayOrder Int     @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@index([organizationId])
-  @@index([isActive])
-  @@index([productId])
-  @@index([displayOrder])
-}
-
-// ─── Enterprise CMS Enums ───────────────────────────────────────────
-
 enum CMSContentStatus {
   DRAFT
   PUBLISHED
   SCHEDULED
   ARCHIVED
   EXPIRED
+  REVIEW
 }
 
 enum HomepageSectionType {
@@ -2738,265 +4067,6 @@ enum CmsAuditAction {
   REORDER
 }
 
-// ─── Enterprise CMS Models ──────────────────────────────────────────
-
-model HeroBannerTemplate {
-  id          String   @id @default(uuid()) @db.Uuid
-  organizationId String? @db.Uuid
-  name        String
-  description String?
-  thumbnail   String?
-  config      Json
-  isSystem    Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  banners     HeroBanner[]
-
-  @@index([organizationId])
-}
-
-model HeroBannerABTest {
-  id          String   @id @default(uuid()) @db.Uuid
-  organizationId String @db.Uuid
-  name        String
-  status      CMSContentStatus @default(DRAFT)
-  variantAId  String?  @db.Uuid
-  variantBId  String?  @db.Uuid
-  trafficSplit Float   @default(0.5)
-  winnerId    String?  @db.Uuid
-  startedAt   DateTime?
-  endedAt     DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  banners     HeroBanner[]
-
-  @@index([organizationId])
-  @@index([status])
-}
-
-model HomepageSection {
-  id          String   @id @default(uuid()) @db.Uuid
-  homepageId  String   @db.Uuid
-  type        HomepageSectionType
-  title       String?
-  subtitle    String?
-  config      Json     @default("{}")
-  isVisible   Boolean  @default(true)
-  displayOrder Int     @default(0)
-  templateId  String?
-  impressions Int      @default(0)
-  clicks      Int      @default(0)
-  conversions Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  homepage    HomepageConfig @relation(fields: [homepageId], references: [id], onDelete: Cascade)
-
-  @@index([homepageId])
-  @@index([displayOrder])
-  @@index([type])
-}
-
-model HomepageVersion {
-  id          String   @id @default(uuid()) @db.Uuid
-  homepageId  String   @db.Uuid
-  version     Int
-  snapshot    Json
-  publishedBy String?  @db.Uuid
-  note        String?
-  createdAt   DateTime @default(now())
-
-  homepage    HomepageConfig @relation(fields: [homepageId], references: [id], onDelete: Cascade)
-
-  @@index([homepageId])
-  @@index([version])
-}
-
-model AnnouncementBarAnalytics {
-  id          String   @id @default(uuid()) @db.Uuid
-  barId       String   @db.Uuid
-  eventType   String
-  deviceType  String?
-  country     String?
-  sessionId   String?
-  utmSource   String?
-  createdAt   DateTime @default(now())
-
-  bar         AnnouncementBar @relation(fields: [barId], references: [id], onDelete: Cascade)
-
-  @@index([barId])
-  @@index([eventType])
-  @@index([createdAt])
-}
-
-model MediaFolder {
-  id          String   @id @default(uuid()) @db.Uuid
-  organizationId String @db.Uuid
-  name        String
-  parentId    String?  @db.Uuid
-  slug        String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  parent      MediaFolder?  @relation("FolderTree", fields: [parentId], references: [id], onDelete: Cascade)
-  children    MediaFolder[] @relation("FolderTree")
-  assets      MediaAsset[]
-
-  @@unique([organizationId, slug])
-  @@index([organizationId])
-  @@index([parentId])
-}
-
-model MediaUsage {
-  id          String   @id @default(uuid()) @db.Uuid
-  assetId     String   @db.Uuid
-  entityType  String
-  entityId    String
-  fieldName   String?
-  createdAt   DateTime @default(now())
-
-  asset       MediaAsset @relation(fields: [assetId], references: [id], onDelete: Cascade)
-
-  @@index([assetId])
-  @@index([entityType, entityId])
-}
-
-model NavigationMenu {
-  id          String   @id @default(uuid()) @db.Uuid
-  organizationId String @db.Uuid
-  name        String
-  location    NavigationMenuLocation @default(HEADER)
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  items       NavigationMenuItem[]
-
-  @@index([organizationId])
-  @@index([location])
-}
-
-model NavigationMenuItem {
-  id          String   @id @default(uuid()) @db.Uuid
-  menuId      String   @db.Uuid
-  parentId    String?  @db.Uuid
-  label       String
-  url         String?
-  icon        String?
-  target      String   @default("_self")
-  isVisible   Boolean  @default(true)
-  displayOrder Int     @default(0)
-  badge       String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  menu        NavigationMenu @relation(fields: [menuId], references: [id], onDelete: Cascade)
-  parent      NavigationMenuItem?  @relation("MenuItemTree", fields: [parentId], references: [id], onDelete: Cascade)
-  children    NavigationMenuItem[] @relation("MenuItemTree")
-
-  @@index([menuId])
-  @@index([parentId])
-  @@index([displayOrder])
-}
-
-model Brand {
-  id          String   @id @default(uuid()) @db.Uuid
-  organizationId String @db.Uuid
-  name        String
-  slug        String
-  logoUrl     String?
-  bannerUrl   String?
-  description String?
-  website     String?
-  isActive    Boolean  @default(true)
-  isFeatured  Boolean  @default(false)
-  displayOrder Int     @default(0)
-  productCount Int     @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@unique([organizationId, slug])
-  @@index([organizationId])
-  @@index([isActive])
-  @@index([isFeatured])
-}
-
-model CmsActivityLog {
-  id             String         @id @default(uuid()) @db.Uuid
-  organizationId String         @db.Uuid
-  userId         String?        @db.Uuid
-  entityType     String
-  entityId       String?
-  action         CmsAuditAction
-  metadata       Json?
-  ipAddress      String?
-  createdAt      DateTime       @default(now())
-
-  @@index([organizationId])
-  @@index([userId])
-  @@index([entityType])
-  @@index([action])
-  @@index([createdAt])
-}
-
-// ─── Global Site Settings (single source of truth) ───────────────────
-
-model SiteSettings {
-  id                    String   @id @default(uuid()) @db.Uuid
-  organizationId        String   @unique @db.Uuid
-
-  // Branding
-  storeName             String   @default("NexMart")
-  storeTagline          String?
-  logoUrl               String?
-  faviconUrl            String?
-  ogImageUrl            String?
-
-  // Contact
-  email                 String?
-  phone                 String?
-  whatsapp              String?
-  address               String?
-  businessHours         String?
-  supportEmail          String?
-
-  // Social [{ platform, url, icon }]
-  socialLinks           Json     @default("[]")
-
-  // SEO
-  seoTitle              String?
-  seoDescription        String?
-  seoKeywords           String[]
-  siteUrl               String?
-  twitterHandle         String?
-  locale                String   @default("fr_MA")
-
-  // Theme
-  primaryColor          String   @default("#0F766E")
-  secondaryColor        String   @default("#D4AF37")
-  accentColor           String?
-  themeColorLight       String   @default("#F5F1E8")
-  themeColorDark        String   @default("#0F172A")
-
-  // Business
-  currency              String   @default("MAD")
-  freeShippingThreshold Float?
-  freeShippingMessage   String?
-
-  // UI copy
-  searchPlaceholder     String?
-  copyrightText         String?
-
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
-
-  @@index([organizationId])
-}
-
-// ─── Advertisement & Marketing CMS ───────────────────────────────────
-
 enum AdPlacement {
   HOMEPAGE_HERO
   TOP_BANNER
@@ -3025,178 +4095,6 @@ enum VisitorTarget {
   LOGGED_IN
   GUEST
 }
-
-model PromoCampaign {
-  id             String            @id @default(uuid()) @db.Uuid
-  organizationId String            @db.Uuid
-  name           String
-  slug           String
-  type           PromoCampaignType   @default(CUSTOM)
-  description    String?
-  status         CMSContentStatus    @default(DRAFT)
-  startDate      DateTime?
-  endDate        DateTime?
-  bannerColor    String?
-  metadata       Json?
-  impressions    Int                 @default(0)
-  clicks         Int                 @default(0)
-  conversions    Int                 @default(0)
-  revenue        Float               @default(0)
-  createdAt      DateTime            @default(now())
-  updatedAt      DateTime            @updatedAt
-
-  organization   Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  advertisements Advertisement[]
-  flashDeals     FlashDeal[]
-
-  @@unique([organizationId, slug])
-  @@index([organizationId])
-  @@index([status])
-  @@index([type])
-  @@index([startDate])
-  @@index([endDate])
-}
-
-model Advertisement {
-  id              String           @id @default(uuid()) @db.Uuid
-  organizationId  String           @db.Uuid
-  campaignId      String?          @db.Uuid
-  title           String
-  subtitle        String?
-  description     String?
-  imageDesktop    String?
-  imageMobile     String?
-  videoUrl        String?
-  ctaText         String?
-  ctaUrl          String?
-  backgroundColor String           @default("#0F766E")
-  textColor       String           @default("#FFFFFF")
-  placement       AdPlacement      @default(HOMEPAGE_HERO)
-  priority        Int              @default(0)
-  status          CMSContentStatus @default(DRAFT)
-  startDate       DateTime?
-  endDate         DateTime?
-  targetCountries String[]
-  targetLanguages String[]
-  targetDevices   DeviceTarget     @default(ALL)
-  visitorTarget   VisitorTarget    @default(ALL)
-  impressions     Int              @default(0)
-  clicks          Int              @default(0)
-  conversions     Int              @default(0)
-  revenue         Float            @default(0)
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
-
-  organization    Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  campaign        PromoCampaign?   @relation(fields: [campaignId], references: [id], onDelete: SetNull)
-  analytics       AdvertisementAnalytics[]
-
-  @@index([organizationId])
-  @@index([campaignId])
-  @@index([placement])
-  @@index([status])
-  @@index([priority])
-  @@index([startDate])
-  @@index([endDate])
-}
-
-model AdvertisementAnalytics {
-  id         String        @id @default(uuid()) @db.Uuid
-  adId       String        @db.Uuid
-  eventType  String
-  deviceType String?
-  country    String?
-  sessionId  String?
-  revenue    Float?
-  createdAt  DateTime      @default(now())
-
-  advertisement Advertisement @relation(fields: [adId], references: [id], onDelete: Cascade)
-
-  @@index([adId])
-  @@index([eventType])
-  @@index([createdAt])
-}
-
-model SponsoredProduct {
-  id             String    @id @default(uuid()) @db.Uuid
-  organizationId String    @db.Uuid
-  productId      String    @db.Uuid
-  priority       Int       @default(0)
-  badgeText      String    @default("Sponsored")
-  startDate      DateTime?
-  endDate        DateTime?
-  isActive       Boolean   @default(true)
-  impressions    Int       @default(0)
-  clicks         Int       @default(0)
-  conversions    Int       @default(0)
-  revenue        Float     @default(0)
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  product        Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
-
-  @@unique([organizationId, productId])
-  @@index([organizationId])
-  @@index([productId])
-  @@index([isActive])
-  @@index([priority])
-  @@index([startDate])
-  @@index([endDate])
-}
-
-model FlashDeal {
-  id              String           @id @default(uuid()) @db.Uuid
-  organizationId  String           @db.Uuid
-  campaignId      String?          @db.Uuid
-  name            String
-  slug            String
-  discountPercent Float?
-  discountAmount  Float?
-  startDate       DateTime
-  endDate         DateTime
-  autoStart       Boolean          @default(true)
-  autoEnd         Boolean          @default(true)
-  status          CMSContentStatus @default(DRAFT)
-  isActive        Boolean          @default(false)
-  impressions     Int              @default(0)
-  clicks          Int              @default(0)
-  conversions     Int              @default(0)
-  revenue         Float            @default(0)
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
-
-  organization    Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  campaign        PromoCampaign?   @relation(fields: [campaignId], references: [id], onDelete: SetNull)
-  products        FlashDealProduct[]
-
-  @@unique([organizationId, slug])
-  @@index([organizationId])
-  @@index([campaignId])
-  @@index([status])
-  @@index([isActive])
-  @@index([startDate])
-  @@index([endDate])
-}
-
-model FlashDealProduct {
-  id              String    @id @default(uuid()) @db.Uuid
-  flashDealId     String    @db.Uuid
-  productId       String    @db.Uuid
-  discountPercent Float?
-  discountPrice   Float?
-  displayOrder    Int       @default(0)
-  createdAt       DateTime  @default(now())
-
-  flashDeal       FlashDeal @relation(fields: [flashDealId], references: [id], onDelete: Cascade)
-  product         Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
-
-  @@unique([flashDealId, productId])
-  @@index([flashDealId])
-  @@index([productId])
-}
-
-// ─── AI Product Studio Extended Models ───────────────────────────────────
 
 enum AIModel {
   GPT_5_5
@@ -3287,438 +4185,6 @@ enum AIJobPriority {
   URGENT
 }
 
-model AIModelConfig {
-  id              String   @id @default(uuid()) @db.Uuid
-  organizationId  String   @unique @db.Uuid
-  defaultModel    AIModel  @default(GPT_4)
-  apiKey          String?
-  enabledModels   AIModel[]
-  monthlyQuota    Int      @default(1000)
-  usedQuota       Int      @default(0)
-  quotaResetDate  DateTime
-  rateLimitPerMin Int      @default(60)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  Organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-
-  @@index([organizationId])
-}
-
-model AIProductJob {
-  id              String          @id @default(uuid()) @db.Uuid
-  organizationId  String          @db.Uuid
-  userId          String?         @db.Uuid
-  generationId    String?         @db.Uuid
-  bulkImportId    String?         @db.Uuid
-  inputType       AIProductInputType
-  status          AIJobStatus     @default(QUEUED)
-  priority        AIJobPriority  @default(NORMAL)
-  progress        Float           @default(0)
-  input           Json            @default("{}")
-  output          Json?           @default("{}")
-  error           String?
-  model           AIModel         @default(GPT_4)
-  language        AIProductLanguage @default(EN)
-  tone            AIProductTone  @default(PROFESSIONAL)
-  estimatedTokens Int?
-  actualTokens    Int?
-  cost            Float?
-  startedAt       DateTime?
-  completedAt     DateTime?
-  retryCount      Int             @default(0)
-  maxRetries      Int             @default(3)
-  metadata        Json?           @default("{}")
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
-
-  Organization    Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  User            User?                @relation(fields: [userId], references: [id], onDelete: SetNull)
-  generation      AiProductGeneration? @relation(fields: [generationId], references: [id], onDelete: SetNull)
-  bulkImport      AIBulkImport?        @relation(fields: [bulkImportId], references: [id], onDelete: SetNull)
-
-  @@index([organizationId, status, createdAt])
-  @@index([userId])
-  @@index([generationId])
-  @@index([priority, status])
-  @@index([createdAt])
-}
-
-model AIProductSEO {
-  id              String   @id @default(uuid()) @db.Uuid
-  organizationId  String   @db.Uuid
-  generationId    String   @unique @db.Uuid
-  productId       String?  @db.Uuid
-  seoScore        Int      @default(0)
-  readability     Int      @default(0)
-  keywordDensity  Float?
-  missingKeywords String[]
-  titleLength     Int
-  descriptionLength Int
-  slugQuality     Int
-  headingStructure Json
-  imageOptimization Int
-  suggestions     Json[]
-  oneClickFixes   Json[]
-  analyzedAt      DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  Organization    Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  generation      AiProductGeneration @relation(fields: [generationId], references: [id], onDelete: Cascade)
-  Product         Product?             @relation(fields: [productId], references: [id], onDelete: SetNull)
-
-  @@index([organizationId])
-  @@index([generationId])
-  @@index([productId])
-}
-
-model AIProductImage {
-  id              String   @id @default(uuid()) @db.Uuid
-  organizationId  String   @db.Uuid
-  generationId    String?  @db.Uuid
-  productId       String?  @db.Uuid
-  
-  // Image Type & View
-  imageType       ProductImageType @default(MAIN)
-  viewType        ProductImageView?
-  
-  // Cloudinary Data
-  cloudinaryPublicId String?
-  cloudinaryUrl    String?
-  cloudinarySecureUrl String?
-  format          String?  // "webp", "jpeg", "png"
-  resourceType    String?  // "image"
-  version         Int?
-  signature       String?
-  
-  // Image Variants
-  thumbnailUrl    String?
-  smallUrl        String?
-  mediumUrl       String?
-  largeUrl        String?
-  
-  // Original & Processed URLs
-  originalUrl     String?
-  processedUrl    String?
-  
-  // Image Dimensions
-  width           Int?
-  height          Int?
-  aspectRatio     Float?
-  
-  // File Information
-  fileSize        Int?
-  fileSizeBytes   Int?
-  
-  // SEO Data
-  altText         String?
-  title           String?
-  caption         String?
-  seoFilename     String?
-  imageTitle      String?
-  
-  // Generation Data
-  generationPrompt String?
-  generationModel String?  // "dall-e-3", "dall-e-2"
-  generationStatus ImageGenerationStatus @default(PENDING)
-  qualityScore    Int?     // 0-100
-  isApproved      Boolean  @default(false)
-  isMain          Boolean  @default(false)
-  sortOrder       Int      @default(0)
-  
-  // Processing Flags
-  backgroundRemoved Boolean @default(false)
-  enhanced        Boolean @default(false)
-  compressed       Boolean @default(false)
-  upscaled        Boolean @default(false)
-  
-  // Analysis Data
-  tags            String[]
-  dominantColors  String[]
-  analysis        Json?
-  metadata        Json?
-  
-  // Error Handling
-  error           String?
-  retryCount      Int      @default(0)
-  maxRetries      Int      @default(3)
-  
-  // Timestamps
-  generatedAt     DateTime?
-  uploadedAt      DateTime?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  Organization    Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  generation      AiProductGeneration? @relation(fields: [generationId], references: [id], onDelete: SetNull)
-  Product         Product?             @relation(fields: [productId], references: [id], onDelete: SetNull)
-
-  @@index([organizationId])
-  @@index([generationId])
-  @@index([productId])
-  @@index([imageType])
-  @@index([generationStatus])
-  @@index([isMain])
-  @@index([sortOrder])
-}
-
-model AIProductPricing {
-  id              String   @id @default(uuid()) @db.Uuid
-  organizationId  String   @db.Uuid
-  generationId    String   @unique @db.Uuid
-  productId       String?  @db.Uuid
-  suggestedPrice  Float
-  profitMargin    Float
-  shippingEstimate Float?
-  competitorPrice Float?
-  discountPrice   Float?
-  wholesalePrice  Float?
-  taxEstimate     Float?
-  currency        String   @default("MAD")
-  pricingStrategy Json?
-  marketAnalysis  Json?
-  confidence      Float?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  Organization    Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  generation      AiProductGeneration @relation(fields: [generationId], references: [id], onDelete: Cascade)
-  Product         Product?             @relation(fields: [productId], references: [id], onDelete: SetNull)
-
-  @@index([organizationId])
-  @@index([generationId])
-  @@index([productId])
-}
-
-model AIProductCategory {
-  id              String   @id @default(uuid()) @db.Uuid
-  organizationId  String   @db.Uuid
-  generationId    String   @db.Uuid
-  categoryId      String?  @db.Uuid
-  detectedCategory String
-  detectedSubcategory String?
-  tags            String[]
-  attributes      Json?
-  collections     String[]
-  confidence      Float?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  Organization    Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  generation      AiProductGeneration @relation(fields: [generationId], references: [id], onDelete: Cascade)
-
-  @@index([organizationId])
-  @@index([generationId])
-  @@index([categoryId])
-}
-
-model AIBulkImport {
-  id              String   @id @default(uuid()) @db.Uuid
-  organizationId  String   @db.Uuid
-  userId          String?  @db.Uuid
-  sourceType      String
-  sourceUrl       String?
-  fileUrl         String?
-  totalItems      Int
-  processedItems  Int      @default(0)
-  failedItems     Int      @default(0)
-  status          AIJobStatus @default(QUEUED)
-  inputFormat     String
-  mapping         Json?
-  results         Json?
-  error           String?
-  startedAt       DateTime?
-  completedAt     DateTime?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  Organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  User            User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
-  jobs            AIProductJob[]
-
-  @@index([organizationId, status, createdAt])
-  @@index([userId])
-  @@index([createdAt])
-}
-
-model AIProductAnalytics {
-  id              String   @id @default(uuid()) @db.Uuid
-  organizationId  String   @db.Uuid
-  date            DateTime @db.Date
-  totalGenerated  Int      @default(0)
-  totalPublished  Int      @default(0)
-  averageQuality  Float?
-  averageSeoScore Float?
-  generationTime  Int?
-  aiUsage         Json?
-  costPerProduct  Float?
-  topCategories   Json?
-  modelUsage      Json?
-  languageUsage   Json?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  Organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-
-  @@unique([organizationId, date])
-  @@index([organizationId])
-  @@index([date])
-}
-
-// Google Integration Models
-model GoogleIntegration {
-  id              String   @id @default(uuid()) @db.Uuid
-  organizationId  String   @db.Uuid
-  service         GoogleService
-  enabled         Boolean  @default(false)
-  config          Json?
-  status          IntegrationStatus @default(DISCONNECTED)
-  lastSyncAt      DateTime?
-  lastSyncStatus  String?
-  error           String?
-  healthScore     Int      @default(0)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  Organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  analyticsEvents GoogleAnalyticsEvent[]
-  merchantFeeds   GoogleMerchantFeed[]
-
-  @@unique([organizationId, service])
-  @@index([organizationId])
-  @@index([service])
-  @@index([status])
-}
-
-model GoogleAnalyticsEvent {
-  id              String   @id @default(uuid()) @db.Uuid
-  organizationId  String   @db.Uuid
-  integrationId   String   @db.Uuid
-  eventType       String
-  eventData       Json
-  userId          String?  @db.Uuid
-  sessionId       String?
-  timestamp       DateTime @default(now())
-
-  Organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  integration     GoogleIntegration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
-
-  @@index([organizationId, timestamp])
-  @@index([integrationId, timestamp])
-  @@index([eventType])
-  @@index([userId])
-}
-
-model GoogleMerchantFeed {
-  id              String   @id @default(uuid()) @db.Uuid
-  organizationId  String   @db.Uuid
-  integrationId   String   @db.Uuid
-  feedName        String
-  feedUrl         String?
-  feedId          String?
-  status          FeedStatus @default(PENDING)
-  totalProducts   Int      @default(0)
-  processedProducts Int     @default(0)
-  lastGeneratedAt DateTime?
-  lastSyncAt      DateTime?
-  error           String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  Organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  integration     GoogleIntegration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
-
-  @@unique([organizationId, feedName])
-  @@index([organizationId])
-  @@index([integrationId])
-  @@index([status])
-}
-
-model GoogleOAuthAccount {
-  id              String   @id @default(uuid()) @db.Uuid
-  userId          String   @db.Uuid
-  googleId        String
-  email           String
-  name            String?
-  picture         String?
-  accessToken     String
-  refreshToken    String?
-  tokenExpiresAt  DateTime?
-  scopes          String[]
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([googleId])
-  @@unique([userId])
-  @@index([email])
-}
-
-model GoogleSearchConsoleSite {
-  id              String   @id @default(uuid()) @db.Uuid
-  organizationId  String   @db.Uuid
-  siteUrl         String
-  verified        Boolean  @default(false)
-  verificationMethod String?
-  sitemapUrl      String?
-  lastCrawlAt     DateTime?
-  crawlErrors     Int      @default(0)
-  indexedPages    Int      @default(0)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  Organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-
-  @@unique([organizationId, siteUrl])
-  @@index([organizationId])
-  @@index([verified])
-}
-
-model GoogleBusinessProfile {
-  id              String   @id @default(uuid()) @db.Uuid
-  organizationId  String   @db.Uuid
-  placeId         String
-  name            String
-  address         String?
-  phone           String?
-  website         String?
-  categories      String[]
-  rating          Float?
-  reviewCount     Int?
-  verified        Boolean  @default(false)
-  lastSyncAt      DateTime?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  Organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-
-  @@unique([organizationId, placeId])
-  @@index([organizationId])
-  @@index([verified])
-}
-
-model GoogleMapsLocation {
-  id              String   @id @default(uuid()) @db.Uuid
-  organizationId  String   @db.Uuid
-  name            String
-  address         String
-  latitude        Float
-  longitude       Float
-  locationType    LocationType
-  deliveryZone    Json?
-  warehouse       Boolean  @default(false)
-  store           Boolean  @default(false)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  Organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-
-  @@index([organizationId])
-  @@index([locationType])
-}
-
-// Enums
 enum GoogleService {
   ANALYTICS
   TAG_MANAGER
@@ -3753,117 +4219,6 @@ enum LocationType {
   PICKUP_POINT
 }
 
-// Homepage Section Models
-
-model FeaturedCategory {
-  id              String   @id @default(uuid()) @db.Uuid
-  categoryId      String   @db.Uuid
-  order           Int      @default(0)
-  enabled         Boolean  @default(true)
-  backgroundColor String?  @default("#ffffff")
-  gradient        String?
-  buttonText      String   @default("Shop Now")
-  buttonUrl       String?
-  description     String?
-  image           String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  category        Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-
-  @@index([categoryId])
-  @@index([enabled])
-}
-
-model SuperDeal {
-  id              String   @id @default(uuid()) @db.Uuid
-  organizationId  String   @db.Uuid
-  productId       String   @db.Uuid
-  order           Int      @default(0)
-  enabled         Boolean  @default(true)
-  
-  // Deal Configuration
-  discountType    SuperDealDiscountType @default(PERCENTAGE)
-  discountValue   Float
-  originalPrice   Float?
-  dealPrice       Float?
-  
-  // Scheduling
-  startDate       DateTime?
-  endDate         DateTime?
-  autoStart       Boolean  @default(false)
-  autoEnd         Boolean  @default(true)
-  
-  // Display Settings
-  countdown       Boolean  @default(false)
-  featured        Boolean  @default(false)
-  flashSale       Boolean  @default(false)
-  stockLimit      Int?
-  
-  // Visual Design
-  image           String?
-  bannerImage     String?
-  backgroundColor String?  @default("#ffffff")
-  gradient        String?
-  
-  // CTA Buttons
-  buttonText      String   @default("Buy Now")
-  buttonUrl       String?
-  
-  // SEO & Metadata
-  title           String?
-  description     String?
-  seoTitle        String?
-  seoDescription  String?
-  ogImage         String?
-  
-  // Multi-language
-  titleAr         String?
-  titleFr         String?
-  descriptionAr   String?
-  descriptionFr   String?
-  buttonTextAr    String?
-  buttonTextFr    String?
-  
-  // AI Generation
-  aiGenerated     Boolean  @default(false)
-  aiPrompt        String?
-  
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  
-  // Relations
-  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  product         Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
-  analytics       SuperDealAnalytics[]
-
-  @@index([organizationId])
-  @@index([productId])
-  @@index([enabled])
-  @@index([startDate])
-  @@index([endDate])
-  @@index([featured])
-  @@index([order])
-}
-
-model SuperDealAnalytics {
-  id              String   @id @default(uuid()) @db.Uuid
-  superDealId     String   @db.Uuid
-  eventType       SuperDealEventType
-  sessionId       String?
-  userId          String?  @db.Uuid
-  ipAddress       String?
-  userAgent       String?
-  metadata        Json?
-  createdAt       DateTime @default(now())
-  
-  superDeal       SuperDeal @relation(fields: [superDealId], references: [id], onDelete: Cascade)
-
-  @@index([superDealId])
-  @@index([eventType])
-  @@index([createdAt])
-  @@index([userId])
-}
-
 enum SuperDealDiscountType {
   PERCENTAGE
   FIXED_AMOUNT
@@ -3878,35 +4233,79 @@ enum SuperDealEventType {
   VIEW_DETAILS
 }
 
-model BundleDeal {
-  id              String   @id @default(uuid()) @db.Uuid
-  name            String
-  description     String?
-  bundlePrice     Float
-  discountPercent Float
-  enabled         Boolean  @default(true)
-  backgroundColor String?  @default("#ffffff")
-  gradient        String?
-  buttonText      String   @default("Buy Bundle")
-  buttonUrl       String?
-  image           String?
-  order           Int      @default(0)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  products        BundleProduct[]
-
-  @@index([enabled])
+enum PageBuilderPageType {
+  FLASH_DEALS
+  BUNDLE_DEALS
+  FREQUENTLY_BOUGHT_TOGETHER
+  BUY_MORE_SAVE_MORE
+  MYSTERY_BOX
+  BUILD_YOUR_OWN_BUNDLE
+  HOME
 }
 
-model BundleProduct {
-  id          String    @id @default(uuid()) @db.Uuid
-  bundleId    String    @db.Uuid
-  productId   String    @db.Uuid
-  order       Int       @default(0)
-  createdAt   DateTime  @default(now())
-  bundle      BundleDeal @relation(fields: [bundleId], references: [id], onDelete: Cascade)
-  product     Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+enum PageSectionType {
+  HERO
+  ANNOUNCEMENT_BAR
+  PROMOTIONAL_BANNER
+  FEATURED_PRODUCTS
+  CATEGORIES
+  BENEFITS
+  COUNTDOWN_TIMER
+  TESTIMONIALS
+  FAQ
+  NEWSLETTER
+  CTA_BANNER
+  CUSTOM_HTML
+  VIDEO_SECTION
+  IMAGE_GALLERY
+  PRODUCT_GRID
+  PRODUCT_CAROUSEL
+  TEXT_BLOCK
+  SPACER
+  DIVIDER
+  ICON_GRID
+  BRAND_LOGOS
+  RICH_TEXT
+  HERO_SLIDER
+  CAMPAIGN_BANNER
+  SPONSORED_PRODUCTS
+  NEW_ARRIVALS
+  BEST_SELLERS
+  CATEGORY_GRID
+  COLLECTION_GRID
+  SHIPPING_BENEFITS
+  TRUST_BADGES
+  COUNTDOWN_OFFER
+  FOOTER_BANNER
+  VIDEO_BANNER
+  BRAND_SHOWCASE
+  FLASH_DEALS
+  MYSTERY_BOXES
+  BUY_MORE_SAVE_MORE
+  FREQUENTLY_BOUGHT_TOGETHER
+  BUILD_YOUR_OWN_BUNDLE
+  TRENDING_PRODUCTS
+  RECOMMENDED_PRODUCTS
+  RECENTLY_VIEWED
+  RECENTLY_ADDED
+  POPULAR_SEARCHES
+  INSTAGRAM_FEED
+  BLOG_POSTS
+}
 
-  @@index([bundleId])
-  @@index([productId])
+enum ProductSortBy {
+  NEWEST
+  BEST_SELLING
+  HIGHEST_DISCOUNT
+  HIGHEST_RATING
+  FEATURED
+  RANDOM
+  MANUAL
+}
+
+enum Visibility {
+  ALL
+  DESKTOP_ONLY
+  TABLET_ONLY
+  MOBILE_ONLY
 }

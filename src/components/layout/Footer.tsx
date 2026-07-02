@@ -44,14 +44,14 @@ export function Footer() {
   const { settings, footer } = useSiteConfig();
 
   const contactInfo = {
-    email: footer?.contactInfo?.email ?? settings.email,
-    phone: footer?.contactInfo?.phone ?? settings.phone,
-    address: footer?.contactInfo?.address ?? settings.address,
+    email: (footer?.contactInfo as any)?.email ?? settings.email,
+    phone: (footer?.contactInfo as any)?.phone ?? settings.phone,
+    address: (footer?.contactInfo as any)?.address ?? settings.address,
   };
 
   const socials =
     (footer?.socialLinks?.length ? footer.socialLinks : settings.socialLinks)?.map(
-      (s: { platform?: string; url?: string; icon?: string }) => ({
+      (s: any) => ({
         icon: ICON_MAP[s.icon || s.platform || ""] || Facebook,
         href: s.url || "#",
         label: s.platform || "Social",
@@ -61,8 +61,8 @@ export function Footer() {
   const columns =
     footer?.columns?.length
       ? (footer.columns as Array<{ title: string; links: Array<{ title: string; url: string }> }>)
-      : footer?.quickLinks?.length
-        ? [{ title: "Liens", links: footer.quickLinks.map((l: { title: string; url: string }) => l) }]
+      : footer && (footer as any).quickLinks?.length
+        ? [{ title: "Liens", links: (footer as any).quickLinks.map((l: any) => l) }]
         : [];
 
   const legalLinks = (footer?.legalLinks as Array<{ title: string; url: string }>) ?? [];
@@ -71,7 +71,7 @@ export function Footer() {
     settings.copyrightText ??
     `© ${new Date().getFullYear()} ${settings.storeName}. Tous droits réservés.`;
 
-  const newsletter = footer?.newsletterSettings as
+  const newsletter = (footer as any)?.newsletterSettings as
     | { enabled?: boolean; title?: string; placeholder?: string }
     | undefined;
 
@@ -207,7 +207,7 @@ export function Footer() {
               <div key={col.title}>
                 <h4 className="mb-5 text-sm font-bold uppercase tracking-widest text-white/70">{col.title}</h4>
                 <ul className="space-y-3">
-                  {col.links?.map((link) => (
+                  {col.links?.map((link: any) => (
                     <li key={link.title}>
                       <Link href={link.url} className="text-sm text-white/50 transition-all hover:text-white hover:translate-x-1 inline-flex">
                         {link.title}

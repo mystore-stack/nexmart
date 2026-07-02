@@ -10,7 +10,12 @@ import { errorToResponse, ok, type ApiSuccess, type ApiError, type ApiResponse }
  */
 export interface ApiContext {
   req: NextRequest;
-  params?: Record<string, string>;
+  params?: Record<string, string> | Promise<Record<string, string>>;
+  session?: {
+    userId: string;
+    organizationId: string;
+    role: string;
+  };
 }
 
 /**
@@ -102,13 +107,14 @@ const DEFAULT_OPTIONS: WithApiOptions = {
 export function withApi<T = unknown>(
   handler: ApiHandler<T>,
   options: WithApiOptions = {}
-): (req: NextRequest, context?: { params?: Record<string, string> }) => Promise<NextResponse> {
+): (req: NextRequest, context?: { params?: Promise<Record<string, string>> }) => Promise<NextResponse> {
   const opts = { ...DEFAULT_OPTIONS, ...options };
 
-  return async (req: NextRequest, routeContext?: { params?: Record<string, string> }) => {
+  return async (req: NextRequest, routeContext?: { params?: Promise<Record<string, string>> }) => {
+    const resolvedParams = routeContext?.params ? await routeContext.params : undefined;
     const ctx: ApiContext = {
       req,
-      params: routeContext?.params,
+      params: resolvedParams,
     };
 
     // Log request if enabled
@@ -125,6 +131,7 @@ export function withApi<T = unknown>(
       if (opts.requireAuth || opts.requireAdmin || opts.requireSuperAdmin) {
         const { requireAuthInternal } = await import("./auth-api");
         const session = await requireAuthInternal();
+        ctx.session = session;
 
         if (opts.requireAdmin) {
           const { requireAdminInternal } = await import("./auth-api");

@@ -1,13 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { CMSContentStatus } from "@prisma/client";
+import { getDefaultOrganizationId } from "@/lib/tenant";
 
 export async function GET() {
   try {
     const now = new Date();
+    const organizationId = await getDefaultOrganizationId();
 
     const banners = await prisma.heroBanner.findMany({
       where: {
+        organizationId,
         isActive: true,
+        status: CMSContentStatus.PUBLISHED,
         AND: [
           {
             OR: [
@@ -23,16 +28,16 @@ export async function GET() {
           },
         ],
       },
-      orderBy: [{ displayOrder: "asc" }, { createdAt: "desc" }],
+      orderBy: [{ displayOrder: "asc" }, { priorityScore: "desc" }, { createdAt: "desc" }],
     });
-
-    if (banners.length === 0) {
-      return NextResponse.json({ success: false, banners: [] }, { status: 404 });
-    }
 
     return NextResponse.json({ success: true, banners });
   } catch (error) {
-    console.error("[HERO GET ERROR]", error);
+    console.error("[HERO API] Error:", error);
+    console.error("[HERO API] Error details:", {
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    });
     return NextResponse.json(
       { success: false, error: "Failed to fetch hero banners" },
       { status: 500 }

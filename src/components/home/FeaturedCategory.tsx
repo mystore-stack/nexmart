@@ -39,7 +39,7 @@ export function FeaturedCategory({ featuredCategory }: FeaturedCategoryProps) {
     ? { background: gradient }
     : { backgroundColor: backgroundColor || '#ffffff' };
 
-  const shopUrl = buttonUrl || `/categories/${category.slug}`;
+  const shopUrl = buttonUrl || `/categories/${category.slug || category.id}`;
 
   return (
     <motion.div
@@ -89,7 +89,7 @@ export function FeaturedCategory({ featuredCategory }: FeaturedCategoryProps) {
               <h3 className="text-lg font-semibold mb-4">Featured Products</h3>
               <div className="grid grid-cols-3 gap-4">
                 {featuredProducts.slice(0, 3).map((product) => (
-                  <Link key={product.id} href={`/products/${product.slug}`}>
+                  <Link key={product.id} href={`/products/${product.id}`}>
                     <motion.div
                       whileHover={{ y: -5 }}
                       className="bg-background/80 backdrop-blur-sm rounded-xl p-3 shadow-md hover:shadow-lg transition-shadow cursor-pointer"

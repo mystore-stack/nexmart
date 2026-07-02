@@ -7,13 +7,13 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await requireAuth(req);
-    if (!session || session.user.role !== 'ADMIN') {
+    const session = await requireAuth();
+    if (!session || session.role !== 'ADMIN') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
     const organizationId = req.nextUrl.searchParams.get('organizationId') || undefined;
-    const limit = parseInt(req.nextUrl.searchParams.get('limit') || '30');
+    const limit = parseInt(req.nextUrl.searchParams.get('limit') || '30', 10);
 
     const reports = await getDailyReports(organizationId, limit);
 

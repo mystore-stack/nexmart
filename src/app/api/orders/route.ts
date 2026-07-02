@@ -765,10 +765,7 @@ export async function POST(req: NextRequest) {
         });
 
         return order;
-      }, {
-        maxWait: 10000,
-        timeout: 10000,
-      });
+      }, 10000);
 
     // Handle lock acquisition failure
     if (!lockResult) {

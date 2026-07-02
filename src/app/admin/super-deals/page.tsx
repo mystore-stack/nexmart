@@ -58,14 +58,24 @@ export default function SuperDealsPage() {
   }, []);
 
   const loadDeals = async () => {
+    console.log("[SUPER_DEALS] Loading deals...");
     setLoading(true);
-    const result = await getSuperDeals();
-    if (result.success) {
-      setDeals(result.data);
-    } else {
-      toast.error(result.error || "Failed to load super deals");
+    try {
+      const result = await getSuperDeals();
+      console.log("[SUPER_DEALS] Result:", result);
+      if (result.success) {
+        setDeals(result.data);
+        console.log("[SUPER_DEALS] Loaded", result.data.length, "deals");
+      } else {
+        console.error("[SUPER_DEALS] Failed to load:", result.error);
+        toast.error(result.error || "Failed to load super deals");
+      }
+    } catch (error) {
+      console.error("[SUPER_DEALS] Error loading deals:", error);
+      toast.error("Failed to load super deals");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleDelete = async (id: string) => {

@@ -11,10 +11,10 @@ export const cmsContentStatusSchema = z.enum([
 export const deviceTargetSchema = z.enum(["ALL", "DESKTOP", "MOBILE", "TABLET"]);
 
 export const optionalUrlSchema = z
-  .string()
-  .url("Invalid URL")
-  .optional()
-  .or(z.literal(""));
+  .preprocess((val) => {
+    if (typeof val === "string" && val.trim() === "") return undefined;
+    return val;
+  }, z.string().url("Invalid URL").optional());
 
 export const optionalDateSchema = z
   .string()

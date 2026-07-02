@@ -8,13 +8,20 @@ export async function getSuperDeals(filters?: {
   enabled?: boolean;
   featured?: boolean;
 }) {
+  console.log("[GET_SUPER_DEALS] === SERVER ACTION START ===");
   try {
-    await requireAdmin();
+    console.log("[GET_SUPER_DEALS] Checking admin auth...");
+    const session = await requireAdmin();
+    console.log("[GET_SUPER_DEALS] Auth successful:", {
+      userId: session.userId,
+      organizationId: session.organizationId,
+    });
     
     const where: any = {};
     if (filters?.enabled !== undefined) where.enabled = filters.enabled;
     if (filters?.featured !== undefined) where.featured = filters.featured;
 
+    console.log("[GET_SUPER_DEALS] Querying super deals with where:", where);
     const superDeals = await (prisma as any).superDeal.findMany({
       where,
       include: {
@@ -29,9 +36,14 @@ export async function getSuperDeals(filters?: {
       },
     });
 
+    console.log("[GET_SUPER_DEALS] Found", superDeals.length, "super deals");
     return { success: true, data: superDeals };
   } catch (error) {
-    console.error("[GET_SUPER_DEALS]", error);
+    console.error("[GET_SUPER_DEALS] Error:", error);
+    console.error("[GET_SUPER_DEALS] Error details:", {
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    });
     return { success: false, error: "Failed to fetch super deals" };
   }
 }

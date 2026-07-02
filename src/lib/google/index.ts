@@ -78,11 +78,11 @@ export class GoogleIntegrationService {
         organizationId,
         integrationId,
         eventType,
-        eventData,
+        eventData: eventData as any,
         userId,
         sessionId,
       },
-    });
+    }) as any;
   }
 
   static async getAnalyticsEvents(
@@ -93,7 +93,7 @@ export class GoogleIntegrationService {
       where: { organizationId },
       orderBy: { timestamp: 'desc' },
       take: limit,
-    });
+    }) as any;
   }
 
   static async getMerchantFeeds(organizationId: string): Promise<GoogleMerchantFeed[]> {
@@ -147,10 +147,11 @@ export class GoogleIntegrationService {
   }
 
   static async getMapsLocations(organizationId: string): Promise<GoogleMapsLocation[]> {
-    return prisma.googleMapsLocation.findMany({
+    const locations = await prisma.googleMapsLocation.findMany({
       where: { organizationId },
       orderBy: { createdAt: 'desc' },
     });
+    return locations as any;
   }
 
   static async addMapsLocation(
@@ -170,7 +171,7 @@ export class GoogleIntegrationService {
         longitude,
         locationType,
       },
-    });
+    }) as any;
   }
 
   static async getDashboardData(organizationId: string): Promise<GoogleIntegrationDashboard> {

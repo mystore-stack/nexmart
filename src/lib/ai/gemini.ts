@@ -37,16 +37,47 @@ export function isGeminiConfigured() {
 }
 
 export async function testGeminiConnection() {
-  if (!isGeminiConfigured()) {
-    return { ok: false, status: "missing_key", message: "GEMINI_API_KEY is not configured." };
+  const apiKeyAvailable = isGeminiConfigured();
+  console.log("[Gemini] Connection test:", {
+    apiKeyAvailable,
+    model: DEFAULT_MODEL,
+    timeout: DEFAULT_TIMEOUT_MS,
+  });
+
+  if (!apiKeyAvailable) {
+    return { 
+      ok: false, 
+      status: "missing_key", 
+      message: "GEMINI_API_KEY is not configured in environment variables.",
+      details: {
+        model: DEFAULT_MODEL,
+        hasKey: false,
+      }
+    };
   }
 
   try {
+    const startTime = Date.now();
     const text = await generateText("Reply with exactly: ok", [], "ok");
+    const duration = Date.now() - startTime;
+    
+    const success = text.toLowerCase().includes("ok");
+    console.log("[Gemini] Connection test result:", {
+      success,
+      duration,
+      responseLength: text.length,
+    });
+    
     return {
-      ok: text.toLowerCase().includes("ok"),
+      ok: success,
       status: "operational",
       message: "Gemini API responded successfully.",
+      details: {
+        model: DEFAULT_MODEL,
+        hasKey: true,
+        duration,
+        responseLength: text.length,
+      }
     };
   } catch (error) {
     console.error("[Gemini] connection test failed:", safeError(error));
@@ -54,6 +85,11 @@ export async function testGeminiConnection() {
       ok: false,
       status: "failed",
       message: "Gemini API could not be reached. Check the key, quota, and model settings.",
+      details: {
+        model: DEFAULT_MODEL,
+        hasKey: true,
+        error: error instanceof Error ? error.message : String(error),
+      }
     };
   }
 }

@@ -12,10 +12,15 @@ interface MediaAsset {
   mimeType: string;
   size: number;
   url: string;
+  secureUrl?: string;
+  publicId: string;
   width?: number;
   height?: number;
+  format?: string;
+  resourceType: string;
+  folder?: string;
   alt?: string;
-  category?: string;
+  caption?: string;
   tags: string[];
   createdAt: string;
 }
@@ -40,7 +45,7 @@ export default function MediaLibraryPage() {
     try {
       setLoading(true);
       const params = new URLSearchParams();
-      if (selectedCategory) params.append("category", selectedCategory);
+      if (selectedCategory) params.append("folder", selectedCategory);
       if (searchQuery) params.append("search", searchQuery);
 
       const response = await fetch(`/api/admin/media?${params}`);
@@ -63,17 +68,19 @@ export default function MediaLibraryPage() {
     setUploading(true);
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("category", selectedCategory || "other");
+    formData.append("folder", selectedCategory || "media");
 
     try {
-      const response = await fetch("/api/admin/media", {
+      const response = await fetch("/api/admin/media/upload", {
         method: "POST",
         body: formData,
       });
       const data = await response.json();
       if (data.success) {
         toast.success("Media uploaded successfully");
-        fetchMedia();
+        // Auto-refresh media library
+        await fetchMedia();
+        setShowUpload(false);
       } else {
         toast.error(data.error || "Upload failed");
       }
@@ -82,7 +89,6 @@ export default function MediaLibraryPage() {
       toast.error("Failed to upload media");
     } finally {
       setUploading(false);
-      setShowUpload(false);
     }
   };
 
@@ -90,7 +96,7 @@ export default function MediaLibraryPage() {
     if (!confirm("Are you sure you want to delete this media?")) return;
 
     try {
-      const response = await fetch(`/api/admin/media/${id}`, {
+      const response = await fetch(`/api/admin/media?id=${id}`, {
         method: "DELETE",
       });
       const data = await response.json();
@@ -114,7 +120,7 @@ export default function MediaLibraryPage() {
     try {
       await Promise.all(
         Array.from(selectedMedia).map(id =>
-          fetch(`/api/admin/media/${id}`, { method: "DELETE" })
+          fetch(`/api/admin/media?id=${id}`, { method: "DELETE" })
         )
       );
       toast.success(`${selectedMedia.size} items deleted`);
@@ -320,9 +326,9 @@ export default function MediaLibraryPage() {
                     {formatFileSize(item.size)}
                     {item.width && item.height && ` • ${item.width}x${item.height}`}
                   </p>
-                  {item.category && (
+                  {item.folder && (
                     <span className="inline-block mt-2 px-2 py-0.5 bg-gold-500/20 text-gold-300 text-xs rounded">
-                      {item.category}
+                      {item.folder}
                     </span>
                   )}
                 </div>

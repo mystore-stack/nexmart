@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { audit } from "@/lib/audit/server";
+import { requireAuth } from "@/lib/auth-api";
 
 /**
  * POST /api/audit/session

@@ -22,15 +22,16 @@ const fullUpdateSchema = z.object({
   discount: z.number().optional(),
 });
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params;
     const { organizationId } = await requireAdmin();
 
     const body = await req.json();
     const data = updateSchema.parse(body);
 
     const order = await prisma.order.update({
-      where: { id: params.id, organizationId },
+      where: { id, organizationId },
       data,
       include: {
         user: { select: { email: true, name: true } },
@@ -78,15 +79,16 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   }
 }
 
-export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params;
     const { organizationId } = await requireAdmin();
 
     const body = await req.json();
     const data = fullUpdateSchema.parse(body);
 
     const order = await prisma.order.update({
-      where: { id: params.id, organizationId },
+      where: { id, organizationId },
       data,
       include: {
         user: { select: { email: true, name: true } },
@@ -125,11 +127,12 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   }
 }
 
-export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params;
     const { organizationId } = await requireAdmin();
     const order = await prisma.order.findFirst({
-      where: { id: params.id, organizationId },
+      where: { id, organizationId },
       include: {
         user: { select: { id: true, name: true, email: true, avatar: true } },
         items: { include: { product: true, variant: true } },
@@ -147,18 +150,19 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
   }
 }
 
-export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params;
     const { organizationId } = await requireAdmin();
 
     const order = await prisma.order.findFirst({
-      where: { id: params.id, organizationId },
+      where: { id, organizationId },
     });
 
     if (!order) return notFound("Order not found");
 
     await prisma.order.delete({
-      where: { id: params.id },
+      where: { id },
     });
 
     return ok({ message: "Order deleted successfully" });

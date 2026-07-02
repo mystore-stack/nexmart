@@ -3,10 +3,11 @@ import { NextRequest } from 'next/server';
 import { withApi } from '@/lib/withApi';
 
 export const GET = withApi(async ({ params }) => {
+  if (!params) throw new Error("Params required");
   const { prisma } = await import('@/lib/prisma');
 
   const experiment = await prisma.experiment.findUnique({
-    where: { id: params.id },
+    where: { id: params!.id },
     include: {
       variants: true,
     },
@@ -20,8 +21,8 @@ export const GET = withApi(async ({ params }) => {
   const control = experiment.variants.find(v => v.type === 'CONTROL');
   const variant = experiment.variants.find(v => v.type === 'VARIANT_A');
 
-  const controlRate = control?.exposures > 0 ? (control.conversions / control.exposures) * 100 : 0;
-  const variantRate = variant?.exposures > 0 ? (variant.conversions / variant.exposures) * 100 : 0;
+  const controlRate = (control?.exposures && control.exposures > 0) ? (control!.conversions / control!.exposures) * 100 : 0;
+  const variantRate = (variant?.exposures && variant.exposures > 0) ? (variant!.conversions / variant!.exposures) * 100 : 0;
   const uplift = controlRate > 0 ? ((variantRate - controlRate) / controlRate) * 100 : 0;
 
   // Calculate statistical significance (simplified chi-squared test)

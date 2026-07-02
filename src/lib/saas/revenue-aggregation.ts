@@ -5,19 +5,19 @@ export class RevenueAggregation {
   static async calculateMRR() {
     const subscriptions = await prisma.subscription.findMany({
       where: { status: 'ACTIVE' },
-      include: { plan: true },
+      include: { plan: true } as any,
     });
     
     let mrr = 0;
     
-    for (const subscription of subscriptions) {
+    for (const subscription of subscriptions as any[]) {
       const plan = subscription.plan;
       if (!plan) continue;
       
       const limits = plan.limits as any;
       const monthlyPrice = subscription.billingCycle === 'YEARLY'
-        ? plan.yearlyPrice / 12
-        : plan.monthlyPrice;
+        ? (plan.yearlyPrice || 0) / 12
+        : (plan.monthlyPrice || 0);
       
       mrr += monthlyPrice;
     }
@@ -33,19 +33,19 @@ export class RevenueAggregation {
   static async calculateRevenueByPlan() {
     const subscriptions = await prisma.subscription.findMany({
       where: { status: 'ACTIVE' },
-      include: { plan: true },
+      include: { plan: true } as any,
     });
     
     const revenueByPlan: Record<string, number> = {};
     
-    for (const subscription of subscriptions) {
+    for (const subscription of subscriptions as any[]) {
       const plan = subscription.plan;
       if (!plan) continue;
       
-      const planName = plan.name;
+      const planName = plan.name || 'Unknown';
       const monthlyPrice = subscription.billingCycle === 'YEARLY'
-        ? plan.yearlyPrice / 12
-        : plan.monthlyPrice;
+        ? (plan.yearlyPrice || 0) / 12
+        : (plan.monthlyPrice || 0);
       
       if (!revenueByPlan[planName]) {
         revenueByPlan[planName] = 0;
@@ -60,18 +60,18 @@ export class RevenueAggregation {
   static async calculateTotalRevenue() {
     const subscriptions = await prisma.subscription.findMany({
       where: { status: 'ACTIVE' },
-      include: { plan: true },
+      include: { plan: true } as any,
     });
     
     let totalRevenue = 0;
     
-    for (const subscription of subscriptions) {
+    for (const subscription of subscriptions as any[]) {
       const plan = subscription.plan;
       if (!plan) continue;
       
       const monthlyPrice = subscription.billingCycle === 'YEARLY'
-        ? plan.yearlyPrice / 12
-        : plan.monthlyPrice;
+        ? (plan.yearlyPrice || 0) / 12
+        : (plan.monthlyPrice || 0);
       
       totalRevenue += monthlyPrice;
     }

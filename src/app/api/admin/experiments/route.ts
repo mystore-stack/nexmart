@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
       include: {
         variants: true,
         _count: {
-          select: { assignments: true },
+          select: { exposures: true } as any,
         },
       },
       orderBy: { createdAt: "desc" },
@@ -68,11 +68,14 @@ export async function POST(req: NextRequest) {
         trafficSplit: data.trafficSplit,
         startDate: data.startDate ? new Date(data.startDate) : null,
         endDate: data.endDate ? new Date(data.endDate) : null,
-        status: "draft",
+        status: "DRAFT",
+        type: "AB_TEST",
+        primaryGoal: "CONVERSION",
+        secondaryGoals: [],
         variants: {
-          create: data.variants,
+          create: data.variants as any,
         },
-      },
+      } as any,
       include: {
         variants: true,
       },

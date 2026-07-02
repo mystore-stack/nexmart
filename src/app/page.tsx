@@ -9,7 +9,6 @@ import { PromoBanner } from "@/components/home/PromoBanner";
 import { RecentlyViewedSection } from "@/components/home/RecentlyViewedSection";
 import { WhyNexMart } from "@/components/home/WhyNexMart";
 import { NewsletterSection } from "@/components/home/NewsletterSection";
-import { HomepageSections } from "@/components/home/HomepageSections";
 import { MarketingHomeIntegration, MarketingHeroAd } from "@/components/marketing/MarketingHomeIntegration";
 import { SkeletonGrid } from "@/components/ui/Skeleton";
 import { getHomePageData } from "@/lib/home-data";
@@ -18,6 +17,7 @@ import { prisma } from "@/lib/prisma";
 import { ShopByCategoryServer } from "@/components/home/ShopByCategoryServer";
 import { SuperDealsServer } from "@/components/home/SuperDealsServer";
 import { BundleDealsServer } from "@/components/home/BundleDealsServer";
+import { PageRenderer } from "@/components/page-builder/PageSectionRenderer";
 
 export const revalidate = 300;
 
@@ -37,26 +37,29 @@ function withMetadataTimeout<T>(operation: Promise<T>, timeoutMs: number): Promi
 export async function generateMetadata(): Promise<Metadata> {
   try {
     const now = new Date();
-    const activeBanner = await withMetadataTimeout(
-      prisma.heroBanner.findFirst({
+    const homePage = await withMetadataTimeout(
+      prisma.pageBuilderPage.findFirst({
         where: {
-          isActive: true,
-          AND: [
-            { OR: [{ publishDate: null }, { publishDate: { lte: now } }] },
-            { OR: [{ expireDate: null }, { expireDate: { gte: now } }] },
+          pageType: "HOME",
+          enabled: true,
+          status: "PUBLISHED",
+          publishDate: { lte: now },
+          // Handle null unpublishDate - if null, page should always be valid
+          OR: [
+            { unpublishDate: null },
+            { unpublishDate: { gte: now } },
           ],
         },
-        orderBy: [{ displayOrder: "asc" }, { createdAt: "desc" }],
       }),
       PUBLIC_METADATA_LOOKUP_TIMEOUT_MS
     );
 
-    if (activeBanner?.seoTitle && activeBanner.seoDescription) {
-      return { title: activeBanner.seoTitle, description: activeBanner.seoDescription };
+    if (homePage?.seoTitle && homePage.seoDescription) {
+      return { title: homePage.seoTitle, description: homePage.seoDescription };
     }
   } catch (error) {
     console.warn(
-      "Failed to fetch hero banner for metadata; using fallback metadata.",
+      "Failed to fetch home page for metadata; using fallback metadata.",
       error instanceof Error ? error.message : error
     );
   }
@@ -69,7 +72,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 function LegacyHomePage({ data }: { data: Awaited<ReturnType<typeof getHomePageData>> }) {
-  const { featured, trending, categories, flashSale, homepageConfig, marketing } = data;
+  const { featured, trending, categories, flashSale, marketing } = data;
   const heroAd = marketing?.heroAds?.[0];
   const useMarketingFlash = (marketing?.flashDeals?.length ?? 0) > 0;
   const sponsoredIds = new Set(marketing?.sponsoredProducts?.map((s) => s.productId) ?? []);
@@ -156,11 +159,7 @@ function LegacyHomePage({ data }: { data: Awaited<ReturnType<typeof getHomePageD
         </div>
       </section>
 
-      <NewsletterSection
-        enabled={homepageConfig?.newsletterEnabled ?? true}
-        title={homepageConfig?.newsletterTitle ?? undefined}
-        subtitle={homepageConfig?.newsletterSubtitle ?? undefined}
-      />
+      <NewsletterSection enabled={true} />
     </>
   );
 }
@@ -168,11 +167,14 @@ function LegacyHomePage({ data }: { data: Awaited<ReturnType<typeof getHomePageD
 export default async function HomePage() {
   const data = await getHomePageData();
 
+  // Use page builder if HOME page exists with published sections
+  const usePageBuilder = data.page && data.page.sections.length > 0;
+
   return (
     <div className="page-enter">
-      {data.useCmsLayout && data.homepageSections.length > 0 ? (
+      {usePageBuilder && data.page ? (
         <>
-          <HomepageSections sections={data.homepageSections} data={data} />
+          <PageRenderer page={data.page} data={data} />
           <section className="section">
             <div className="container-main">
               <RecentlyViewedSection />

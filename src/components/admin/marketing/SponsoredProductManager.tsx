@@ -26,7 +26,7 @@ export function SponsoredProductManager() {
     const spJson = await spRes.json();
     const prodJson = await prodRes.json();
     if (spJson.success) setItems(spJson.data ?? []);
-    if (prodJson.success) setProducts(prodJson.data?.items ?? prodJson.data ?? []);
+    if (prodJson.success) setProducts(Array.isArray(prodJson.products) ? prodJson.products : []);
     setLoading(false);
   };
 

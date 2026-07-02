@@ -18,15 +18,16 @@ const updateSchema = z.object({
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const { organizationId } = await requireAdmin();
     const body = await req.json();
     const data = updateSchema.parse(body);
 
     const category = await prisma.category.update({
-      where: { id: params.id, organizationId },
+      where: { id, organizationId },
       data: {
         ...data,
         ...(data.name ? { slug: toSlug(data.name) } : {}),
@@ -45,11 +46,12 @@ export async function PATCH(
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const { organizationId } = await requireAdmin();
-    await prisma.category.delete({ where: { id: params.id, organizationId } });
+    await prisma.category.delete({ where: { id, organizationId } });
     await deleteCache(CACHE_KEYS.categories());
     return noContent();
   } catch (err: any) {

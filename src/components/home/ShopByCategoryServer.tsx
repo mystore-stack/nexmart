@@ -82,7 +82,7 @@ export async function ShopByCategoryServer() {
   const data = await getCategoriesData();
   
   const featuredCategory = data.featuredCategories?.[0];
-  const categories = data.categories || [];
+  const categories = (data.categories || []).filter((cat: any) => cat && typeof cat === 'object');
   
   return <ShopByCategory featuredCategory={featuredCategory} categories={categories} />;
 }

@@ -2,7 +2,7 @@
 import { NextRequest } from 'next/server';
 import { withApi } from '@/lib/withApi';
 
-export const GET = withApi(async ({ session }) => {
+export const GET = withApi(async () => {
   const { prisma } = await import('@/lib/prisma');
 
   const flags = await prisma.featureFlag.findMany({
@@ -15,7 +15,7 @@ export const GET = withApi(async ({ session }) => {
   };
 }, { requireAuth: true, requireAdmin: true });
 
-export const POST = withApi(async ({ req, session }) => {
+export const POST = withApi(async ({ req }) => {
   const body = await req.json();
   const { key, name, description, enabled, rolloutPercentage, targetPlans, targetOrganizations, category } = body;
 

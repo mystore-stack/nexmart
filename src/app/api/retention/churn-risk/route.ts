@@ -4,6 +4,7 @@ import { withApi } from '@/lib/withApi';
 import { ChurnPredictor } from '@/lib/retention/churn-predictor';
 
 export const GET = withApi(async ({ req, session }) => {
+  if (!session) throw new Error("Session required");
   const { searchParams } = new URL(req.url);
   const riskLevel = searchParams.get('riskLevel');
   const limit = parseInt(searchParams.get('limit') || '50');
@@ -11,7 +12,7 @@ export const GET = withApi(async ({ req, session }) => {
   const { prisma } = await import('@/lib/prisma');
 
   const where: any = {
-    organizationId: session.organizationId,
+    organizationId: session!.organizationId,
     validUntil: { gte: new Date() },
   };
 
@@ -30,7 +31,7 @@ export const GET = withApi(async ({ req, session }) => {
   const byRiskLevel = await prisma.churnPrediction.groupBy({
     by: ['riskLevel'],
     where: {
-      organizationId: session.organizationId,
+      organizationId: session!.organizationId,
       validUntil: { gte: new Date() },
     },
     _count: true,

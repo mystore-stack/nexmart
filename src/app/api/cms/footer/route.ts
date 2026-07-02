@@ -55,7 +55,7 @@ export async function GET(req: NextRequest) {
       success: true,
       data: footerConfig,
       timestamp: new Date().toISOString(),
-    } as CMSResponse<FooterConfigSchema>, {
+    } as any, {
       headers: {
         'Cache-Control': 'no-store, no-cache, must-revalidate',
         'Pragma': 'no-cache',

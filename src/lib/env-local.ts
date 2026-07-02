@@ -10,8 +10,8 @@ function stripQuotes(v: string): string {
 }
 
 export function getEnvLocalValue(key: string): string | undefined {
-  // src/lib/env-local.ts -> src/lib -> repo root is ../../
-  const envPath = path.resolve(__dirname, "../../.env.local");
+  // Resolve to project root regardless of build output structure
+  const envPath = path.resolve(process.cwd(), ".env.local");
   if (!fs.existsSync(envPath)) return undefined;
 
   const lines = fs.readFileSync(envPath, "utf8").split(/\r?\n/);

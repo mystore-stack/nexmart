@@ -9,20 +9,22 @@ const updateStatusSchema = z.object({
 });
 
 export const PATCH = withApi(async ({ req, params, session }) => {
+  if (!params) throw new Error("Params required");
+  if (!session) throw new Error("Session required");
   const body = await req.json();
   const validated = updateStatusSchema.parse(body);
 
   const { prisma } = await import('@/lib/prisma');
 
   const experiment = await prisma.experiment.findUnique({
-    where: { id: params.id },
+    where: { id: params!.id },
   });
 
   if (!experiment) {
     return { success: false, error: 'Experiment not found' };
   }
 
-  if (experiment.organizationId !== session.organizationId) {
+  if (experiment.organizationId !== session!.organizationId) {
     return { success: false, error: 'Unauthorized' };
   }
 
@@ -37,7 +39,7 @@ export const PATCH = withApi(async ({ req, params, session }) => {
   }
 
   const updated = await prisma.experiment.update({
-    where: { id: params.id },
+    where: { id: params!.id },
     data: updateData,
   });
 

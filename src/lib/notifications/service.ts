@@ -51,6 +51,7 @@ export async function sendOrderCreatedNotification(order: {
   `).join('');
 
   await sendEmail({
+    type: 'ORDER_CONFIRMATION' as any,
     to: order.customerEmail,
     subject: `Order Confirmed - #${order.orderNumber}`,
     html: `
@@ -193,6 +194,7 @@ export async function sendShippingUpdateEmail(params: {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://nexmart.ma";
 
   await sendEmail({
+    type: 'ORDER_STATUS_UPDATE' as any,
     to: params.customerEmail,
     subject: `${statusInfo.title} - #${params.orderNumber}`,
     html: `
@@ -292,6 +294,7 @@ export async function sendAbandonedCartEmail(params: {
   `).join('');
 
   await sendEmail({
+    type: 'CART_RECOVERY' as any,
     to: params.customerEmail,
     subject: stageInfo.subject,
     html: `

@@ -38,7 +38,7 @@ export function FlashDealManager() {
     const dealJson = await dealRes.json();
     const prodJson = await prodRes.json();
     if (dealJson.success) setDeals(dealJson.data ?? []);
-    if (prodJson.success) setProducts(prodJson.data?.items ?? prodJson.data ?? []);
+    if (prodJson.success) setProducts(Array.isArray(prodJson.products) ? prodJson.products : []);
     setLoading(false);
   };
 

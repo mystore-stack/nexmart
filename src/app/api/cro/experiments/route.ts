@@ -18,6 +18,7 @@ const createExperimentSchema = z.object({
 });
 
 export const POST = withApi(async ({ req, session }) => {
+  if (!session) throw new Error("Session required");
   const body = await req.json();
   const validated = createExperimentSchema.parse(body);
 
@@ -25,7 +26,7 @@ export const POST = withApi(async ({ req, session }) => {
 
   const experiment = await prisma.experiment.create({
     data: {
-      organizationId: session.organizationId,
+      organizationId: session!.organizationId,
       name: validated.name,
       description: validated.description,
       type: validated.type,
@@ -68,6 +69,7 @@ export const POST = withApi(async ({ req, session }) => {
 }, { requireAuth: true, requireAdmin: true });
 
 export const GET = withApi(async ({ req, session }) => {
+  if (!session) throw new Error("Session required");
   const { searchParams } = new URL(req.url);
   const status = searchParams.get('status') as ExperimentStatus | null;
   const type = searchParams.get('type') as ExperimentType | null;
@@ -76,7 +78,7 @@ export const GET = withApi(async ({ req, session }) => {
 
   const { prisma } = await import('@/lib/prisma');
 
-  const where: any = { organizationId: session.organizationId };
+  const where: any = { organizationId: session!.organizationId };
   if (status) where.status = status;
   if (type) where.type = type;
 

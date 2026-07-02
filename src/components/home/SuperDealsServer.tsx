@@ -81,8 +81,14 @@ async function getDealsData() {
           description: deal.description,
         };
       });
-  } catch (error) {
-    console.error("[SUPER_DEALS_ERROR]", error);
+  } catch (error: any) {
+    // Check if it's a database connection error
+    if (error?.code === 'P1001' || error?.message?.includes('Can\'t reach database server')) {
+      console.error('[SUPER_DEALS_ERROR] Database connection failed:', error.message);
+      console.warn('[SUPER_DEALS_WARNING] Super deals section will be hidden due to database unavailability');
+    } else {
+      console.error('[SUPER_DEALS_ERROR] Unexpected error:', error);
+    }
     return [];
   }
 }

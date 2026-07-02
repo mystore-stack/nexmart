@@ -1,11 +1,13 @@
 // src/app/api/admin/products/route.ts
 import { NextRequest } from "next/server";
+import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { ok, created, getPaginationParams, buildPaginationMeta, handleApiError } from "@/lib/api-response";
+import { created, getPaginationParams, handleApiError } from "@/lib/api-response";
 import { requireAdmin } from "@/lib/auth-api";
 import { invalidateProductCache } from "@/lib/redis";
 import slugify from "slugify";
+import { getProducts } from "@/lib/services/product-service";
 
 const productSchema = z.object({
   name: z.string().min(2).max(200),
@@ -53,41 +55,51 @@ export async function GET(req: NextRequest) {
     }
     
     const { page, limit, skip } = getPaginationParams(req.nextUrl.searchParams);
-    const search = req.nextUrl.searchParams.get("search") || undefined;
-    const categoryId = req.nextUrl.searchParams.get("categoryId") || undefined;
-    const published = req.nextUrl.searchParams.get("published");
+    const search =
+      req.nextUrl.searchParams.get("search") ||
+      req.nextUrl.searchParams.get("q") ||
+      undefined;
+    const categoryId =
+      req.nextUrl.searchParams.get("categoryId") ||
+      req.nextUrl.searchParams.get("category") ||
+      undefined;
+    const published = req.nextUrl.searchParams.get("published") as "true" | "false" | "all" | undefined;
+    const minPriceParam = req.nextUrl.searchParams.get("minPrice");
+    const maxPriceParam = req.nextUrl.searchParams.get("maxPrice");
+    const inStock = req.nextUrl.searchParams.get("inStock") === "true";
+    const minPrice = minPriceParam ? Number(minPriceParam) : undefined;
+    const maxPrice = maxPriceParam ? Number(maxPriceParam) : undefined;
 
-    console.log("[ADMIN PRODUCTS] Query params:", { page, limit, skip, search, categoryId, published });
+    console.log("[ADMIN PRODUCTS] Query params:", {
+      page,
+      limit,
+      skip,
+      search,
+      categoryId,
+      published,
+      minPrice,
+      maxPrice,
+      inStock,
+    });
 
-    const where: any = {
+    // Use shared ProductService
+    const result = await getProducts({
       organizationId,
-      ...(search && {
-        OR: [
-          { name: { contains: search, mode: "insensitive" } },
-          { sku: { contains: search, mode: "insensitive" } },
-        ],
-      }),
-      ...(categoryId && { categoryId }),
-      ...(published !== null && published !== undefined && { published: published === "true" }),
-    };
+      search,
+      categoryId,
+      published,
+      minPrice,
+      maxPrice,
+      inStock,
+      page,
+      limit,
+      skip,
+    });
 
-    console.log("[ADMIN PRODUCTS] Prisma where clause:", JSON.stringify(where, null, 2));
-
-    const [products, total] = await Promise.all([
-      prisma.product.findMany({
-        where,
-        include: { category: true, variants: true, _count: { select: { reviews: true, orderItems: true } } },
-        orderBy: { createdAt: "desc" },
-        skip,
-        take: limit,
-      }),
-      prisma.product.count({ where }),
-    ]);
-
-    console.log("[ADMIN PRODUCTS] Products found:", products.length, "Total count:", total);
+    console.log("[ADMIN PRODUCTS] Products found:", result.products.length, "Total count:", result.total);
 
     // CRITICAL FIX: Log warning if no products found but organizationId is set
-    if (products.length === 0 && total === 0) {
+    if (result.products.length === 0 && result.total === 0) {
       console.warn("[ADMIN PRODUCTS] WARNING: No products found for organizationId:", organizationId);
       console.warn("[ADMIN PRODUCTS] This may indicate:");
       console.warn("[ADMIN PRODUCTS] 1. The organizationId is incorrect (user may be using default fallback)");
@@ -95,17 +107,15 @@ export async function GET(req: NextRequest) {
       console.warn("[ADMIN PRODUCTS] 3. The user may need a Membership or Organization ownership record");
     }
 
-    // Ensure products is always an array
-    const productsArray = Array.isArray(products) ? products : [];
-    
-    const responseData = { 
-      data: productsArray, 
-      pagination: buildPaginationMeta(total, page, limit) 
+    const responseData = {
+      success: true,
+      products: result.products,
+      pagination: result.pagination,
     };
     
     console.log("[ADMIN PRODUCTS] RESPONSE PAYLOAD:", JSON.stringify(responseData, null, 2));
     
-    return ok(responseData);
+    return NextResponse.json(responseData);
   } catch (err) {
     return handleApiError(err);
   }
