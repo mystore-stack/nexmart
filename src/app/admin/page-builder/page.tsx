@@ -162,7 +162,7 @@ export default function PageBuilderPage() {
     setCurrentPageId(page.id);
     setShowForm(true);
     setActiveTab("content");
-    fetchPageSections(page.id);
+    setPageSections(page.sections || []);
   };
 
   const handleSave = async () => {
@@ -200,18 +200,6 @@ export default function PageBuilderPage() {
       toast.error("Failed to save");
     } finally {
       setSaving(false);
-    }
-  };
-
-  const fetchPageSections = async (pageId: string) => {
-    try {
-      const response = await fetch(`/api/admin/page-builder/pages/${pageId}/sections`);
-      if (response.ok) {
-        const sections = await response.json();
-        setPageSections(sections);
-      }
-    } catch (error) {
-      console.error("Failed to fetch sections", error);
     }
   };
 
