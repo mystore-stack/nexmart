@@ -150,6 +150,7 @@ model Product {
   stockAlertLogs                   StockAlertLog[]
   superDeals                       SuperDeal[]
   wishlistItems                    WishlistItem[]
+  inventoryUpdateLogs              InventoryUpdateLog[]
 
   @@unique([organizationId, sku])
   @@unique([organizationId, slug])
@@ -810,6 +811,9 @@ model Organization {
   usageRecords              UsageRecord[]
   UserProfile               UserProfile[]
   welcomeSeries             WelcomeSeries[]
+  weatherPersonalizations   WeatherPersonalization[]
+  aiRecommendationRules     AIRecommendationRule[]
+  inventoryUpdateLogs       InventoryUpdateLog[]
 
   @@index([ownerId])
   @@index([slug])
@@ -3496,6 +3500,85 @@ model GlobalComponent {
   @@index([enabled])
 }
 
+model WeatherPersonalization {
+  id                String             @id @default(uuid()) @db.Uuid
+  organizationId    String             @db.Uuid
+  condition         WeatherCondition
+  minTemperature    Float?
+  maxTemperature    Float?
+  productIds        String[]           @default([])
+  categoryIds       String[]           @default([])
+  title             String
+  description       String?
+  isActive          Boolean            @default(true)
+  displayPriority   Int                @default(0)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  organization      Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([condition])
+  @@index([isActive])
+}
+
+model AIRecommendationRule {
+  id                String             @id @default(uuid()) @db.Uuid
+  organizationId    String             @db.Uuid
+  name              String
+  description       String?
+  strategy          PersonalizationStrategy
+  productIds        String[]           @default([])
+  categoryIds       String[]           @default([])
+  minScore          Float              @default(0.5)
+  maxResults        Int                @default(5)
+  isActive          Boolean            @default(true)
+  displayPriority   Int                @default(0)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  organization      Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([strategy])
+  @@index([isActive])
+}
+
+model InventoryUpdateLog {
+  id                String             @id @default(uuid()) @db.Uuid
+  organizationId    String             @db.Uuid
+  productId         String             @db.Uuid
+  previousStock     Int
+  newStock          Int
+  changeReason      String
+  priority          InventoryUpdatePriority @default(MEDIUM)
+  notifiedAt        DateTime?
+  createdAt         DateTime           @default(now())
+  organization      Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  product           Product            @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([productId])
+  @@index([priority])
+  @@index([createdAt])
+}
+
+model HomepageSectionAnalytics {
+  id                String             @id @default(uuid()) @db.Uuid
+  sectionId         String             @db.Uuid
+  eventType         String             @default("VIEW")
+  viewCount         Int                @default(0)
+  clickCount        Int                @default(0)
+  conversionCount   Int                @default(0)
+  avgEngagementTime Int?
+  deviceType        String?
+  location          String?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  @@index([sectionId])
+  @@index([eventType])
+  @@index([createdAt])
+}
+
 enum AuditEventType {
   CHECKOUT_START
   CHECKOUT_STEP_ADDRESS
@@ -4308,4 +4391,28 @@ enum Visibility {
   DESKTOP_ONLY
   TABLET_ONLY
   MOBILE_ONLY
+}
+
+enum WeatherCondition {
+  SUNNY
+  CLOUDY
+  RAINY
+  SNOWY
+  WINDY
+  HOT
+  COLD
+}
+
+enum PersonalizationStrategy {
+  WEATHER_BASED
+  AI_POWERED
+  USER_BEHAVIOR
+  MANUAL
+}
+
+enum InventoryUpdatePriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
 }
