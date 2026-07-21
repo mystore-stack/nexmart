@@ -1,6 +1,7 @@
 // src/lib/api.ts
 import { NextResponse } from "next/server";
 import { ZodError } from "zod";
+import { AuthError } from "./auth-api";
 
 export function ok<T>(data: T, status = 200) {
   return NextResponse.json({ success: true, data }, { status });
@@ -46,6 +47,13 @@ export function handleApiError(err: unknown) {
   console.error("[API Error]:", err);
 
   if (err instanceof ZodError) return validationError(err);
+
+  if (err instanceof AuthError) {
+    return NextResponse.json(
+      { success: false, error: err.message, code: err.code, action: err.action },
+      { status: err.statusCode }
+    );
+  }
 
   if (err instanceof Error) {
     if (err.message === "Unauthorized") return unauthorized();

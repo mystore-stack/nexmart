@@ -14,6 +14,7 @@ import Link from "next/link";
 import toast from "react-hot-toast";
 import type { Address, Order } from "@/types";
 import { audit } from "@/lib/audit/client";
+import { generateIdempotencyKey } from "@/lib/idempotency";
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
@@ -109,14 +110,73 @@ export default function CheckoutPage() {
   }, []);
 
   useEffect(() => {
+    console.log("[CHECKOUT] Page mounted - Cart state:", {
+      itemsCount: items.length,
+      userId: user?.id,
+      userEmail: user?.email,
+      isMounted: mounted.current,
+      isProcessingOrder: isProcessingOrderRef.current,
+    });
+
     if (!user) { if (mounted.current) router.push("/login?from=/checkout"); return; }
+    
+    // Sync cart from database when user is authenticated
+    const syncCartFromDatabase = async () => {
+      try {
+        console.log("[CHECKOUT] Syncing cart from database for user:", user.id);
+        const cartRes = await fetch("/api/cart");
+        const cartData = await cartRes.json();
+        
+        console.log("[CHECKOUT] Database cart response:", {
+          success: cartData.success,
+          itemsCount: cartData.items?.length || 0,
+        });
+        
+        if (cartData.success && cartData.items && cartData.items.length > 0) {
+          // Only sync from database if local cart is empty
+          if (items.length === 0) {
+            console.log("[CHECKOUT] Local cart empty, syncing from database");
+            useCartStore.getState().clearCart();
+            
+            cartData.items.forEach((dbItem: any) => {
+              useCartStore.getState().addItem(
+                dbItem.product,
+                dbItem.quantity,
+                dbItem.variant || undefined
+              );
+            });
+            
+            console.log("[CHECKOUT] Cart synced from database, new item count:", cartData.items.length);
+          } else {
+            console.log("[CHECKOUT] Local cart has items, keeping local cart (will sync to database on order)");
+          }
+        } else {
+          console.log("[CHECKOUT] Database cart empty, local cart items will be synced on order creation");
+          // Don't clear local cart - the items will be validated and synced when order is created
+          // This allows users to add items to cart and proceed to checkout without requiring database sync first
+        }
+      } catch (error) {
+        console.error("[CHECKOUT] Cart sync error:", error);
+      }
+    };
+    
+    syncCartFromDatabase();
+    
     // Only redirect to cart if:
     // - Cart is empty AND
     // - Order is NOT being processed AND
     // - Order was NOT just placed (check sessionStorage)
     const orderJustPlaced = typeof window !== "undefined" && sessionStorage.getItem("orderJustPlaced") === "true";
+    
+    console.log("[CHECKOUT] Cart validation:", {
+      itemsLength: items.length,
+      isProcessingOrder: isProcessingOrderRef.current,
+      orderJustPlaced,
+      mounted: mounted.current,
+    });
+    
     if (items.length === 0 && !isProcessingOrderRef.current && !orderJustPlaced && mounted.current) {
-      console.log("[CART_REDIRECT_TRIGGERED] items.length === 0, isProcessingOrderRef.current:", isProcessingOrderRef.current, "orderJustPlaced:", orderJustPlaced);
+      console.log("[CART_REDIRECT_TRIGGERED] items.length === 0, redirecting to /cart");
       router.push("/cart");
       return;
     }
@@ -193,7 +253,7 @@ export default function CheckoutPage() {
     setPaymentCompleted(false); // Reset payment completion when method changes
     
     // Audit: Track payment method selection
-    await audit.trackStep("PAYMENT_METHOD_SELECTED");
+    await audit.trackStep("PAYMENT");
     
     if (method === "STRIPE" && (!clientSecret || paymentIntentAmount !== grandTotal)) {
       setCreatingPaymentIntent(true);
@@ -295,7 +355,7 @@ export default function CheckoutPage() {
     // Generate or retrieve idempotency key (UUID format for production-grade idempotency)
     let idempotencyKey = localStorage.getItem("checkout_idempotency_key");
     if (!idempotencyKey) {
-      idempotencyKey = crypto.randomUUID();
+      idempotencyKey = generateIdempotencyKey();
       localStorage.setItem("checkout_idempotency_key", idempotencyKey);
     }
     console.log("[PLACE_ORDER] Using idempotency key:", idempotencyKey);
@@ -422,13 +482,12 @@ export default function CheckoutPage() {
       console.log("[CHECKOUT_REDIRECT] Redirecting to /track-order/", orderNumber);
       if (mounted.current && orderNumber && !hasRedirectedRef.current) {
         hasRedirectedRef.current = true;
-        
-        // Clear cart and idempotency key
-        useCartStore.getState().clearCart();
-        localStorage.removeItem("checkout_idempotency_key");
-        console.log("[CHECKOUT_REDIRECT] Cart cleared and idempotency key removed");
 
-        // Perform redirect
+        // Remove idempotency key
+        localStorage.removeItem("checkout_idempotency_key");
+
+        // Perform redirect WITHOUT clearing cart here
+        // Cart will be cleared on the track-order page instead
         router.push(`/track-order/${orderNumber}`);
         console.log("[CHECKOUT_REDIRECT] Redirect initiated");
 

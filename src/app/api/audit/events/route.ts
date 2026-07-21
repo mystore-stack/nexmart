@@ -2,17 +2,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { audit } from "@/lib/audit/server";
 import { getOrganizationIdForUser } from "@/lib/tenant";
-import { requireAuth } from "@/lib/auth";
+import { requireAuth, AuthError } from "@/lib/auth-api";
 import type { AuditEventType } from "@/lib/audit/types";
 
 /**
  * POST /api/audit/events
  * Log a single audit event
+ * 
+ * ALWAYS returns structured JSON:
+ * Success: { success: true, event }
+ * Failure: { success: false, error: string, code: string }
  */
 export async function POST(req: NextRequest) {
   try {
-    const authUser = await requireAuth();
-    const organizationId = await getOrganizationIdForUser(authUser);
+    const session = await requireAuth();
+    const organizationId = session.organizationId;
 
     const body = await req.json();
     const { eventType, sessionId, orderId, cartSnapshot, metadata, ipAddress, userAgent } = body;
@@ -20,7 +24,7 @@ export async function POST(req: NextRequest) {
     const event = await audit.event({
       sessionId,
       eventType: eventType as AuditEventType,
-      userId: authUser.userId,
+      userId: session.userId,
       organizationId,
       orderId,
       cartSnapshot,
@@ -29,11 +33,26 @@ export async function POST(req: NextRequest) {
       userAgent,
     });
 
+    console.log("[AUDIT API] event logged:", { eventType, sessionId });
+
     return NextResponse.json({ success: true, event }, { status: 201 });
   } catch (error) {
     console.error("[AUDIT] Event logging error:", error);
+
+    // Handle AuthError specifically
+    if (error instanceof AuthError) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: error.message,
+          code: error.statusCode === 401 ? "UNAUTHORIZED" : "FORBIDDEN",
+        },
+        { status: error.statusCode }
+      );
+    }
+
     return NextResponse.json(
-      { success: false, error: "Failed to log event" },
+      { success: false, error: "Failed to log event", code: "EVENT_ERROR" },
       { status: 500 }
     );
   }
@@ -42,11 +61,15 @@ export async function POST(req: NextRequest) {
 /**
  * GET /api/audit/events
  * Query audit events with filters
+ * 
+ * ALWAYS returns structured JSON:
+ * Success: { success: true, events }
+ * Failure: { success: false, error: string, code: string }
  */
 export async function GET(req: NextRequest) {
   try {
-    const authUser = await requireAuth();
-    const organizationId = await getOrganizationIdForUser(authUser);
+    const session = await requireAuth();
+    const organizationId = session.organizationId;
 
     const { searchParams } = new URL(req.url);
     const sessionId = searchParams.get("sessionId");
@@ -71,8 +94,21 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ success: true, events });
   } catch (error) {
     console.error("[AUDIT] Event query error:", error);
+
+    // Handle AuthError specifically
+    if (error instanceof AuthError) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: error.message,
+          code: error.statusCode === 401 ? "UNAUTHORIZED" : "FORBIDDEN",
+        },
+        { status: error.statusCode }
+      );
+    }
+
     return NextResponse.json(
-      { success: false, error: "Failed to query events" },
+      { success: false, error: "Failed to query events", code: "QUERY_ERROR" },
       { status: 500 }
     );
   }

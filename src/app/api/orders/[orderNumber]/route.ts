@@ -1,8 +1,7 @@
 // src/app/api/orders/[orderNumber]/route.ts
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getAuthFromRequest } from "@/lib/auth";
-import { getOrganizationIdForUser } from "@/lib/tenant";
+import { requireAuth } from "@/lib/auth-api";
 import { ok, unauthorized, notFound, handleApiError } from "@/lib/api";
 
 export async function GET(
@@ -10,16 +9,15 @@ export async function GET(
   { params }: { params: { orderNumber: string } }
 ) {
   try {
-    const payload = await getAuthFromRequest(req);
-    if (!payload) return unauthorized();
-    const organizationId = await getOrganizationIdForUser(payload);
+    const session = await requireAuth();
+    const organizationId = session.organizationId;
 
     const order = await prisma.order.findFirst({
       where: {
         organizationId,
         orderNumber: params.orderNumber,
         // Admins can view any order; users only their own
-        ...(payload.role === "USER" ? { userId: payload.userId } : {}),
+        ...(session.role === "USER" ? { userId: session.userId } : {}),
       },
       include: {
         items: {

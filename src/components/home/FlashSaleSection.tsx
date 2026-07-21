@@ -1,6 +1,6 @@
 "use client";
 // src/components/home/FlashSaleSection.tsx - Moroccan Luxury Flash Sale
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowRight, Flame, Clock } from "lucide-react";
@@ -8,21 +8,25 @@ import { ProductGrid } from "@/components/product/ProductCard";
 import type { Product } from "@/types";
 
 function useCountdown(endMs: number) {
-  const [t, setT] = useState(Math.max(0, endMs - Date.now()));
+  const [t, setT] = useState<number | null>(null);
   useEffect(() => {
+    // Initialize on client only to avoid hydration mismatch
+    setT(Math.max(0, endMs - Date.now()));
     const id = setInterval(() => setT(Math.max(0, endMs - Date.now())), 1000);
     return () => clearInterval(id);
   }, [endMs]);
-  const h = String(Math.floor(t / 3600000)).padStart(2, "0");
-  const m = String(Math.floor((t % 3600000) / 60000)).padStart(2, "0");
-  const s = String(Math.floor((t % 60000) / 1000)).padStart(2, "0");
+  const h = t !== null ? String(Math.floor(t / 3600000)).padStart(2, "0") : "00";
+  const m = t !== null ? String(Math.floor((t % 3600000) / 60000)).padStart(2, "0") : "00";
+  const s = t !== null ? String(Math.floor((t % 60000) / 1000)).padStart(2, "0") : "00";
   return { h, m, s };
 }
 
 interface Props { products: Product[] }
 
 export function FlashSaleSection({ products }: Props) {
-  const { h, m, s } = useCountdown(Date.now() + 6 * 3600000);
+  // Calculate end time once using ref to avoid infinite re-renders
+  const endTimeRef = useRef(Date.now() + 6 * 3600000);
+  const { h, m, s } = useCountdown(endTimeRef.current);
 
   return (
     <div className="relative overflow-hidden">

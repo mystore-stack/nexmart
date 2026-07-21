@@ -3,6 +3,8 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { prisma } from "@/lib/prisma";
 import { getDefaultOrganizationId } from "@/lib/tenant";
+import { getOrganizationIdForUser } from "@/lib/tenant";
+import { getSession } from "@/lib/auth-api";
 import { ProductsClient } from "@/components/product/ProductsClient";
 
 export const metadata: Metadata = {
@@ -17,7 +19,14 @@ export default async function ProductsPage({
 }: {
   searchParams: Record<string, string | string[] | undefined>;
 }) {
-  const organizationId = await getDefaultOrganizationId();
+  const session = await getSession();
+  let organizationId;
+  if (session) {
+    organizationId = await getOrganizationIdForUser({ userId: session.userId });
+  } else {
+    organizationId = await getDefaultOrganizationId();
+  }
+
   const categories = await prisma.category.findMany({
     where: { organizationId, parentId: null },
     include: { _count: { select: { products: { where: { organizationId, published: true } } } } },

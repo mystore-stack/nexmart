@@ -19,7 +19,9 @@ export default function AdminAnalyticsPage() {
 
   useEffect(() => {
     setLoading(true);
-    fetch(`/api/admin/analytics?range=${range}`)
+    fetch(`/api/admin/analytics?range=${range}`, {
+      credentials: "include",
+    })
       .then((r) => r.json())
       .then((d) => { setData(d.data); setLoading(false); })
       .catch(() => setLoading(false));

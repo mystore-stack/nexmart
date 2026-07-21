@@ -25,13 +25,18 @@ export async function getDefaultOrganizationId() {
 }
 
 export async function getOrganizationIdForUser(payload: Pick<AuthSession, "userId">) {
+  console.log("[TENANT] Getting organizationId for userId:", payload.userId);
+  
   const membership = await prisma.membership.findFirst({
     where: { userId: payload.userId },
     select: { organizationId: true },
     orderBy: { createdAt: "asc" },
   });
 
-  if (membership) return membership.organizationId;
+  if (membership) {
+    console.log("[TENANT] Found membership, organizationId:", membership.organizationId);
+    return membership.organizationId;
+  }
 
   const ownedOrganization = await prisma.organization.findFirst({
     where: { ownerId: payload.userId },
@@ -39,7 +44,19 @@ export async function getOrganizationIdForUser(payload: Pick<AuthSession, "userI
     orderBy: { createdAt: "asc" },
   });
 
-  if (ownedOrganization) return ownedOrganization.id;
+  if (ownedOrganization) {
+    console.log("[TENANT] Found owned organization, id:", ownedOrganization.id);
+    return ownedOrganization.id;
+  }
 
-  return getDefaultOrganizationId();
+  // CRITICAL FIX: DO NOT fallback to default organization
+  // This prevents data isolation issues where users see wrong data
+  console.error("[TENANT] CRITICAL: User has no membership and does not own any organization");
+  console.error("[TENANT] userId:", payload.userId);
+  console.error("[TENANT] Action: Create a Membership record or assign user as Organization owner");
+  throw new Error(
+    `User ${payload.userId} has no organization access. ` +
+    `Please create a Membership record or assign the user as an Organization owner. ` +
+    `This is required for multi-tenant data isolation.`
+  );
 }

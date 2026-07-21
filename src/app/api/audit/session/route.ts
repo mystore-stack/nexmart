@@ -1,23 +1,36 @@
 // src/app/api/audit/session/route.ts
 import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 import { audit } from "@/lib/audit/server";
-import { getOrganizationIdForUser } from "@/lib/tenant";
-import { requireAuth } from "@/lib/auth";
 
 /**
  * POST /api/audit/session
  * Create a new audit session
+ * 
+ * Public endpoint - can be called from client SDK for anonymous users
+ * 
+ * ALWAYS returns structured JSON:
+ * Success: { sessionId: string, success: true }
+ * Failure: { success: false, error: string, code: string }
  */
 export async function POST(req: NextRequest) {
   try {
-    const authUser = await requireAuth();
-    const organizationId = await getOrganizationIdForUser(authUser);
-
     const body = await req.json();
-    const { userId, userAgent, ipAddress, referrer, metadata } = body;
+    const { userId, organizationId, userAgent, ipAddress, referrer, metadata } = body;
 
-    const session = await audit.session.create({
-      userId: userId || authUser.userId,
+    if (!organizationId) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Organization ID required",
+          code: "MISSING_ORGANIZATION_ID",
+        },
+        { status: 400 }
+      );
+    }
+
+    const auditSession = await audit.session.create({
+      userId,
       organizationId,
       userAgent,
       ipAddress,
@@ -25,11 +38,45 @@ export async function POST(req: NextRequest) {
       metadata,
     });
 
-    return NextResponse.json({ success: true, session }, { status: 201 });
+    if (!auditSession) {
+      console.error("[AUDIT] Session creation returned null");
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Failed to create session",
+          code: "SESSION_NULL",
+        },
+        { status: 500 }
+      );
+    }
+
+    console.log("[AUDIT API] session created:", { sessionId: auditSession.id });
+
+    return NextResponse.json(
+      { sessionId: auditSession.id, success: true },
+      { status: 201 }
+    );
   } catch (error) {
     console.error("[AUDIT] Session creation error:", error);
+
+    // Check for database connection errors
+    if (error && typeof error === 'object' && 'kind' in error && error.kind === 'Closed') {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Database connection error",
+          code: "DATABASE_CONNECTION_ERROR",
+        },
+        { status: 503 }
+      );
+    }
+
     return NextResponse.json(
-      { success: false, error: "Failed to create session" },
+      {
+        success: false,
+        error: "Failed to create session",
+        code: "INTERNAL_ERROR",
+      },
       { status: 500 }
     );
   }
@@ -41,8 +88,8 @@ export async function POST(req: NextRequest) {
  */
 export async function GET(req: NextRequest) {
   try {
-    const authUser = await requireAuth();
-    const organizationId = await getOrganizationIdForUser(authUser);
+    const session = await requireAuth();
+    const organizationId = session.organizationId;
 
     const { searchParams } = new URL(req.url);
     const userId = searchParams.get("userId");

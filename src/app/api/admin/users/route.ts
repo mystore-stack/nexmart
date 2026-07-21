@@ -1,19 +1,15 @@
 // src/app/api/admin/users/route.ts
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getAuthFromRequest } from "@/lib/auth";
-import { getOrganizationIdForUser } from "@/lib/tenant";
+import { requireAdmin } from "@/lib/auth-api";
 import { ok, forbidden, handleApiError, getPaginationParams, buildPaginationMeta } from "@/lib/api";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
   try {
-    const payload = await getAuthFromRequest(req);
-    if (!payload || (payload.role !== "ADMIN" && payload.role !== "SUPER_ADMIN")) {
-      return forbidden();
-    }
-    const organizationId = await getOrganizationIdForUser(payload);
+    const session = await requireAdmin();
+    const organizationId = session.organizationId;
 
     const { page, limit, skip } = getPaginationParams(req.nextUrl.searchParams);
     const search = req.nextUrl.searchParams.get("search") || undefined;
@@ -48,7 +44,12 @@ export async function GET(req: NextRequest) {
     ]);
 
     const users = memberships.map((membership) => membership.User);
-    return ok({ data: users, pagination: buildPaginationMeta(total, page, limit) });
+
+    const responseData = { data: users, pagination: buildPaginationMeta(total, page, limit) };
+
+    console.log("[ADMIN USERS] RESPONSE PAYLOAD:", JSON.stringify(responseData, null, 2));
+
+    return ok(responseData);
   } catch (err) {
     return handleApiError(err);
   }

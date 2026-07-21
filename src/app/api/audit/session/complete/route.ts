@@ -6,6 +6,10 @@ import { prisma } from "@/lib/prisma";
 /**
  * POST /api/audit/session/complete
  * Mark a session as complete
+ * 
+ * ALWAYS returns structured JSON:
+ * Success: { success: true, session }
+ * Failure: { success: false, error: string, code: string }
  */
 export async function POST(req: NextRequest) {
   try {
@@ -14,18 +18,20 @@ export async function POST(req: NextRequest) {
 
     if (!sessionId) {
       return NextResponse.json(
-        { success: false, error: "Session ID required" },
+        { success: false, error: "Session ID required", code: "MISSING_SESSION_ID" },
         { status: 400 }
       );
     }
 
     const session = await audit.session.complete(sessionId, conversionValue);
 
+    console.log("[AUDIT API] session completed:", { sessionId, conversionValue });
+
     return NextResponse.json({ success: true, session });
   } catch (error) {
     console.error("[AUDIT] Session completion error:", error);
     return NextResponse.json(
-      { success: false, error: "Failed to complete session" },
+      { success: false, error: "Failed to complete session", code: "COMPLETE_ERROR" },
       { status: 500 }
     );
   }

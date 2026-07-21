@@ -1,6 +1,6 @@
 // src/app/api/ai/route.ts — AI Description Generator (Claude-powered)
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuthFromRequest } from "@/lib/auth";
+import { requireAuth } from "@/lib/auth-api";
 import { rateLimit } from "@/lib/api";
 import { z } from "zod";
 
@@ -12,8 +12,8 @@ const schema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    const user = await requireAuthFromRequest(req);
-    const rl = await rateLimit(`ai:${user.userId}`, 20, 60 * 60 * 1000);
+    const session = await requireAuth();
+    const rl = await rateLimit(`ai:${session.userId}`, 20, 60 * 60 * 1000);
     if (!rl.success) {
       return NextResponse.json(
         { success: false, error: "Limite de requêtes IA atteinte. Réessayez plus tard." },

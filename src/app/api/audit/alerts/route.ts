@@ -2,16 +2,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getOrganizationIdForUser } from "@/lib/tenant";
-import { requireAuth } from "@/lib/auth";
+import { requireAuth, AuthError } from "@/lib/auth-api";
 
 /**
  * GET /api/audit/alerts
  * Get audit alerts with filters
+ * 
+ * ALWAYS returns structured JSON:
+ * Success: { success: true, alerts }
+ * Failure: { success: false, error: string, code: string }
  */
 export async function GET(req: NextRequest) {
   try {
-    const authUser = await requireAuth();
-    const organizationId = await getOrganizationIdForUser(authUser);
+    const session = await requireAuth();
+    const organizationId = session.organizationId;
 
     const { searchParams } = new URL(req.url);
     const resolved = searchParams.get("resolved");
@@ -36,8 +40,21 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ success: true, alerts });
   } catch (error) {
     console.error("[AUDIT] Alert query error:", error);
+
+    // Handle AuthError specifically
+    if (error instanceof AuthError) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: error.message,
+          code: error.statusCode === 401 ? "UNAUTHORIZED" : "FORBIDDEN",
+        },
+        { status: error.statusCode }
+      );
+    }
+
     return NextResponse.json(
-      { success: false, error: "Failed to query alerts" },
+      { success: false, error: "Failed to query alerts", code: "QUERY_ERROR" },
       { status: 500 }
     );
   }
@@ -46,16 +63,20 @@ export async function GET(req: NextRequest) {
 /**
  * PATCH /api/audit/alerts
  * Resolve an alert
+ * 
+ * ALWAYS returns structured JSON:
+ * Success: { success: true, alert }
+ * Failure: { success: false, error: string, code: string }
  */
 export async function PATCH(req: NextRequest) {
   try {
-    const authUser = await requireAuth();
+    const session = await requireAuth();
     const body = await req.json();
     const { alertId } = body;
 
     if (!alertId) {
       return NextResponse.json(
-        { success: false, error: "Alert ID required" },
+        { success: false, error: "Alert ID required", code: "MISSING_ALERT_ID" },
         { status: 400 }
       );
     }
@@ -65,15 +86,30 @@ export async function PATCH(req: NextRequest) {
       data: {
         resolved: true,
         resolvedAt: new Date(),
-        resolvedBy: authUser.userId,
+        resolvedBy: session.userId,
       },
     });
+
+    console.log("[AUDIT API] alert resolved:", { alertId });
 
     return NextResponse.json({ success: true, alert });
   } catch (error) {
     console.error("[AUDIT] Alert resolution error:", error);
+
+    // Handle AuthError specifically
+    if (error instanceof AuthError) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: error.message,
+          code: error.statusCode === 401 ? "UNAUTHORIZED" : "FORBIDDEN",
+        },
+        { status: error.statusCode }
+      );
+    }
+
     return NextResponse.json(
-      { success: false, error: "Failed to resolve alert" },
+      { success: false, error: "Failed to resolve alert", code: "RESOLVE_ERROR" },
       { status: 500 }
     );
   }

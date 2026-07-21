@@ -2,8 +2,7 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { getAuthFromRequest } from "@/lib/auth";
-import { getOrganizationIdForUser } from "@/lib/tenant";
+import { requireAdmin } from "@/lib/auth-api";
 import { ok, forbidden, notFound, handleApiError } from "@/lib/api";
 
 const updateSchema = z.object({
@@ -16,11 +15,7 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
-    const payload = await getAuthFromRequest(req);
-    if (!payload || payload.role !== "SUPER_ADMIN" && payload.role !== "ADMIN") {
-      return forbidden();
-    }
-    const organizationId = await getOrganizationIdForUser(payload);
+    const { organizationId } = await requireAdmin();
     // Prevent demoting super admins
     const membership = await prisma.membership.findUnique({
       where: { userId_organizationId: { userId: params.id, organizationId } },

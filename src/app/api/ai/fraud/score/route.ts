@@ -2,9 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "crypto";
 import { z } from "zod";
 import type { Prisma } from "@prisma/client";
-import { requireAdminFromRequest } from "@/lib/auth";
+import { requireAdmin } from "@/lib/auth-api";
 import { prisma } from "@/lib/prisma";
-import { getOrganizationIdForUser } from "@/lib/tenant";
 
 export const dynamic = "force-dynamic";
 
@@ -14,8 +13,8 @@ const schema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    const user = await requireAdminFromRequest(req);
-    const organizationId = await getOrganizationIdForUser(user);
+    const session = await requireAdmin();
+    const organizationId = session.organizationId;
     const { orderId } = schema.parse(await req.json());
 
     const order = await prisma.order.findFirst({

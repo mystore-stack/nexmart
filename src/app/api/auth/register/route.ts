@@ -2,7 +2,6 @@ import { notifyNewUser } from "@/lib/notifications/telegram";
 // src/app/api/auth/register/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { generateTokenPair, setAuthCookies } from "@/lib/auth";
 import { rateLimit } from "@/lib/api";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
@@ -38,9 +37,6 @@ export async function POST(req: NextRequest) {
       data: { name, email, password: hashed },
       select: { id: true, email: true, name: true, role: true, avatar: true },
     });
-
-    const { accessToken, refreshToken } = await generateTokenPair(user);
-    setAuthCookies(accessToken, refreshToken);
 
     const userPayload = {
       id: user.id,

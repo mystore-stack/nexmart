@@ -1,22 +1,21 @@
 // src/app/api/notifications/route.ts
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getAuthFromRequest } from "@/lib/auth";
+import { requireAuth } from "@/lib/auth-api";
 import { ok, unauthorized, handleApiError } from "@/lib/api";
 
 export async function GET(req: NextRequest) {
   try {
-    const payload = await getAuthFromRequest(req);
-    if (!payload) return unauthorized();
+    const session = await requireAuth();
 
     const [notifications, unreadCount] = await Promise.all([
       prisma.notification.findMany({
-        where: { userId: payload.userId },
+        where: { userId: session.userId },
         orderBy: { createdAt: "desc" },
         take: 30,
       }),
       prisma.notification.count({
-        where: { userId: payload.userId, read: false },
+        where: { userId: session.userId, read: false },
       }),
     ]);
 
@@ -28,12 +27,11 @@ export async function GET(req: NextRequest) {
 
 export async function PATCH(req: NextRequest) {
   try {
-    const payload = await getAuthFromRequest(req);
-    if (!payload) return unauthorized();
+    const session = await requireAuth();
 
     // Mark all as read
     await prisma.notification.updateMany({
-      where: { userId: payload.userId, read: false },
+      where: { userId: session.userId, read: false },
       data: { read: true },
     });
 

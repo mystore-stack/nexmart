@@ -1,27 +1,22 @@
 // src/app/api/admin/analytics/route.ts
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getAuthFromRequest } from "@/lib/auth";
-import { getOrganizationIdForUser } from "@/lib/tenant";
-import { ok, forbidden, handleApiError } from "@/lib/api";
+import { withAdmin } from "@/lib/withApi";
+import { ok } from "@/lib/api-response";
+import { requireAdmin } from "@/lib/auth-api";
 import { getCache, setCache, CACHE_TTL } from "@/lib/redis";
 import { subDays, startOfDay, format } from "date-fns";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(req: NextRequest) {
-  try {
-    const payload = await getAuthFromRequest(req);
-    if (!payload || (payload.role !== "ADMIN" && payload.role !== "SUPER_ADMIN")) {
-      return forbidden();
-    }
-    const organizationId = await getOrganizationIdForUser(payload);
+export const GET = withAdmin(async ({ req }) => {
+  const { organizationId } = await requireAdmin();
 
-    const range = parseInt(req.nextUrl.searchParams.get("range") || "30");
-    const cacheKey = `analytics:dashboard:${organizationId}:${range}`;
+  const range = parseInt(req.nextUrl.searchParams.get("range") || "30");
+  const cacheKey = `analytics:dashboard:${organizationId}:${range}`;
 
-    const cached = await getCache(cacheKey);
-    if (cached) return ok(cached);
+  const cached = await getCache(cacheKey);
+  if (cached) return ok(cached);
 
     const now = new Date();
     const startDate = startOfDay(subDays(now, range));
@@ -141,9 +136,6 @@ export async function GET(req: NextRequest) {
       recentOrders,
     };
 
-    await setCache(cacheKey, result, CACHE_TTL.SHORT);
-    return ok(result);
-  } catch (err) {
-    return handleApiError(err);
-  }
-}
+  await setCache(cacheKey, result, CACHE_TTL.SHORT);
+  return ok(result);
+});

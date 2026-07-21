@@ -2,13 +2,13 @@ import { notifyNewOrder } from "@/lib/notifications/telegram";
 // src/app/api/orders/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/auth";
-import { getOrganizationIdForUser } from "@/lib/tenant";
+import { requireAuth } from "@/lib/auth-api";
 import { generateOrderNumber } from "@/utils/format";
 import { getValidatedShippingCost } from "@/lib/shipping";
 import { z } from "zod";
 import type { Prisma } from "@prisma/client";
 import { withLock, LOCK_KEYS, publishEvent, PUBSUB_CHANNELS, incrementCounter, ANALYTICS_KEYS } from "@/lib/redis";
+import { generateIdempotencyKey } from "@/lib/idempotency";
 
 const DEFAULT_CARRIER = "jibli";
 const DEFAULT_CITY = "Casablanca";
@@ -247,21 +247,21 @@ async function cleanupInvalidCartItems(
 
 export async function GET(req: NextRequest) {
   try {
-    const user = await requireAuth();
-    const organizationId = await getOrganizationIdForUser(user);
+    const session = await requireAuth();
+    const organizationId = session.organizationId;
     const { searchParams } = new URL(req.url);
     const page = Math.max(1, parseInt(searchParams.get("page") || "1"));
     const limit = 10;
 
     const [orders, total] = await Promise.all([
       prisma.order.findMany({
-        where: { userId: user.userId, organizationId },
+        where: { userId: session.userId, organizationId },
         include: { items: { include: { product: true, variant: true } }, address: true },
         orderBy: { createdAt: "desc" },
         skip: (page - 1) * limit,
         take: limit,
       }),
-      prisma.order.count({ where: { userId: user.userId, organizationId } }),
+      prisma.order.count({ where: { userId: session.userId, organizationId } }),
     ]);
 
     return NextResponse.json({ success: true, orders, pagination: { page, limit, total } });
@@ -278,9 +278,9 @@ export async function POST(req: NextRequest) {
   let authContext: { userId?: string; organizationId?: string } = {};
 
   try {
-    const authUser = await requireAuth();
-    const organizationId = await getOrganizationIdForUser(authUser);
-    authContext = { userId: authUser.userId, organizationId };
+    const session = await requireAuth();
+    const organizationId = session.organizationId;
+    authContext = { userId: session.userId, organizationId };
 
     rawBody = await req.json();
     logCheckout("request.received", { authContext, payload: rawBody });
@@ -303,7 +303,7 @@ export async function POST(req: NextRequest) {
     const body = parsedBody;
 
     // Generate or use provided idempotency key for anti-duplicate order system
-    const idempotencyKey = body.idempotencyKey || crypto.randomUUID();
+    const idempotencyKey = body.idempotencyKey || generateIdempotencyKey();
 
     logCheckout("zod.validation.passed", {
       addressId: body.addressId,
@@ -325,20 +325,20 @@ export async function POST(req: NextRequest) {
     });
 
     const address = await prisma.address.findFirst({
-      where: { id: body.addressId, userId: authUser.userId },
+      where: { id: body.addressId, userId: session.userId },
     });
     logCheckout("address.validation.result", {
       addressId: body.addressId,
       found: Boolean(address),
       city: address?.city,
-      userId: authUser.userId,
+      userId: session.userId,
     });
     if (!address) {
       throw new CheckoutError("Adresse invalide", "ADDRESS_INVALID");
     }
 
     const { city, shippingCarrierId } = await resolveShippingContext(
-      authUser.userId,
+      session.userId,
       body.addressId,
       body
     );
@@ -371,17 +371,17 @@ export async function POST(req: NextRequest) {
 
         const order = await prisma.$transaction(async (tx) => {
       // Cleanup invalid cart items before processing order
-      const cleanupResult = await cleanupInvalidCartItems(tx, authUser.userId, organizationId);
+      const cleanupResult = await cleanupInvalidCartItems(tx, session.userId, organizationId);
       
       logCheckout("cleanup.result", {
-        userId: authUser.userId,
+        userId: session.userId,
         removedCount: cleanupResult.removedCount,
         details: cleanupResult.details,
       });
 
       if (cleanupResult.removedCount > 0) {
         logCheckout("cart.cleanup.performed", {
-          userId: authUser.userId,
+          userId: session.userId,
           removedCount: cleanupResult.removedCount,
           details: cleanupResult.details,
         });
@@ -400,12 +400,40 @@ export async function POST(req: NextRequest) {
 
       // Rebuild order items from valid cart records instead of using stale parsedBody.items
       let validCartItems = await tx.cartItem.findMany({
-        where: { userId: authUser.userId },
+        where: { userId: session.userId },
         include: { product: { include: { variants: true } }, variant: true },
       });
 
+      // Product validation results for error reporting
+      const productValidationResults: Array<{
+        productId: string;
+        exists: boolean;
+        product: any;
+        reason?: string;
+      }> = [];
+
+      console.log("[ORDERS API] Database cart items:", {
+        userId: session.userId,
+        itemCount: validCartItems.length,
+        items: validCartItems.map((item) => ({
+          productId: item.productId,
+          variantId: item.variantId,
+          quantity: item.quantity,
+        })),
+      });
+
+      console.log("[ORDERS API] Payload items:", {
+        userId: session.userId,
+        itemCount: parsedBody!.items.length,
+        items: parsedBody!.items.map((item) => ({
+          productId: item.productId,
+          variantId: item.variantId,
+          quantity: item.quantity,
+        })),
+      });
+
       logCheckout("database.cart.items", {
-        userId: authUser.userId,
+        userId: session.userId,
         itemCount: validCartItems.length,
         items: validCartItems.map((item) => ({
           productId: item.productId,
@@ -415,7 +443,7 @@ export async function POST(req: NextRequest) {
       });
 
       logCheckout("payload.items", {
-        userId: authUser.userId,
+        userId: session.userId,
         itemCount: parsedBody!.items.length,
         items: parsedBody!.items.map((item) => ({
           productId: item.productId,
@@ -426,27 +454,134 @@ export async function POST(req: NextRequest) {
 
       // Fallback to payload items if database cart is empty
       if (validCartItems.length === 0 && parsedBody!.items.length > 0) {
+        console.log("[ORDERS API] Database cart empty, falling back to payload items");
         logCheckout("cart.fallback.to_payload", {
-          userId: authUser.userId,
+          userId: session.userId,
           reason: "database_cart_empty",
           payloadItemCount: parsedBody!.items.length,
         });
 
         const productIds = parsedBody!.items.map((i) => i.productId);
+        
+        console.log("[ORDER] Product IDs:", productIds);
+        console.log("[ORDER] Product lookup filters", {
+          productIds,
+          organizationId,
+          published: true,
+        });
+        
+        // Phase 3: Verify product exists for each payload item
+        for (const item of parsedBody!.items) {
+          console.log("[ORDER] Validating Item", {
+            productId: item.productId,
+            quantity: item.quantity,
+          });
+          
+          // STEP 1: Direct database verification
+          const product = await tx.product.findUnique({
+            where: { id: item.productId },
+            select: { 
+              id: true, 
+              name: true, 
+              organizationId: true, 
+              published: true, 
+              stock: true,
+              lowStockAt: true,
+            },
+          });
+          
+          console.log("[PRODUCT LOOKUP]", product);
+          console.log("[ORDER] Product Record:", product);
+          
+          if (!product) {
+            console.log("[ORDER] Product does not exist in database", item.productId);
+            productValidationResults.push({
+              productId: item.productId,
+              exists: false,
+              product: null,
+              reason: "PRODUCT_NOT_FOUND",
+            });
+            continue;
+          }
+          
+          // STEP 4: Product state diagnostics
+          console.log("[ORDER] Product state diagnostics:", {
+            id: product.id,
+            name: product.name,
+            published: product.published,
+            stock: product.stock,
+            organizationId: product.organizationId,
+          });
+          
+          // Phase 4: Verify organization (STEP 3)
+          console.log("[ORDER] Organization comparison:", {
+            checkoutOrganizationId: organizationId,
+            productOrganizationId: product.organizationId,
+            match: product.organizationId === organizationId,
+          });
+          
+          // Phase 5: Verify published status
+          console.log("[ORDER] Published status:", {
+            productId: product.id,
+            published: product.published,
+          });
+          
+          // Phase 6: Verify stock rules
+          console.log("[ORDER] Stock comparison:", {
+            stock: product.stock,
+            requestedQuantity: item.quantity,
+            sufficient: product.stock >= item.quantity,
+          });
+          
+          const validationReason = !product.published
+            ? "PRODUCT_UNPUBLISHED"
+            : product.organizationId !== organizationId
+            ? "ORGANIZATION_MISMATCH"
+            : product.stock < item.quantity
+            ? "INSUFFICIENT_STOCK"
+            : "UNKNOWN";
+          
+          productValidationResults.push({
+            productId: item.productId,
+            exists: true,
+            product,
+            reason: validationReason,
+          });
+        }
+        
+        // STEP 2: Validation query audit
+        console.log("[CHECKOUT FILTERS]", {
+          productIds,
+          organizationId,
+          published: true,
+        });
+        
         const products = await tx.product.findMany({
           where: { id: { in: productIds }, organizationId, published: true },
           include: { variants: true },
         });
 
+        console.log("[ORDER] Products Found:", products);
+        console.log("[ORDERS API] Found products for payload:", {
+          productIds,
+          foundCount: products.length,
+        });
+
         const fallbackItems = parsedBody!.items
           .map((item) => {
             const product = products.find((p) => p.id === item.productId);
-            if (!product) return null;
+            if (!product) {
+              console.log("[ORDERS API] Product not found in filtered results:", item.productId);
+              return null;
+            }
             const variant = item.variantId ? product.variants.find((v) => v.id === item.variantId) : null;
-            if (item.variantId && !variant) return null;
+            if (item.variantId && !variant) {
+              console.log("[ORDERS API] Variant not found:", item.variantId);
+              return null;
+            }
             return {
               id: `payload_${item.productId}_${item.variantId || 'no_variant'}`,
-              userId: authUser.userId,
+              userId: session.userId,
               productId: item.productId,
               variantId: item.variantId || null,
               quantity: item.quantity,
@@ -460,8 +595,12 @@ export async function POST(req: NextRequest) {
         
         validCartItems = fallbackItems as any;
 
+        console.log("[ORDERS API] Valid fallback items:", {
+          validItemCount: validCartItems.length,
+        });
+
         logCheckout("payload.items.validated", {
-          userId: authUser.userId,
+          userId: session.userId,
           validItemCount: validCartItems.length,
           items: validCartItems.map((item) => ({
             productId: item.productId,
@@ -482,6 +621,93 @@ export async function POST(req: NextRequest) {
       });
 
       if (validCartItems.length === 0) {
+        console.error("[ORDERS API] Cart empty error:", {
+          userId: session.userId,
+          databaseCartCount: validCartItems.length,
+          payloadItemCount: parsedBody!.items.length,
+        });
+        
+        // STEP 6: Auto cleanup - remove invalid cart items
+        // STEP 7: Error reporting
+        if (parsedBody!.items.length > 0) {
+          const firstInvalidItem = parsedBody!.items[0];
+          
+          // Get validation result for this item
+          const validationResult = productValidationResults.find(
+            (r: any) => r.productId === firstInvalidItem.productId
+          );
+          
+          let errorReason = "UNKNOWN";
+          let errorMessage = "Unknown validation error";
+          
+          if (validationResult) {
+            if (!validationResult.exists) {
+              errorReason = "PRODUCT_NOT_FOUND";
+              errorMessage = `Product not found (ID: ${firstInvalidItem.productId}). The item has been removed from your cart.`;
+            } else if (!validationResult.product.published) {
+              errorReason = "PRODUCT_UNPUBLISHED";
+              errorMessage = `Product "${validationResult.product.name}" is not available for purchase.`;
+            } else if (validationResult.product.organizationId !== organizationId) {
+              errorReason = "ORGANIZATION_MISMATCH";
+              errorMessage = `Product "${validationResult.product.name}" is not available in your organization.`;
+            } else if (validationResult.product.stock < firstInvalidItem.quantity) {
+              errorReason = "INSUFFICIENT_STOCK";
+              errorMessage = `Insufficient stock for "${validationResult.product.name}". Available: ${validationResult.product.stock}, Requested: ${firstInvalidItem.quantity}`;
+            }
+          }
+          
+          console.error("[ORDER] Validation failure details:", {
+            productId: firstInvalidItem.productId,
+            variantId: firstInvalidItem.variantId,
+            errorReason,
+            errorMessage,
+            validationResult,
+            allValidationResults: productValidationResults,
+          });
+          
+          // STEP 6: Auto cleanup for invalid cart items
+          if (errorReason === "PRODUCT_NOT_FOUND") {
+            // Remove invalid item from database cart
+            await tx.cartItem.deleteMany({
+              where: {
+                userId: session.userId,
+                productId: firstInvalidItem.productId,
+              },
+            });
+            
+            console.log("[ORDER] Removed invalid cart item:", {
+              userId: session.userId,
+              productId: firstInvalidItem.productId,
+            });
+            
+            throw new CheckoutError(
+              errorMessage,
+              "PRODUCT_NOT_FOUND",
+              400,
+              {
+                code: "PRODUCT_NOT_FOUND",
+                productId: firstInvalidItem.productId,
+                variantId: firstInvalidItem.variantId,
+                reason: "Product record not found during validation",
+                action: "REMOVE_FROM_CART",
+              }
+            );
+          }
+          
+          throw new CheckoutError(
+            `Product validation failed: ${errorReason}. Please check your cart and try again.`,
+            "PRODUCT_VALIDATION_FAILED",
+            400,
+            {
+              code: "PRODUCT_VALIDATION_FAILED",
+              productId: firstInvalidItem.productId,
+              variantId: firstInvalidItem.variantId,
+              reason: errorReason,
+              details: validationResult,
+            }
+          );
+        }
+        
         throw new CheckoutError(
           "Your cart is empty. Please add products before checkout.",
           "CART_EMPTY",
@@ -654,7 +880,7 @@ export async function POST(req: NextRequest) {
       const coupon = await resolveCoupon(
         tx,
         organizationId,
-        authUser.userId,
+        session.userId,
         body.couponCode,
         subtotal
       );
@@ -685,7 +911,7 @@ export async function POST(req: NextRequest) {
         await validateStripePayment({
           stripePaymentId: body.stripePaymentId,
           expectedTotal: total,
-          userId: authUser.userId,
+          userId: session.userId,
           organizationId,
         });
       } else {
@@ -771,7 +997,7 @@ export async function POST(req: NextRequest) {
         data: {
           orderNumber: generateOrderNumber(),
           organizationId,
-          userId: authUser.userId,
+          userId: session.userId,
           addressId: body.addressId,
           paymentMethod: body.paymentMethod,
           subtotal,
@@ -802,10 +1028,10 @@ export async function POST(req: NextRequest) {
       // Only clear database cart if we actually used it (not payload fallback)
       const usedPayloadFallback = validCartItems.length > 0 && validCartItems[0].id.startsWith("payload_");
       if (!usedPayloadFallback) {
-        await tx.cartItem.deleteMany({ where: { userId: authUser.userId } });
-        logCheckout("cart.clear.success", { userId: authUser.userId, source: "database_cart" });
+        await tx.cartItem.deleteMany({ where: { userId: session.userId } });
+        logCheckout("cart.clear.success", { userId: session.userId, source: "database_cart" });
       } else {
-        logCheckout("cart.clear.skipped", { userId: authUser.userId, source: "payload_fallback" });
+        logCheckout("cart.clear.skipped", { userId: session.userId, source: "payload_fallback" });
       }
       return createdOrder;
         });

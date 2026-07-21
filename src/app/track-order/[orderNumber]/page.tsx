@@ -90,10 +90,13 @@ export default function TrackOrderPage() {
     }
   }, [params.orderNumber]);
 
-  // Clear the orderJustPlaced flag when order tracking page loads
+  // Clear the orderJustPlaced flag and cart when order tracking page loads
   useEffect(() => {
     if (typeof window !== "undefined") {
       sessionStorage.removeItem("orderJustPlaced");
+      // Clear cart after successful order
+      const { useCartStore } = require("@/store/cart");
+      useCartStore.getState().clearCart();
     }
   }, []);
 

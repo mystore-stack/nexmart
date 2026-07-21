@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAuthFromRequest } from "@/lib/auth";
-import { getOrganizationIdForUser } from "@/lib/tenant";
+import { requireAuth } from "@/lib/auth-api";
 
 const syncSchema = z.object({
   items: z
@@ -21,9 +20,16 @@ export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
   try {
-    const user = await requireAuthFromRequest(req);
-    const organizationId = await getOrganizationIdForUser(user);
+    const session = await requireAuth();
+    const organizationId = session.organizationId;
     const { items } = syncSchema.parse(await req.json());
+    
+    console.log("[CART SYNC] Sync request for user:", {
+      userId: session.userId,
+      organizationId,
+      itemCount: items.length,
+    });
+    
     const mergedItems = Array.from(
       items
         .reduce((acc, item) => {
@@ -38,7 +44,7 @@ export async function POST(req: NextRequest) {
         .values()
     );
 
-    await prisma.cartItem.deleteMany({ where: { userId: user.userId } });
+    await prisma.cartItem.deleteMany({ where: { userId: session.userId } });
 
     for (const item of mergedItems) {
       const product = await prisma.product.findFirst({
@@ -49,7 +55,7 @@ export async function POST(req: NextRequest) {
 
       await prisma.cartItem.create({
         data: {
-          userId: user.userId,
+          userId: session.userId,
           productId: item.productId,
           variantId: item.variantId ?? undefined,
           quantity: item.quantity,
@@ -58,13 +64,19 @@ export async function POST(req: NextRequest) {
     }
 
     const synced = await prisma.cartItem.findMany({
-      where: { userId: user.userId, product: { organizationId } },
+      where: { userId: session.userId, product: { organizationId } },
       include: { product: { include: { category: true, variants: true } }, variant: true },
+    });
+    
+    console.log("[CART SYNC] Sync completed:", {
+      userId: session.userId,
+      syncedItemCount: synced.length,
     });
 
     return NextResponse.json({ success: true, items: synced });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Erreur serveur";
+    console.error("[CART SYNC] Error:", message);
     const status = message === "Unauthorized" ? 401 : 500;
     return NextResponse.json({ success: false, error: message }, { status });
   }

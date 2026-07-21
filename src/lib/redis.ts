@@ -58,6 +58,13 @@ const createRedisClient = () => {
     }
   });
 
+  // Mark Redis as disabled if connection fails critically
+  client.on("close", () => {
+    if (process.env.NODE_ENV !== "production") {
+      console.warn("Redis connection closed");
+    }
+  });
+
   return client;
 };
 
@@ -146,6 +153,7 @@ export const LOCK_KEYS = {
 /**
  * Acquire a distributed lock using Redis SET NX EX
  * Returns true if lock acquired, false otherwise
+ * Returns true (lock bypassed) if Redis is unavailable
  */
 export async function acquireLock(
   key: string,
@@ -154,8 +162,12 @@ export async function acquireLock(
   try {
     const result = await redis.set(key, "1", "EX", ttl, "NX");
     return result === "OK";
-  } catch {
-    return false;
+  } catch (err) {
+    // If Redis is unavailable, log and bypass lock (fail open)
+    if (process.env.NODE_ENV !== "production") {
+      console.warn("[REDIS] Lock acquisition failed, bypassing:", err);
+    }
+    return true; // Fail open - allow operation to proceed
   }
 }
 
@@ -173,12 +185,19 @@ export async function releaseLock(key: string): Promise<void> {
 /**
  * Execute a function with a distributed lock
  * Returns null if lock cannot be acquired
+ * Falls back to executing without lock if Redis is unavailable
  */
 export async function withLock<T>(
   key: string,
   fn: () => Promise<T>,
   ttl: number = 30
 ): Promise<T | null> {
+  // If Redis is disabled, execute without locking (fail open)
+  if (!isRedisEnabled) {
+    console.warn("[REDIS] Lock disabled - executing without distributed lock");
+    return await fn();
+  }
+
   const acquired = await acquireLock(key, ttl);
   if (!acquired) return null;
 

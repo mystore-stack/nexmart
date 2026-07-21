@@ -3,9 +3,9 @@ import { randomUUID } from "crypto";
 import { z } from "zod";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { getAuthFromRequest } from "@/lib/auth";
+import { getSession } from "@/lib/auth-api";
 import { rateLimit } from "@/lib/api";
-import { getDefaultOrganizationId, getOrganizationIdForUser } from "@/lib/tenant";
+import { getDefaultOrganizationId } from "@/lib/tenant";
 import { getCache, setCache } from "@/lib/redis";
 import { createJson } from "@/lib/ai/openai";
 import { SEARCH_INTENT_PROMPT } from "@/lib/ai/prompts";
@@ -24,15 +24,15 @@ const querySchema = z.object({
 
 export async function GET(req: NextRequest) {
   try {
-    const user = await getAuthFromRequest(req).catch(() => null);
+    const session = await getSession().catch(() => null);
     const ip = clientIp(req);
-    const rl = await rateLimit(`ai:search:${user?.userId || ip}`, Number(process.env.AI_SEARCH_RPM || 60), 60 * 1000);
+    const rl = await rateLimit(`ai:search:${session?.userId || ip}`, Number(process.env.AI_SEARCH_RPM || 60), 60 * 1000);
     if (!rl.success) {
       return NextResponse.json({ success: false, error: "Trop de recherches IA." }, { status: 429 });
     }
 
     const query = querySchema.parse(Object.fromEntries(req.nextUrl.searchParams));
-    const organizationId = user ? await getOrganizationIdForUser(user) : await getDefaultOrganizationId();
+    const organizationId = session?.organizationId || await getDefaultOrganizationId();
     const normalizedQ = query.q.trim().toLowerCase().replace(/\s+/g, " ");
     const cacheKey = `ai:search:v3:${organizationId}:${normalizedQ}:${query.limit}:${query.semantic}`;
     const cached = await getCache<unknown>(cacheKey);
@@ -111,7 +111,7 @@ export async function GET(req: NextRequest) {
     await prisma.aiEvent.create({
       data: {
         organizationId,
-        ...(user?.userId ? { userId: user.userId } : {}),
+        ...(session?.userId ? { userId: session.userId } : {}),
         type: "SEARCH" as any,
         query: query.q,
         metadata: { intent, resultCount: products.length } as any,

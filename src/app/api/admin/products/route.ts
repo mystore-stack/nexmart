@@ -2,9 +2,8 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { getAuthFromRequest } from "@/lib/auth";
-import { getOrganizationIdForUser } from "@/lib/tenant";
-import { ok, created, forbidden, handleApiError, getPaginationParams, buildPaginationMeta } from "@/lib/api";
+import { ok, created, getPaginationParams, buildPaginationMeta, handleApiError } from "@/lib/api-response";
+import { requireAdmin } from "@/lib/auth-api";
 import { invalidateProductCache } from "@/lib/redis";
 import slugify from "slugify";
 
@@ -42,21 +41,23 @@ const productSchema = z.object({
     .default([]),
 });
 
-async function requireAdmin(req: NextRequest) {
-  const payload = await getAuthFromRequest(req);
-  if (!payload || (payload.role !== "ADMIN" && payload.role !== "SUPER_ADMIN")) {
-    throw new Error("Forbidden");
-  }
-  return { payload, organizationId: await getOrganizationIdForUser(payload) };
-}
-
 export async function GET(req: NextRequest) {
   try {
-    const { organizationId } = await requireAdmin(req);
+    console.log("[ADMIN PRODUCTS] GET - Starting request");
+    const { organizationId, userId } = await requireAdmin();
+    console.log("[ADMIN PRODUCTS] userId:", userId, "organizationId:", organizationId);
+    
+    if (!organizationId) {
+      console.error("[ADMIN PRODUCTS] No organizationId found for user");
+      throw new Error("No organization found for user. Please contact support.");
+    }
+    
     const { page, limit, skip } = getPaginationParams(req.nextUrl.searchParams);
     const search = req.nextUrl.searchParams.get("search") || undefined;
     const categoryId = req.nextUrl.searchParams.get("categoryId") || undefined;
     const published = req.nextUrl.searchParams.get("published");
+
+    console.log("[ADMIN PRODUCTS] Query params:", { page, limit, skip, search, categoryId, published });
 
     const where: any = {
       organizationId,
@@ -70,6 +71,8 @@ export async function GET(req: NextRequest) {
       ...(published !== null && published !== undefined && { published: published === "true" }),
     };
 
+    console.log("[ADMIN PRODUCTS] Prisma where clause:", JSON.stringify(where, null, 2));
+
     const [products, total] = await Promise.all([
       prisma.product.findMany({
         where,
@@ -81,16 +84,38 @@ export async function GET(req: NextRequest) {
       prisma.product.count({ where }),
     ]);
 
-    return ok({ data: products, pagination: buildPaginationMeta(total, page, limit) });
+    console.log("[ADMIN PRODUCTS] Products found:", products.length, "Total count:", total);
+
+    // CRITICAL FIX: Log warning if no products found but organizationId is set
+    if (products.length === 0 && total === 0) {
+      console.warn("[ADMIN PRODUCTS] WARNING: No products found for organizationId:", organizationId);
+      console.warn("[ADMIN PRODUCTS] This may indicate:");
+      console.warn("[ADMIN PRODUCTS] 1. The organizationId is incorrect (user may be using default fallback)");
+      console.warn("[ADMIN PRODUCTS] 2. No products exist in this organization");
+      console.warn("[ADMIN PRODUCTS] 3. The user may need a Membership or Organization ownership record");
+    }
+
+    // Ensure products is always an array
+    const productsArray = Array.isArray(products) ? products : [];
+    
+    const responseData = { 
+      data: productsArray, 
+      pagination: buildPaginationMeta(total, page, limit) 
+    };
+    
+    console.log("[ADMIN PRODUCTS] RESPONSE PAYLOAD:", JSON.stringify(responseData, null, 2));
+    
+    return ok(responseData);
   } catch (err) {
-    if ((err as Error).message === "Forbidden") return forbidden();
     return handleApiError(err);
   }
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const { organizationId } = await requireAdmin(req);
+    const { organizationId, userId } = await requireAdmin();
+    console.log("[ADMIN PRODUCTS] POST - userId:", userId, "organizationId:", organizationId);
+    
     const body = await req.json();
     const data = productSchema.parse(body);
 
@@ -107,21 +132,10 @@ export async function POST(req: NextRequest) {
       include: { category: true, variants: true },
     });
 
+    console.log("[ADMIN PRODUCTS] Product created:", product.id, "for organization:", organizationId);
     await invalidateProductCache(product.id);
     return created(product);
-  } catch (err: any) {
-    if ((err as Error).message === "Forbidden") return forbidden();
-    if (err?.code === "P2002") {
-      return handleApiError(new Error("A product with this SKU or slug already exists."));
-    }
-    // Zod validation errors
-    if (err?.name === "ZodError" && Array.isArray(err?.issues)) {
-      const message = err.issues
-        .map((i: any) => i?.message)
-        .filter(Boolean)
-        .join(" | ");
-      return handleApiError(new Error(message || "Invalid product payload"));
-    }
+  } catch (err) {
     return handleApiError(err);
   }
 }

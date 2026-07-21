@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/auth";
-import { getOrganizationIdForUser } from "@/lib/tenant";
+import { requireAuth } from "@/lib/auth-api";
 import { z } from "zod";
 import { rateLimit } from "@/lib/api";
 
@@ -46,11 +45,11 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    const user = await requireAuth();
-    const organizationId = await getOrganizationIdForUser(user);
+    const session = await requireAuth();
+    const organizationId = session.organizationId;
     const { id } = params;
     
-    const rl = await rateLimit(`review:update:${user.userId}`, 5, 60 * 1000);
+    const rl = await rateLimit(`review:update:${session.userId}`, 5, 60 * 1000);
     if (!rl.success) {
       return NextResponse.json({ success: false, error: "Too many requests" }, { status: 429 });
     }
@@ -64,7 +63,7 @@ export async function PUT(
       return NextResponse.json({ success: false, error: "Review not found" }, { status: 404 });
     }
 
-    if (existingReview.userId !== user.userId) {
+    if (existingReview.userId !== session.userId) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
     }
 
@@ -119,7 +118,7 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const user = await requireAuth();
+    const session = await requireAuth();
     const { id } = params;
 
     const existingReview = await prisma.review.findUnique({
@@ -131,7 +130,7 @@ export async function DELETE(
       return NextResponse.json({ success: false, error: "Review not found" }, { status: 404 });
     }
 
-    if (existingReview.userId !== user.userId) {
+    if (existingReview.userId !== session.userId) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
     }
 

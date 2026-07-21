@@ -110,7 +110,9 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     setLoading(true);
-    fetch(`/api/admin/analytics?range=${range}`)
+    fetch(`/api/admin/analytics?range=${range}`, {
+      credentials: "include",
+    })
       .then((r) => r.json())
       .then((d) => {
         setData(d.data);
@@ -175,7 +177,9 @@ export default function AdminDashboard() {
 
     const fetchAnalytics = () => {
       setLoading(true);
-      fetch(`/api/admin/analytics?range=${range}`)
+      fetch(`/api/admin/analytics?range=${range}`, {
+        credentials: "include",
+      })
         .then((r) => r.json())
         .then((d) => {
           setData(d.data);
@@ -241,7 +245,9 @@ export default function AdminDashboard() {
           <button
             onClick={() => {
               setLoading(true);
-              fetch(`/api/admin/analytics?range=${range}`)
+              fetch(`/api/admin/analytics?range=${range}`, {
+                credentials: "include",
+              })
                 .then((r) => r.json())
                 .then((d) => {
                   setData(d.data);

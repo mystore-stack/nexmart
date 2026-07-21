@@ -2,18 +2,9 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { getAuthFromRequest } from "@/lib/auth";
-import { getOrganizationIdForUser } from "@/lib/tenant";
+import { requireAdmin } from "@/lib/auth-api";
 import { ok, noContent, forbidden, notFound, handleApiError } from "@/lib/api";
 import { invalidateProductCache } from "@/lib/redis";
-
-async function requireAdmin(req: NextRequest) {
-  const payload = await getAuthFromRequest(req);
-  if (!payload || (payload.role !== "ADMIN" && payload.role !== "SUPER_ADMIN")) {
-    throw new Error("Forbidden");
-  }
-  return { payload, organizationId: await getOrganizationIdForUser(payload) };
-}
 
 const updateSchema = z.object({
   name: z.string().min(2).max(200).optional(),
@@ -33,11 +24,7 @@ const updateSchema = z.object({
 
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const payload = await getAuthFromRequest(_req);
-    if (!payload || (payload.role !== "ADMIN" && payload.role !== "SUPER_ADMIN")) {
-      return forbidden();
-    }
-    const organizationId = await getOrganizationIdForUser(payload);
+    const { organizationId } = await requireAdmin();
     const product = await prisma.product.findFirst({
       where: { id: params.id, organizationId },
       include: { category: true, variants: true, reviews: { take: 10, include: { user: { select: { name: true } } } } },
@@ -51,7 +38,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const { organizationId } = await requireAdmin(req);
+    const { organizationId } = await requireAdmin();
     const body = await req.json();
     const data = updateSchema.parse(body);
 
@@ -72,7 +59,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const { organizationId } = await requireAdmin(req);
+    const { organizationId } = await requireAdmin();
 
     // Soft delete by unpublishing, or hard delete
     const force = req.nextUrl.searchParams.get("force") === "true";
