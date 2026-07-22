@@ -4,6 +4,8 @@ import type { Metadata } from "next";
 import { getMobileCategories, getMobileProductsByCategory } from "@/lib/mobile-data";
 import { ProductListingClient } from "./ProductListingClient";
 
+export const dynamic = "force-dynamic";
+
 interface Props { params: Promise<{ slug: string }> }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -11,11 +13,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const cats = await getMobileCategories();
   const cat = cats.find((c) => c.slug === slug);
   return { title: cat?.name ?? "Category" };
-}
-
-export async function generateStaticParams() {
-  const categories = await getMobileCategories();
-  return categories.map((cat) => ({ slug: cat.slug }));
 }
 
 export default async function CategoryPage({ params }: Props) {
