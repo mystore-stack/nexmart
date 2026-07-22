@@ -4,6 +4,8 @@ import { requireAuth } from "@/lib/auth-api";
 import { rateLimit } from "@/lib/api";
 import { z } from "zod";
 
+export const dynamic = "force-dynamic";
+
 const schema = z.object({
   productName: z.string().min(2).max(200),
   category: z.string().max(100).optional(),

@@ -8,6 +8,8 @@ import { invalidateProductCache } from "@/lib/redis";
 import slugify from "slugify";
 import { uploadImage } from "@/lib/cloudinary";
 
+export const dynamic = "force-dynamic";
+
 const productSchema = z.object({
   name: z.string().min(2).max(200),
   description: z.string().min(10),

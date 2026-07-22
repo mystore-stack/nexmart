@@ -12,18 +12,24 @@ import {
   requireAdminSession,
 } from "./session";
 
-const ACCESS_SECRET = new TextEncoder().encode(getJwtSecret());
-const REFRESH_SECRET = new TextEncoder().encode(getJwtRefreshSecret());
-
 export const AUTH_COOKIE = "nexmart_auth";
 export const REFRESH_COOKIE = "nexmart_refresh";
+
+// Helper functions to get secrets as Uint8Array (lazy evaluation)
+function getAccessSecret(): Uint8Array {
+  return new TextEncoder().encode(getJwtSecret());
+}
+
+function getRefreshSecret(): Uint8Array {
+  return new TextEncoder().encode(getJwtRefreshSecret());
+}
 
 export async function generateAccessToken(payload: Omit<JwtPayload, "iat" | "exp">) {
   return new SignJWT(payload)
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime(process.env.JWT_EXPIRES_IN || "15m")
-    .sign(ACCESS_SECRET);
+    .sign(getAccessSecret());
 }
 
 export async function generateRefreshToken(payload: Omit<JwtPayload, "iat" | "exp">) {
@@ -31,7 +37,7 @@ export async function generateRefreshToken(payload: Omit<JwtPayload, "iat" | "ex
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime(process.env.JWT_REFRESH_EXPIRES_IN || "7d")
-    .sign(REFRESH_SECRET);
+    .sign(getRefreshSecret());
 }
 
 export async function generateTokenPair(user: Pick<User, "id" | "email" | "role">) {
@@ -66,7 +72,7 @@ export async function generateTokenPair(user: Pick<User, "id" | "email" | "role"
 export async function verifyAccessToken(token: string): Promise<JwtPayload> {
   try {
     console.log("[AUTH] Verifying access token");
-    const { payload } = await jwtVerify(token, ACCESS_SECRET);
+    const { payload } = await jwtVerify(token, getAccessSecret());
     console.log("[AUTH] Access token verified successfully:", { userId: payload.userId, email: payload.email, role: payload.role });
     
     // PRODUCTION PROTECTION: Verify user exists in database
@@ -95,7 +101,7 @@ export async function verifyAccessToken(token: string): Promise<JwtPayload> {
 export async function verifyRefreshToken(token: string): Promise<JwtPayload> {
   try {
     console.log("[AUTH] Verifying refresh token");
-    const { payload } = await jwtVerify(token, REFRESH_SECRET);
+    const { payload } = await jwtVerify(token, getRefreshSecret());
     console.log("[AUTH] Refresh token verified successfully:", { userId: payload.userId });
     
     // PRODUCTION PROTECTION: Verify user exists in database
@@ -121,8 +127,8 @@ export async function verifyRefreshToken(token: string): Promise<JwtPayload> {
   }
 }
 
-export function setAuthCookies(accessToken: string, refreshToken: string) {
-  const cookieStore = cookies();
+export async function setAuthCookies(accessToken: string, refreshToken: string) {
+  const cookieStore = await cookies();
   const isProd = process.env.NODE_ENV === "production";
 
   cookieStore.set(AUTH_COOKIE, accessToken, {
@@ -142,8 +148,8 @@ export function setAuthCookies(accessToken: string, refreshToken: string) {
   });
 }
 
-export function clearAuthCookies() {
-  const cookieStore = cookies();
+export async function clearAuthCookies() {
+  const cookieStore = await cookies();
   cookieStore.delete(AUTH_COOKIE);
   cookieStore.delete(REFRESH_COOKIE);
 }

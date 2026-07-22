@@ -5,6 +5,8 @@ import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth-api";
 import { ok, noContent, forbidden, notFound, handleApiError } from "@/lib/api";
 
+export const dynamic = "force-dynamic";
+
 const updateSchema = z.object({
   code: z.string().min(2).max(30).toUpperCase().optional(),
   description: z.string().optional(),

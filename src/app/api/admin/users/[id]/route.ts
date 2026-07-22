@@ -5,6 +5,8 @@ import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth-api";
 import { ok, forbidden, notFound, handleApiError } from "@/lib/api";
 
+export const dynamic = "force-dynamic";
+
 const updateSchema = z.object({
   role: z.enum(["USER", "ADMIN"]).optional(),
   emailVerified: z.boolean().optional(),

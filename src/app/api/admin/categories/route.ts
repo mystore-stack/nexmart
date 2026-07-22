@@ -7,6 +7,8 @@ import { created, forbidden, handleApiError, ok } from "@/lib/api";
 import { deleteCache, CACHE_KEYS } from "@/lib/redis";
 import { uploadImage } from "@/lib/cloudinary";
 
+export const dynamic = "force-dynamic";
+
 function toSlug(name: string) {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 }

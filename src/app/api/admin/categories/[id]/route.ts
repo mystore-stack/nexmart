@@ -6,6 +6,8 @@ import { requireAdmin } from "@/lib/auth-api";
 import { ok, noContent, forbidden, notFound, handleApiError } from "@/lib/api";
 import { deleteCache, CACHE_KEYS } from "@/lib/redis";
 
+export const dynamic = "force-dynamic";
+
 function toSlug(name: string) {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 }

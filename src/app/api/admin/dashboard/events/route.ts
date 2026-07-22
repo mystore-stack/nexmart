@@ -4,6 +4,8 @@ import { subscribeToChannel, PUBSUB_CHANNELS } from "@/lib/redis";
 import { withAuth } from "@/lib/withApi";
 import { requireAuth } from "@/lib/auth-api";
 
+export const dynamic = "force-dynamic";
+
 /**
  * GET /api/admin/dashboard/events
  * Real-time event streaming using Server-Sent Events (SSE)

@@ -148,6 +148,21 @@ export function handleZodError(err: ZodError): NextResponse<ApiError> {
   return validationError("Validation failed", details);
 }
 
+// ─── Error Handler ───────────────────────────────────────────────
+
+/**
+ * Generic error handler for API routes
+ * @param error - Unknown error to handle
+ * @returns NextResponse with error message
+ */
+export function handleApiError(error: unknown) {
+  console.error(error);
+  return Response.json(
+    { success: false, error: 'Internal Server Error' },
+    { status: 500 }
+  );
+}
+
 // ─── Error Classification ───────────────────────────────────────────
 
 /**

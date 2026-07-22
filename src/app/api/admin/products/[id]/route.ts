@@ -6,6 +6,8 @@ import { requireAdmin } from "@/lib/auth-api";
 import { ok, noContent, forbidden, notFound, handleApiError } from "@/lib/api";
 import { invalidateProductCache } from "@/lib/redis";
 
+export const dynamic = "force-dynamic";
+
 const updateSchema = z.object({
   name: z.string().min(2).max(200).optional(),
   description: z.string().optional(),

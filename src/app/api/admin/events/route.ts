@@ -2,6 +2,8 @@ import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth-api";
 
+export const dynamic = "force-dynamic";
+
 // Server-Sent Events endpoint for real-time admin updates
 export async function GET(req: NextRequest) {
   const session = await requireAdmin();

@@ -7,6 +7,8 @@ import { ok, forbidden, notFound, handleApiError } from "@/lib/api";
 import { queueNotification } from "@/lib/queues";
 import { sendShippingUpdate } from "@/lib/email";
 
+export const dynamic = "force-dynamic";
+
 const updateSchema = z.object({
   status: z.enum(["PENDING", "CONFIRMED", "PROCESSING", "SHIPPED", "DELIVERED", "CANCELLED", "REFUNDED"]).optional(),
   trackingNumber: z.string().optional(),

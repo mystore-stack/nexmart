@@ -10,6 +10,8 @@ import type { Prisma } from "@prisma/client";
 import { withLock, LOCK_KEYS, publishEvent, PUBSUB_CHANNELS, incrementCounter, ANALYTICS_KEYS } from "@/lib/redis";
 import { generateIdempotencyKey } from "@/lib/idempotency";
 
+export const dynamic = "force-dynamic";
+
 const DEFAULT_CARRIER = "jibli";
 const DEFAULT_CITY = "Casablanca";
 const CHECKOUT_DEBUG =

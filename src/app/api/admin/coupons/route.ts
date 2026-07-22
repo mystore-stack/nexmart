@@ -5,6 +5,8 @@ import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth-api";
 import { ok, created, forbidden, handleApiError } from "@/lib/api";
 
+export const dynamic = "force-dynamic";
+
 const couponSchema = z.object({
   code: z.string().min(2).max(30).toUpperCase(),
   description: z.string().optional(),
