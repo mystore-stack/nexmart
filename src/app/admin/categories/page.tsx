@@ -1,223 +1,192 @@
-"use client";
 // src/app/admin/categories/page.tsx
-import React, { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Plus, FolderOpen, Edit, Trash2, X, Check, Image as ImageIcon } from "lucide-react";
-import Image from "next/image";
-import toast from "react-hot-toast";
+'use client';
 
-interface Category {
-  id: string;
-  name: string;
-  slug: string;
-  description?: string;
-  image?: string;
-  _count?: { products: number };
-}
+import { useState, useEffect } from 'react';
+import { Plus, Edit2, Trash2, GripVertical, Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react';
+import Link from 'next/link';
 
-const emptyForm = { name: "", description: "", image: "" };
+const categoryIcons: Record<string, string> = {
+  'electronics': '📱',
+  'fashion': '👗',
+  'home': '🏠',
+  'beauty': '💄',
+  'sports': '⚽',
+  'books': '📚',
+  'food': '🍎',
+  'toys': '🎮',
+  'default': '📦',
+};
 
-export default function AdminCategoriesPage() {
-  const [categories, setCategories] = useState<Category[]>([]);
+const categoryImages: Record<string, string> = {
+  'electronics': 'https://images.unsplash.com/photo-1498049794561-7780e7231661?w=300',
+  'fashion': 'https://images.unsplash.com/photo-1445205170230-053b83016050?w=300',
+  'home': 'https://images.unsplash.com/photo-1484101403633-562f891dc89a?w=300',
+  'beauty': 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=300',
+  'sports': 'https://images.unsplash.com/photo-1461896836934- voices-1?w=300',
+  'books': 'https://images.unsplash.com/photo-1512820790803-83ca734da794?w=300',
+  'food': 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=300',
+  'toys': 'https://images.unsplash.com/photo-1558060370-d644479cb6f7?w=300',
+  'default': 'https://images.unsplash.com/photo-1498049794561-7780e7231661?w=300',
+};
+
+export default function CategoriesPage() {
+  const [categories, setCategories] = useState<any[]>([]);
+  const [draggedId, setDraggedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ ...emptyForm });
-  const [saving, setSaving] = useState(false);
-  const [editId, setEditId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchCategories = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await fetch('/api/admin/categories');
+      if (!response.ok) throw new Error('Failed to fetch categories');
+      const data = await response.json();
+      setCategories(data.data || []);
+    } catch (err) {
+      setError('Failed to load categories');
+      console.error('Error fetching categories:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    fetch("/api/categories", {
-      credentials: "include",
-    })
-      .then((r) => r.json())
-      .then((d) => { if (d.data) setCategories(d.data); })
-      .finally(() => setLoading(false));
+    fetchCategories();
   }, []);
 
-  const handleSave = async () => {
-    if (!form.name.trim()) { toast.error("Category name required"); return; }
-    setSaving(true);
-    try {
-      const url = editId ? `/api/admin/categories/${editId}` : "/api/admin/categories";
-      const method = editId ? "PATCH" : "POST";
-      const res = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify(form),
-      });
-      const data = await res.json();
-      if (data.success) {
-        if (editId) {
-          setCategories((prev) => prev.map((c) => c.id === editId ? data.data : c));
-          toast.success("Category updated!");
-        } else {
-          setCategories((prev) => [...prev, data.data]);
-          toast.success("Category created!");
-        }
-        setShowForm(false);
-        setForm({ ...emptyForm });
-        setEditId(null);
-      } else {
-        toast.error(data.error || "Failed to save");
-      }
-    } finally {
-      setSaving(false);
-    }
+  const toggleActive = (id: string) => {
+    setCategories((prev) =>
+      prev.map((cat) => (cat.id === id ? { ...cat, active: !cat.active } : cat))
+    );
   };
 
-  const deleteCategory = async (id: string) => {
-    if (!confirm("Delete this category? Products won't be deleted.")) return;
-    const res = await fetch(`/api/admin/categories/${id}`, { 
-      method: "DELETE",
-      credentials: "include",
-    });
-    if (res.ok) {
-      setCategories((prev) => prev.filter((c) => c.id !== id));
-      toast.success("Category deleted");
-    }
+  const handleDragStart = (id: string) => {
+    setDraggedId(id);
   };
 
-  const editCategory = (cat: Category) => {
-    setForm({ name: cat.name, description: cat.description || "", image: cat.image || "" });
-    setEditId(cat.id);
-    setShowForm(true);
+  const handleDrop = (targetId: string) => {
+    if (!draggedId) return;
+    
+    const draggedIdx = categories.findIndex((c) => c.id === draggedId);
+    const targetIdx = categories.findIndex((c) => c.id === targetId);
+    
+    if (draggedIdx === -1 || targetIdx === -1) return;
+
+    const newCategories = [...categories];
+    [newCategories[draggedIdx], newCategories[targetIdx]] = [newCategories[targetIdx], newCategories[draggedIdx]];
+    
+    setCategories(newCategories);
+    setDraggedId(null);
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="w-8 h-8 animate-spin text-brand-600" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+          <p className="text-slate-600">{error}</p>
+          <button onClick={fetchCategories} className="mt-4 px-4 py-2 bg-brand-600 text-white rounded-lg">
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Categories</h1>
-          <p className="text-muted-foreground text-sm mt-1">{categories.length} categories</p>
+          <h1 className="text-3xl font-bold text-foreground">Categories</h1>
+          <p className="text-slate-600 mt-1">{categories.length} categories</p>
         </div>
-        <button
-          onClick={() => { setShowForm(true); setEditId(null); setForm({ ...emptyForm }); }}
-          className="btn-primary py-2.5 px-5"
+        <Link
+          href="/admin/categories/new"
+          className="flex items-center gap-2 px-4 py-2 bg-brand-600 text-white rounded-lg font-medium hover:bg-brand-700 transition-colors"
         >
           <Plus className="w-4 h-4" />
           Add Category
-        </button>
+        </Link>
       </div>
 
-      {/* Form */}
-      <AnimatePresence>
-        {showForm && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            className="bg-card border border-border rounded-2xl p-6 overflow-hidden"
+      {/* Categories Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {categories.map((category) => (
+          <div
+            key={category.id}
+            draggable
+            onDragStart={() => handleDragStart(category.id)}
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={() => handleDrop(category.id)}
+            className={`bg-white rounded-lg border border-border shadow-sm overflow-hidden hover:shadow-md transition-shadow cursor-move ${
+              draggedId === category.id ? 'opacity-50 ring-2 ring-brand-500' : ''
+            }`}
           >
-            <div className="flex items-center justify-between mb-5">
-              <h2 className="font-bold text-lg">{editId ? "Edit Category" : "New Category"}</h2>
-              <button onClick={() => { setShowForm(false); setEditId(null); }} className="btn-ghost p-2">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="grid sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium">Name *</label>
-                <input
-                  type="text"
-                  value={form.name}
-                  onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                  placeholder="Electronics"
-                  className="input"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium">Image URL</label>
-                <input
-                  type="url"
-                  value={form.image}
-                  onChange={(e) => setForm((f) => ({ ...f, image: e.target.value }))}
-                  placeholder="https://images.unsplash.com/..."
-                  className="input"
-                />
-              </div>
-              <div className="space-y-1.5 sm:col-span-2">
-                <label className="text-sm font-medium">Description</label>
-                <textarea
-                  value={form.description}
-                  onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-                  placeholder="Brief description of this category"
-                  rows={2}
-                  className="input resize-none"
-                />
-              </div>
-            </div>
-
-            <div className="flex gap-3 mt-5 pt-4 border-t border-border justify-end">
-              <button onClick={() => { setShowForm(false); setEditId(null); }} className="btn-outline py-2.5 px-5 text-sm">Cancel</button>
-              <button onClick={handleSave} disabled={saving} className="btn-primary py-2.5 px-5 text-sm">
-                {saving ? "Saving..." : editId ? "Update" : "Create"}
-              </button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Grid */}
-      {loading ? (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="skeleton h-32 rounded-2xl" />
-          ))}
-        </div>
-      ) : categories.length === 0 ? (
-        <div className="text-center py-16">
-          <FolderOpen className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
-          <p className="font-semibold">No categories yet</p>
-        </div>
-      ) : (
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {categories.map((cat, i) => (
-            <motion.div
-              key={cat.id}
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: i * 0.04 }}
-              className="bg-card border border-border rounded-2xl overflow-hidden group"
-            >
-              {/* Image / placeholder */}
-              <div className="relative h-24 bg-muted">
-                {cat.image ? (
-                  <Image src={cat.image} alt={cat.name} fill className="object-cover" sizes="300px" />
+            {/* Card Header with Image */}
+            <div className="relative h-32 bg-gradient-to-br from-slate-100 to-slate-200">
+              <img src={category.image || categoryImages[category.slug] || categoryImages.default} alt={category.name} className="w-full h-full object-cover" />
+              <div className="absolute top-2 left-2 text-3xl">{categoryIcons[category.slug] || categoryIcons.default}</div>
+              <div className="absolute top-2 right-2">
+                {category.active ? (
+                  <span className="px-2 py-1 bg-green-500 text-white text-xs font-bold rounded-full">
+                    Active
+                  </span>
                 ) : (
-                  <div className="flex items-center justify-center h-full">
-                    <ImageIcon className="w-8 h-8 text-muted-foreground/30" />
-                  </div>
+                  <span className="px-2 py-1 bg-slate-700 text-white text-xs font-bold rounded-full">
+                    Inactive
+                  </span>
                 )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
               </div>
-
-              <div className="p-4">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="font-semibold truncate">{cat.name}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5 font-mono">{cat.slug}</p>
-                    {cat._count && (
-                      <p className="text-xs text-muted-foreground mt-1">
-                        {cat._count.products} products
-                      </p>
+              <div className="absolute bottom-2 left-2">
+                <GripVertical className="w-5 h-5 text-slate-400" />
+              </div>
+            </div>
+            
+            {/* Card Body */}
+            <div className="p-4">
+              <h3 className="font-semibold text-foreground mb-1">{category.name}</h3>
+              <p className="text-xs text-slate-600 mb-3 font-mono">/{category.slug}</p>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-slate-600">{category._count?.products || 0}</span>
+                  <span className="text-xs text-slate-500">products</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => toggleActive(category.id)}
+                    className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors"
+                  >
+                    {category.active ? (
+                      <Eye className="w-4 h-4 text-slate-600" />
+                    ) : (
+                      <EyeOff className="w-4 h-4 text-slate-400" />
                     )}
-                  </div>
-                  <div className="flex gap-1 flex-shrink-0">
-                    <button onClick={() => editCategory(cat)} className="p-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground">
-                      <Edit className="w-3.5 h-3.5" />
-                    </button>
-                    <button onClick={() => deleteCategory(cat.id)} className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-muted-foreground hover:text-red-500">
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
+                  </button>
+                  <Link
+                    href={`/admin/categories/${category.id}/edit`}
+                    className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors"
+                  >
+                    <Edit2 className="w-4 h-4 text-slate-600" />
+                  </Link>
+                  <button className="p-1.5 hover:bg-red-50 rounded-lg transition-colors">
+                    <Trash2 className="w-4 h-4 text-red-600" />
+                  </button>
                 </div>
               </div>
-            </motion.div>
-          ))}
-        </div>
-      )}
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

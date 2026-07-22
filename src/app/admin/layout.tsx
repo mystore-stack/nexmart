@@ -1,197 +1,75 @@
 // src/app/admin/layout.tsx
-"use client";
-import React, { useState } from "react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
-import {
-  LayoutDashboard, Package, ShoppingCart, Users, BarChart2,
-  Tag, FolderOpen, Menu, X, LogOut, ChevronRight,
-  Home, Store, Truck, FileText, Upload, Bell, Settings
-} from "lucide-react";
-import { useAuthStore } from "@/store/index";
+import { AdminSidebar } from '@/components/admin/Sidebar';
+import type { Metadata } from 'next';
 
-const NAV = [
-  { icon: LayoutDashboard, label: "Tableau de bord", href: "/admin" },
-  { icon: Package, label: "Produits", href: "/admin/products" },
-  { icon: ShoppingCart, label: "Commandes", href: "/admin/orders" },
-  { icon: Users, label: "Utilisateurs", href: "/admin/users" },
-  { icon: BarChart2, label: "Analytiques", href: "/admin/analytics" },
-  { icon: Tag, label: "Coupons", href: "/admin/coupons" },
-  { icon: FolderOpen, label: "Catégories", href: "/admin/categories" },
-  { icon: Store, label: "Vendeurs", href: "/admin/vendors" },
-  { icon: Truck, label: "Livraison", href: "/admin/delivery" },
-  { icon: FileText, label: "CMS", href: "/admin/cms" },
-];
+export const metadata: Metadata = {
+  title: 'Admin CMS - NexMart',
+  description: 'Complete CMS for managing NexMart store',
+};
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { user, logout } = useAuthStore();
-
-  const Sidebar = ({ mobile = false }: { mobile?: boolean }) => (
-    <aside
-      className={`${
-        mobile ? "w-full" : "w-64"
-      } bg-foreground text-background border-r border-white/10 flex flex-col h-full`}
-    >
-      {/* Logo */}
-      <div className="p-6 border-b border-white/10">
-        <Link href="/admin" className="flex items-center gap-3">
-          <div className="w-9 h-9 bg-brand-700 rounded-xl flex items-center justify-center shadow-brand">
-            <span className="text-white font-black text-sm">N</span>
-          </div>
-          <div>
-            <p className="font-black text-sm text-white">NexMart</p>
-            <p className="text-[10px] text-white/45 uppercase tracking-wider">Centre de Contrôle</p>
-          </div>
-        </Link>
-      </div>
-
-      {/* Navigation */}
-      <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-3 mb-3">
-          Intelligence
-        </p>
-        {NAV.map(({ icon: Icon, label, href }) => {
-          const active = href === "/admin" ? pathname === href : pathname.startsWith(href);
-          return (
-            <Link
-              key={href}
-              href={href}
-              onClick={() => setSidebarOpen(false)}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all group ${
-                active
-                  ? "bg-white text-foreground shadow-lg"
-                  : "text-white/58 hover:text-white hover:bg-white/10"
-              }`}
-            >
-              <Icon className="w-4 h-4 flex-shrink-0" />
-              {label}
-              {active && <ChevronRight className="w-3.5 h-3.5 ml-auto" />}
-            </Link>
-          );
-        })}
-
-        <div className="pt-4 border-t border-white/10 mt-4">
-          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-3 mb-3">
-            Quick Actions
-          </p>
-          <Link
-            href="/admin/products/new"
-            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold text-sky-200 hover:bg-white/10 transition-all"
-          >
-            <Upload className="w-4 h-4" />
-            Add Product
-          </Link>
-          <Link
-            href="/"
-            target="_blank"
-            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-white/58 hover:text-white hover:bg-white/10 transition-all"
-          >
-            <Home className="w-4 h-4" />
-            View Store
-          </Link>
-        </div>
-      </nav>
-
-      {/* User */}
-      <div className="p-4 border-t border-white/10">
-        {user && (
-          <div className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white/10 transition-colors group">
-            <div className="w-8 h-8 rounded-xl bg-white flex items-center justify-center text-violet-700 text-xs font-black flex-shrink-0">
-              {user.name[0]}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold truncate text-white">{user.name}</p>
-              <p className="text-xs text-white/45 truncate">{user.role}</p>
-            </div>
-            <button
-              onClick={logout}
-              className="opacity-0 group-hover:opacity-100 text-white/50 hover:text-rose-300 transition-all"
-              title="Sign out"
-            >
-              <LogOut className="w-4 h-4" />
-            </button>
-          </div>
-        )}
-      </div>
-    </aside>
-  );
-
+export default function AdminLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
-    <div className="flex h-screen bg-surface overflow-hidden">
-      {/* Desktop sidebar */}
-      <div className="hidden lg:flex flex-shrink-0">
-        <Sidebar />
-      </div>
+    <div className="flex min-h-screen bg-slate-50">
+      {/* Sidebar */}
+      <AdminSidebar />
 
-      {/* Mobile sidebar overlay */}
-      <AnimatePresence>
-        {sidebarOpen && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-50 bg-black/50 lg:hidden"
-              onClick={() => setSidebarOpen(false)}
-            />
-            <motion.div
-              initial={{ x: "-100%" }}
-              animate={{ x: 0 }}
-              exit={{ x: "-100%" }}
-              transition={{ type: "spring", stiffness: 300, damping: 30 }}
-              className="fixed left-0 top-0 bottom-0 z-50 w-72 lg:hidden"
-            >
-              <Sidebar mobile />
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-
-      {/* Main content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Top bar */}
-        <header className="h-16 border-b border-border flex items-center px-6 gap-4 flex-shrink-0 bg-background/80 backdrop-blur-xl">
-          <button
-            onClick={() => setSidebarOpen(true)}
-            className="btn-ghost p-2 lg:hidden"
-          >
-            <Menu className="w-5 h-5" />
-          </button>
-
-          {/* Breadcrumb */}
-          <div className="hidden sm:flex items-center gap-2 text-sm">
-              <span className="text-muted-foreground">NexMart Admin</span>
-            {pathname !== "/admin" && (
-              <>
-                <ChevronRight className="w-3.5 h-3.5 text-muted-foreground" />
-                <span className="font-medium capitalize">
-                  {pathname.split("/").filter(Boolean).slice(1).join(" / ")}
-                </span>
-              </>
-            )}
-          </div>
-
-          <div className="ml-auto flex items-center gap-2">
-            <button className="btn-ghost p-2 relative">
-              <Bell className="w-5 h-5" />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-emerald-500 rounded-full" />
-            </button>
-            <Link href="/admin/settings" className="btn-ghost p-2">
-              <Settings className="w-5 h-5" />
-            </Link>
+      {/* Main Content */}
+      <main className="flex-1 md:ml-64">
+        {/* Top Bar */}
+        <header className="sticky top-0 z-30 bg-white border-b border-border shadow-sm">
+          <div className="px-6 py-4 flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <button className="lg:hidden p-2 rounded-lg hover:bg-slate-100">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              </button>
+              <h2 className="text-lg font-semibold text-foreground">
+                Admin CMS
+              </h2>
+            </div>
+            <div className="flex items-center gap-4">
+              {/* Search */}
+              <div className="hidden md:flex items-center gap-2 px-3 py-2 bg-slate-100 rounded-lg">
+                <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <input
+                  type="text"
+                  placeholder="Search..."
+                  className="bg-transparent border-none outline-none text-sm w-48"
+                />
+              </div>
+              {/* Notifications */}
+              <button className="relative p-2 rounded-lg hover:bg-slate-100">
+                <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                </svg>
+                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
+              </button>
+              {/* Profile */}
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white font-bold">
+                  A
+                </div>
+                <div className="hidden md:block">
+                  <p className="text-sm font-medium text-foreground">Admin</p>
+                  <p className="text-xs text-slate-500">admin@nexmart.com</p>
+                </div>
+              </div>
+            </div>
           </div>
         </header>
 
-        {/* Page content */}
-        <main className="flex-1 overflow-y-auto">
-          <div className="p-6 max-w-7xl mx-auto">
-            {children}
-          </div>
-        </main>
-      </div>
+        {/* Page Content */}
+        <div className="p-6 md:p-8">
+          {children}
+        </div>
+      </main>
     </div>
   );
 }

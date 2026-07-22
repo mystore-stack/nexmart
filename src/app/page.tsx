@@ -3,6 +3,9 @@ import { Suspense } from "react";
 import { HeroSection } from "@/components/home/HeroSection";
 import { FlashSaleSection } from "@/components/home/FlashSaleSection";
 import { CategoriesSection } from "@/components/home/CategoriesSection";
+import { SuperDealsSection } from "@/components/home/SuperDealsSection";
+import { BundleDealsSection } from "@/components/home/BundleDealsSection";
+import { MysteryBoxSection } from "@/components/home/MysteryBoxSection";
 import { FeaturedProducts } from "@/components/home/FeaturedProducts";
 import { TrendingSection } from "@/components/home/TrendingSection";
 import { PromoBanner } from "@/components/home/PromoBanner";
@@ -22,7 +25,8 @@ export const metadata: Metadata = {
 };
 
 export default async function HomePage() {
-  const { featured, trending, categories, flashSale } = await getHomePageData();
+  const { featured, trending, categories, flashSale, deals, bundles, mysteryBoxes } = await getHomePageData();
+  console.log("HomePage data:", { featured: featured.length, trending: trending.length, categories: categories.length, flashSale: flashSale.length, deals: deals.length, bundles: bundles.length, mysteryBoxes: mysteryBoxes.length });
 
   return (
     <div className="page-enter">
@@ -40,12 +44,21 @@ export default async function HomePage() {
         </section>
       )}
 
+      {/* Super Deals */}
+      <SuperDealsSection deals={deals as any} />
+
       {/* Categories */}
       <section className="section">
         <div className="container-main">
           <CategoriesSection categories={categories as any} />
         </div>
       </section>
+
+      {/* Bundle Deals */}
+      <BundleDealsSection bundles={bundles as any} />
+
+      {/* Mystery Box */}
+      <MysteryBoxSection mysteryBoxes={mysteryBoxes as any} />
 
       {/* Promo Banners */}
       <section className="section bg-surface/60">

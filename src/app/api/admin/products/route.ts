@@ -6,6 +6,7 @@ import { ok, created, getPaginationParams, buildPaginationMeta, handleApiError }
 import { requireAdmin } from "@/lib/auth-api";
 import { invalidateProductCache } from "@/lib/redis";
 import slugify from "slugify";
+import { uploadImage } from "@/lib/cloudinary";
 
 const productSchema = z.object({
   name: z.string().min(2).max(200),
@@ -116,25 +117,110 @@ export async function POST(req: NextRequest) {
     const { organizationId, userId } = await requireAdmin();
     console.log("[ADMIN PRODUCTS] POST - userId:", userId, "organizationId:", organizationId);
     
-    const body = await req.json();
-    const data = productSchema.parse(body);
-
-    const slug = slugify(data.name, { lower: true, strict: true });
-    const { variants, ...productData } = data;
-
-    const product = await prisma.product.create({
-      data: {
-        ...productData,
-        organizationId,
-        slug,
-        variants: variants.length > 0 ? { create: variants } : undefined,
-      },
-      include: { category: true, variants: true },
-    });
-
-    console.log("[ADMIN PRODUCTS] Product created:", product.id, "for organization:", organizationId);
-    await invalidateProductCache(product.id);
-    return created(product);
+    const formData = await req.formData();
+    
+    // Check if this is a FormData upload (file upload)
+    const contentType = req.headers.get("content-type") || "";
+    if (contentType.includes("multipart/form-data")) {
+      // Handle file upload
+      const name = formData.get("name") as string;
+      const description = formData.get("description") as string;
+      const categoryId = formData.get("categoryId") as string;
+      const price = formData.get("price") as string;
+      const comparePrice = formData.get("comparePrice") as string | null;
+      const cost = formData.get("cost") as string | null;
+      const sku = formData.get("sku") as string;
+      const stock = formData.get("stock") as string;
+      const lowStockAt = formData.get("lowStockAt") as string;
+      const weight = formData.get("weight") as string | null;
+      const published = formData.get("published") === "true";
+      const featured = formData.get("featured") === "true";
+      const variantsStr = formData.get("variants") as string | null;
+      
+      // Collect uploaded files
+      const imageUrls: string[] = [];
+      let imageIndex = 0;
+      while (formData.has(`image_${imageIndex}`)) {
+        const file = formData.get(`image_${imageIndex}`) as File;
+        if (file) {
+          const buffer = Buffer.from(await file.arrayBuffer());
+          const result = await uploadImage(buffer, "nexmart/products", {
+            transformation: [{ quality: "auto:good" }, { fetch_format: "auto" }],
+          });
+          imageUrls.push(result.url);
+        }
+        imageIndex++;
+      }
+      
+      // Collect tags
+      const tags: string[] = [];
+      let tagIndex = 0;
+      while (formData.has(`tags_${tagIndex}`)) {
+        const tag = formData.get(`tags_${tagIndex}`) as string;
+        if (tag) tags.push(tag.trim());
+        tagIndex++;
+      }
+      
+      // Parse variants
+      let variants: any[] = [];
+      if (variantsStr) {
+        variants = JSON.parse(variantsStr);
+      }
+      
+      const productData = {
+        name: name.trim(),
+        description: description.trim(),
+        categoryId,
+        price: parseFloat(price),
+        comparePrice: comparePrice ? parseFloat(comparePrice) : undefined,
+        cost: cost ? parseFloat(cost) : undefined,
+        sku: sku.trim(),
+        stock: parseInt(stock),
+        lowStockAt: parseInt(lowStockAt),
+        weight: weight ? parseFloat(weight) : undefined,
+        published,
+        featured,
+        images: imageUrls,
+        tags,
+      };
+      
+      const slug = slugify(productData.name, { lower: true, strict: true });
+      
+      const product = await prisma.product.create({
+        data: {
+          ...productData,
+          organizationId,
+          slug,
+          variants: variants.length > 0 ? { create: variants } : undefined,
+        },
+        include: { category: true, variants: true },
+      });
+      
+      console.log("[ADMIN PRODUCTS] Product created with file upload:", product.id, "for organization:", organizationId);
+      await invalidateProductCache(product.id);
+      return created(product);
+    } else {
+      // Handle JSON upload (legacy)
+      const body = await req.json();
+      const data = productSchema.parse(body);
+      
+      const slug = slugify(data.name, { lower: true, strict: true });
+      const { variants, ...productData } = data;
+      
+      const product = await prisma.product.create({
+        data: {
+          ...productData,
+          organizationId,
+          slug,
+          variants: variants.length > 0 ? { create: variants } : undefined,
+        },
+        include: { category: true, variants: true },
+      });
+      
+      console.log("[ADMIN PRODUCTS] Product created:", product.id, "for organization:", organizationId);
+      await invalidateProductCache(product.id);
+      return created(product);
+    }
   } catch (err) {
     return handleApiError(err);
   }

@@ -13,6 +13,12 @@ export const useCartStore = create<CartStore>()(
       coupon: null,
 
       addItem: (product: Product, quantity = 1, variant?: ProductVariant) => {
+        if (!product || !product.id) {
+          console.error("[CART STORE] Invalid product - cannot add to cart:", product);
+          toast.error("Invalid product - cannot add to cart");
+          return;
+        }
+
         set((state) => {
           const existingIndex = state.items.findIndex(
             (item: CartItem) =>
@@ -59,7 +65,11 @@ export const useCartStore = create<CartStore>()(
       updateQuantity: (itemId: string, quantity: number) => {
         set((state) => {
           const item = state.items.find((i: CartItem) => i.id === itemId);
-          if (!item) return;
+          if (!item || !item.product) {
+            console.warn("[CART STORE] Invalid cart item in updateQuantity:", item);
+            state.items = state.items.filter((i: CartItem) => i.id !== itemId);
+            return;
+          }
 
           if (quantity <= 0) {
             state.items = state.items.filter((i: CartItem) => i.id !== itemId);
@@ -94,8 +104,12 @@ export const useCartStore = create<CartStore>()(
       getSubtotal: () => {
         const { items } = get();
         return items.reduce((sum: number, item: CartItem) => {
+          if (!item?.product) {
+            console.warn("[CART STORE] Invalid cart item - product is undefined:", item);
+            return sum;
+          }
           const price = item.variant?.price ?? item.product.price;
-          return sum + price * item.quantity;
+          return sum + (price || 0) * item.quantity;
         }, 0);
       },
 
@@ -125,14 +139,25 @@ export const useCartStore = create<CartStore>()(
       syncWithServer: async (userId: string) => {
         try {
           const { items } = get();
+          // Filter out invalid items before syncing
+          const validItems = items.filter((item: CartItem) => item?.product && item.product.id);
+          
+          if (validItems.length !== items.length) {
+            console.warn("[CART STORE] Filtered out invalid items before sync:", {
+              originalCount: items.length,
+              validCount: validItems.length,
+            });
+            set((state) => { state.items = validItems; });
+          }
+          
           console.log("[CART STORE] Syncing to server:", {
             userId,
-            itemCount: items.length,
+            itemCount: validItems.length,
           });
           const res = await fetch("/api/cart/sync", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ items }),
+            body: JSON.stringify({ items: validItems }),
           });
           const data = await res.json();
           console.log("[CART STORE] Sync response:", {

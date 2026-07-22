@@ -52,7 +52,7 @@ export interface Product {
   slug: string;
   description: string;
   price: number;
-  comparePrice?: number;
+  comparePrice?: number | null;
   cost?: number;
   category: Category;
   categoryId: string;
@@ -295,3 +295,121 @@ export interface UIStore {
   closeSearch: () => void;
   toggleMobileMenu: () => void;
 }
+
+// ─── Deals, Bundles, MysteryBox ──────────────────────────────────────────────
+
+/** Super Deal — time-limited product offer with stock tracking */
+export interface Deal {
+  id: string;
+  productId: string;
+  product: Product;
+  discountPercentage: number;
+  startTime: string; // ISO timestamp
+  endTime: string;   // ISO timestamp
+  stockLimit: number;
+  stockRemaining: number;
+  active: boolean;
+  createdAt: string;
+}
+
+/** Bundle Deal — grouped products sold together at a discount */
+export interface Bundle {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string;
+  products: Product[];
+  productIds: string[];
+  totalPrice: number;    // Sum of individual prices
+  bundlePrice: number;   // Discounted total
+  discount: number;      // Amount saved
+  discountPercentage: number;
+  active: boolean;
+  createdAt: string;
+}
+
+/** Mystery Box — surprise product bundle */
+export interface MysteryBox {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  price: number;
+  valueLabel: string; // e.g., "Worth up to 500 MAD"
+  image?: string | null;
+  possibleRewards: Product[];
+  stock: number;
+  active: boolean;
+  createdAt: string;
+}
+
+// CMS & Admin Types
+export type Deal = {
+  id: string;
+  productId: string;
+  product?: Product;
+  discountPercentage: number;
+  startTime: string;
+  endTime: string;
+  stockLimit: number;
+  stockRemaining: number;
+  active: boolean;
+  createdAt: string;
+};
+
+export type Bundle = {
+  id: string;
+  name: string;
+  slug: string;
+  products: Product[];
+  bundlePrice: number;
+  totalPrice: number;
+  discountPercentage: number;
+};
+
+export type MysteryBox = {
+  id: string;
+  name: string;
+  stock: number;
+  price: number;
+  valueLabel: string;
+  description: string;
+  rewards: string[];
+  rewardChance: number;
+};
+
+export type AdminOrder = {
+  id: string;
+  orderNumber: string;
+  user: { name: string; email: string };
+  products: { productId: string; quantity: number; price: number }[];
+  totalPrice: number;
+  status: "pending" | "shipped" | "delivered" | "cancelled";
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type AdminIntent = {
+  id: string;
+  title: string;
+  icon: string;
+  description: string;
+  linkedCategories: string[];
+  suggestedProducts: string[];
+  createdAt: string;
+};
+
+export type AdminReward = {
+  id: string;
+  name: string;
+  probability: number;
+};
+
+export type AdminMysteryBox = {
+  id: string;
+  name: string;
+  price: number;
+  rewards: AdminReward[];
+  stock: number;
+  createdAt: string;
+};

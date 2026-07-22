@@ -22,7 +22,7 @@ export default function NewProductPage() {
     price: "", comparePrice: "", cost: "",
     sku: "", stock: "0", lowStockAt: "5",
     weight: "", published: false, featured: false,
-    images: [""], tags: "",
+    images: [] as File[], tags: "",
   });
   const [variants, setVariants] = useState<Variant[]>([]);
 
@@ -40,26 +40,53 @@ export default function NewProductPage() {
     }
 
     const description = (form.description || "").trim();
-    const images = form.images.map((u) => u.trim()).filter(Boolean);
-
     if (description.length < 10) {
-      toast.error("Description must be at least 10 characters");
+      toast.error("الوصف يجب أن يكون على الأقل 10 أحرف");
       return;
     }
-    if (images.length < 1) {
-      toast.error("Please add at least 1 valid image URL");
+    if (form.images.length < 1) {
+      toast.error("الرجاء إضافة صورة واحدة على الأقل");
       return;
     }
 
     setSaving(true);
     try {
-      // Nettoyage + validation client pour éviter NaN / valeurs vides côté API
-      const description = (form.description || "").trim();
-      const images = form.images.map((u) => u.trim()).filter(Boolean);
-      const tags = form.tags
-        .split(",")
-        .map((t) => t.trim())
-        .filter(Boolean);
+      // تحميل الصور إلى FormData
+      const formData = new FormData();
+      form.images.forEach((file, idx) => {
+        formData.append(`image_${idx}`, file);
+      });
+      formData.append("name", form.name.trim());
+      formData.append("description", description);
+      formData.append("categoryId", form.categoryId);
+      formData.append("price", form.price);
+      if (form.comparePrice) formData.append("comparePrice", form.comparePrice);
+      if (form.cost) formData.append("cost", form.cost);
+      formData.append("sku", form.sku.trim());
+      formData.append("stock", form.stock);
+      formData.append("lowStockAt", form.lowStockAt);
+      if (form.weight) formData.append("weight", form.weight);
+      formData.append("published", String(form.published));
+      formData.append("featured", String(form.featured));
+      if (form.tags) {
+        form.tags.split(",").forEach((tag, idx) => {
+          formData.append(`tags_${idx}`, tag.trim());
+        });
+      }
+      if (variants.length > 0) {
+        formData.append("variants", JSON.stringify(
+          variants
+            .filter((v) => v.value.trim() && v.label.trim())
+            .map((v) => ({
+              name: v.name,
+              value: v.value.trim(),
+              label: v.label.trim(),
+              price: v.price ? parseFloat(v.price) : undefined,
+              stock: Number.isFinite(Number(v.stock)) ? parseInt(v.stock) : 0,
+              sku: v.sku?.trim() || undefined,
+            }))
+        ));
+      }
 
       const body = {
         name: form.name.trim(),
@@ -90,8 +117,7 @@ export default function NewProductPage() {
 
       const res = await fetch("/api/admin/products", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        body: formData,
       });
       const data = await res.json();
 
@@ -106,15 +132,31 @@ export default function NewProductPage() {
     }
   };
 
-  const updateImage = (idx: number, val: string) => {
+  const handleFileChange = (idx: number, file: File | null) => {
+    if (!file) return;
+    
+    // التحقق من نوع الملف
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'application/pdf'];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error("نوع الملف غير مدعوم. يرجى رفع صورة (JPG, PNG, WebP) أو PDF");
+      return;
+    }
+    
+    // التحقق من الحجم (5MB max)
+    const maxSize = 5 * 1024 * 1024;
+    if (file.size > maxSize) {
+      toast.error("حجم الملف كبير جداً. الحد الأقصى 5MB");
+      return;
+    }
+    
     setForm((f) => {
       const imgs = [...f.images];
-      imgs[idx] = val;
+      imgs[idx] = file;
       return { ...f, images: imgs };
     });
   };
 
-  const addImage = () => setForm((f) => ({ ...f, images: [...f.images, ""] }));
+  const addImage = () => setForm((f) => ({ ...f, images: [...f.images, null as any] }));
   const removeImage = (idx: number) =>
     setForm((f) => ({ ...f, images: f.images.filter((_, i) => i !== idx) }));
 
@@ -310,26 +352,29 @@ export default function NewProductPage() {
         <section className="bg-card border border-border rounded-2xl p-6 space-y-4">
           <h2 className="font-bold flex items-center gap-2">
             <ImageIcon className="w-5 h-5 text-muted-foreground" />
-            Product Images
+            صور المنتج
           </h2>
 
           <div className="space-y-3">
             {form.images.map((img, idx) => (
               <div key={idx} className="flex gap-2">
-                <div className="flex-1 relative">
+                <div className="flex-1">
+                  <label className="block">
+                    <span className="sr-only">اختيار ملف</span>
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/jpg,image/png,image/webp,application/pdf"
+                      onChange={(e) => handleFileChange(idx, e.target.files?.[0] || null)}
+                      className="input"
+                    />
+                  </label>
                   {img && (
-                    <div className="absolute left-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded overflow-hidden border border-border">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={img} alt="" className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }} />
+                    <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
+                      <ImageIcon className="w-4 h-4" />
+                      <span className="truncate">{img.name}</span>
+                      <span className="text-xs">({(img.size / 1024).toFixed(1)} KB)</span>
                     </div>
                   )}
-                  <input
-                    type="url"
-                    value={img}
-                    onChange={(e) => updateImage(idx, e.target.value)}
-                    placeholder={`Image URL ${idx + 1}${idx === 0 ? " (main)" : ""}`}
-                    className={`input ${img ? "pl-12" : ""}`}
-                  />
                 </div>
                 {form.images.length > 1 && (
                   <button type="button" onClick={() => removeImage(idx)} className="btn-ghost p-2.5 text-muted-foreground hover:text-red-500">
@@ -343,9 +388,13 @@ export default function NewProductPage() {
           {form.images.length < 8 && (
             <button type="button" onClick={addImage} className="btn-outline py-2 px-4 text-sm">
               <Plus className="w-4 h-4" />
-              Add Image URL
+              إضافة صورة
             </button>
           )}
+          
+          <p className="text-xs text-muted-foreground">
+            الأنواع المدعومة: JPG, PNG, WebP, PDF (الحد الأقصى 5MB)
+          </p>
         </section>
 
         {/* Variants */}
