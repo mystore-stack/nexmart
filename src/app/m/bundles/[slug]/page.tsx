@@ -4,6 +4,8 @@ import type { Metadata } from "next";
 import { getMobileBundles } from "@/lib/mobile-data";
 import { BundleDetailClient } from "./BundleDetailClient";
 
+export const dynamic = "force-dynamic";
+
 interface Props { params: Promise<{ slug: string }> }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {

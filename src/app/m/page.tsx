@@ -16,7 +16,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = { title: "Home" };
-export const revalidate = 300;
+export const dynamic = "force-dynamic";
 
 export default async function MobileHomePage() {
   const [featured, categories, deals, bundles, boxes] = await Promise.all([

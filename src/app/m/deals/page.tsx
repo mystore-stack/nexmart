@@ -4,7 +4,7 @@ import { getMobileDeals } from "@/lib/mobile-data";
 import { DealsPageClient } from "./DealsPageClient";
 
 export const metadata: Metadata = { title: "Super Deals" };
-export const revalidate = 300;
+export const dynamic = "force-dynamic";
 
 export default async function DealsPage() {
   const deals = await getMobileDeals();

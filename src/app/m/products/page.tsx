@@ -4,7 +4,7 @@ import { getMobileAllProducts } from "@/lib/mobile-data";
 import { AllProductsClient } from "./AllProductsClient";
 
 export const metadata: Metadata = { title: "All Products" };
-export const revalidate = 300;
+export const dynamic = "force-dynamic";
 
 export default async function ProductsPage() {
   const products = await getMobileAllProducts("popular");

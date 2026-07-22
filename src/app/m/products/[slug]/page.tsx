@@ -4,6 +4,8 @@ import type { Metadata } from "next";
 import { getMobileProduct, getMobileRelatedProducts } from "@/lib/mobile-data";
 import { ProductDetailClient } from "./ProductDetailClient";
 
+export const dynamic = "force-dynamic";
+
 interface Props { params: Promise<{ slug: string }> }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {

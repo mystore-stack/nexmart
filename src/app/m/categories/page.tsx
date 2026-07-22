@@ -5,7 +5,7 @@ import { getMobileCategories } from "@/lib/mobile-data";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = { title: "Categories" };
-export const revalidate = 3600;
+export const dynamic = "force-dynamic";
 
 export default async function CategoriesPage() {
   const categories = await getMobileCategories();

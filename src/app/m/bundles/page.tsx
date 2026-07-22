@@ -4,7 +4,7 @@ import { getMobileBundles } from "@/lib/mobile-data";
 import { BundlesPageClient } from "./BundlesPageClient";
 
 export const metadata: Metadata = { title: "Bundle Deals" };
-export const revalidate = 3600;
+export const dynamic = "force-dynamic";
 
 export default async function BundlesPage() {
   const bundles = await getMobileBundles();
