@@ -30,22 +30,16 @@ const NAV_LINKS = [
   { label: "Catégories", href: "/categories" },
 ];
 
-// Moroccan geometric SVG logo mark
+// Compact marketplace mark that stays legible at every breakpoint.
 function MoroccanLogo({ size = 40 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect width="40" height="40" rx="10" fill="url(#logoGrad)" />
-      <path d="M20 6 L34 20 L20 34 L6 20 Z" stroke="rgba(212,175,55,0.8)" strokeWidth="1.5" fill="none" />
-      <path d="M20 11 L29 20 L20 29 L11 20 Z" stroke="rgba(212,175,55,0.5)" strokeWidth="1" fill="none" />
-      <circle cx="20" cy="20" r="4" fill="rgba(212,175,55,0.9)" />
-      <path d="M20 6 L20 11 M34 20 L29 20 M20 34 L20 29 M6 20 L11 20" stroke="rgba(212,175,55,0.5)" strokeWidth="1" />
-      <defs>
-        <linearGradient id="logoGrad" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#0F766E" />
-          <stop offset="100%" stopColor="#0a5c55" />
-        </linearGradient>
-      </defs>
-    </svg>
+    <div
+      aria-hidden="true"
+      style={{ width: size, height: size }}
+      className="flex items-center justify-center rounded-[14px] bg-foreground text-background shadow-sm transition-transform duration-200 group-hover:rotate-[-4deg] group-hover:bg-brand-600"
+    >
+      <span className="text-lg font-black tracking-[-0.08em]">N<span className="text-brand-400">.</span></span>
+    </div>
   );
 }
 
@@ -95,7 +89,7 @@ export function Navbar() {
           <div className="absolute inset-0 moroccan-pattern-bg opacity-30" />
           <div className="container-main flex h-9 items-center justify-center gap-3 text-xs font-semibold text-white/90">
             <span className="flex items-center gap-2">
-              <Star className="h-3 w-3 text-gold-400 fill-gold-400" />
+              <Star className="h-3 w-3 text-brand-300 fill-brand-300" />
               <span className="hidden sm:inline text-white/60">|</span>
               <span>Livraison gratuite au Maroc dès 500 MAD</span>
               <span className="hidden sm:inline text-white/60">|</span>
@@ -104,8 +98,7 @@ export function Navbar() {
               Artisanat Premium · Paiement Sécurisé · Support 24h
             </span>
           </div>
-          {/* Gold bottom line */}
-          <div className="absolute bottom-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-500/50 to-transparent" />
+          <div className="absolute bottom-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-brand-500/50 to-transparent" />
         </div>
 
         <div className="container-main">

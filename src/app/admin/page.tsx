@@ -1,7 +1,7 @@
 // src/app/admin/page.tsx — Dashboard Overview
 'use client';
 
-import { TrendingUp, ShoppingCart, DollarSign, Zap, AlertCircle, Users, BarChart3 } from 'lucide-react';
+import { TrendingUp, ShoppingCart, DollarSign, Zap, AlertCircle, Users, BarChart3, ArrowUpRight, Plus } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
 
@@ -74,21 +74,29 @@ export default function AdminDashboard() {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Dashboard</h1>
-          <p className="text-slate-600 mt-1">Welcome back! Here's what's happening with your store.</p>
+          <p className="mb-2 text-xs font-bold uppercase tracking-[0.16em] text-blue-600">Thursday, July 24, 2026</p>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-950">Good morning, Admin.</h1>
+          <p className="mt-1 text-sm text-slate-500">Here&apos;s the pulse of your marketplace today.</p>
         </div>
-        {/* Date Filter */}
-        <div className="flex items-center gap-2 bg-white rounded-lg border border-border p-1">
+        <div className="flex items-center gap-2">
+          <button className="hidden items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm transition-colors hover:border-slate-300 sm:flex"><Zap className="h-4 w-4 text-blue-600" /> View storefront</button>
+          <button className="flex items-center gap-2 rounded-xl bg-slate-900 px-3 py-2 text-sm font-semibold text-white shadow-sm transition-transform hover:-translate-y-0.5"><Plus className="h-4 w-4" /> Add product</button>
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-semibold text-slate-500">Performance window</p>
+        <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white p-1 shadow-sm">
           {(['7d', '30d', '90d'] as const).map((filter) => (
             <button
               key={filter}
               onClick={() => setDateFilter(filter)}
               className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                 dateFilter === filter
-                  ? 'bg-brand-600 text-white'
-                  : 'text-slate-600 hover:bg-slate-100'
+                  ? 'bg-slate-900 text-white shadow-sm'
+                  : 'text-slate-500 hover:bg-slate-100'
               }`}
             >
               {filter === '7d' ? '7 Days' : filter === '30d' ? '30 Days' : '90 Days'}
@@ -100,17 +108,17 @@ export default function AdminDashboard() {
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {KPIs.map(({ label, value, change, icon: Icon, color }) => (
-          <div key={label} className="bg-white rounded-lg border border-border p-6 shadow-sm hover:shadow-md transition-shadow">
+          <div key={label} className="group rounded-2xl border border-slate-200/80 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.03)] transition-all hover:-translate-y-0.5 hover:shadow-lg">
             <div className="flex items-start justify-between mb-4">
               <div>
-                <p className="text-slate-600 text-sm font-medium">{label}</p>
-                <p className="text-2xl font-bold text-foreground mt-1">{value}</p>
+                <p className="text-xs font-semibold text-slate-500">{label}</p>
+                <p className="mt-2 text-2xl font-bold tracking-tight text-slate-950">{value}</p>
               </div>
-              <div className={`p-3 rounded-lg bg-gradient-to-br ${color}`}>
+              <div className={`rounded-xl bg-gradient-to-br ${color} p-2.5 shadow-sm`}>
                 <Icon className="w-5 h-5 text-white" />
               </div>
             </div>
-            <p className="text-xs font-semibold text-green-600">{change} from last month</p>
+            <p className="mt-5 flex items-center gap-1 text-xs font-semibold text-emerald-600"><TrendingUp className="h-3.5 w-3.5" />{change} from last month</p>
           </div>
         ))}
       </div>
@@ -118,8 +126,8 @@ export default function AdminDashboard() {
       {/* Charts Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Revenue Chart */}
-        <div className="lg:col-span-2 bg-white rounded-lg border border-border p-6 shadow-sm">
-          <h2 className="text-lg font-bold text-foreground mb-4">Revenue Trend</h2>
+        <div className="lg:col-span-2 rounded-2xl border border-slate-200/80 bg-white p-6 shadow-[0_1px_2px_rgba(15,23,42,0.03)]">
+          <div className="mb-5 flex items-center justify-between"><div><p className="text-xs font-semibold uppercase tracking-wider text-slate-400">Gross merchandise value</p><h2 className="mt-1 text-lg font-bold text-slate-950">Revenue trend</h2></div><ArrowUpRight className="h-5 w-5 text-emerald-500" /></div>
           <div className="space-y-4">
             {revenueData.map((month) => (
               <div key={month.month}>
@@ -139,8 +147,9 @@ export default function AdminDashboard() {
         </div>
 
         {/* Top Products */}
-        <div className="bg-white rounded-lg border border-border p-6 shadow-sm">
-          <h2 className="text-lg font-bold text-foreground mb-4">Top Products</h2>
+        <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-[0_1px_2px_rgba(15,23,42,0.03)]">
+          <h2 className="mb-1 text-lg font-bold text-slate-950">Top products</h2>
+          <p className="mb-4 text-xs text-slate-500">Best performers this period</p>
           <div className="space-y-3">
             {topProducts.slice(0, 5).map((product) => (
               <div key={product.id} className="flex items-center justify-between pb-3 border-b border-slate-100 last:border-0">

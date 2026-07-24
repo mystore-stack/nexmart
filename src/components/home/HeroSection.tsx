@@ -67,12 +67,12 @@ const TRUST = [
 function MoroccanFloating({ className = "" }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M60 8 L112 60 L60 112 L8 60 Z" stroke="rgba(212,175,55,0.5)" strokeWidth="1.5" fill="none" />
-      <path d="M60 20 L100 60 L60 100 L20 60 Z" stroke="rgba(212,175,55,0.35)" strokeWidth="1" fill="none" />
-      <path d="M60 36 L84 60 L60 84 L36 60 Z" stroke="rgba(212,175,55,0.25)" strokeWidth="1" fill="none" />
-      <circle cx="60" cy="60" r="8" stroke="rgba(212,175,55,0.6)" strokeWidth="1.5" fill="none" />
-      <circle cx="60" cy="60" r="3" fill="rgba(212,175,55,0.7)" />
-      <path d="M60 8 L60 20 M112 60 L100 60 M60 112 L60 100 M8 60 L20 60" stroke="rgba(212,175,55,0.4)" strokeWidth="1" />
+      <path d="M60 8 L112 60 L60 112 L8 60 Z" stroke="rgba(96,165,250,0.5)" strokeWidth="1.5" fill="none" />
+      <path d="M60 20 L100 60 L60 100 L20 60 Z" stroke="rgba(96,165,250,0.35)" strokeWidth="1" fill="none" />
+      <path d="M60 36 L84 60 L60 84 L36 60 Z" stroke="rgba(96,165,250,0.25)" strokeWidth="1" fill="none" />
+      <circle cx="60" cy="60" r="8" stroke="rgba(96,165,250,0.6)" strokeWidth="1.5" fill="none" />
+      <circle cx="60" cy="60" r="3" fill="rgba(96,165,250,0.7)" />
+      <path d="M60 8 L60 20 M112 60 L100 60 M60 112 L60 100 M8 60 L20 60" stroke="rgba(96,165,250,0.4)" strokeWidth="1" />
     </svg>
   );
 }
@@ -80,8 +80,8 @@ function MoroccanFloating({ className = "" }: { className?: string }) {
 function MoroccanStar({ className = "" }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M40 5 L47 28 L70 28 L51 42 L58 65 L40 51 L22 65 L29 42 L10 28 L33 28 Z" stroke="rgba(212,175,55,0.4)" strokeWidth="1" fill="rgba(212,175,55,0.06)" />
-      <circle cx="40" cy="40" r="15" stroke="rgba(212,175,55,0.3)" strokeWidth="1" fill="none" strokeDasharray="4 3" />
+      <path d="M40 5 L47 28 L70 28 L51 42 L58 65 L40 51 L22 65 L29 42 L10 28 L33 28 Z" stroke="rgba(96,165,250,0.4)" strokeWidth="1" fill="rgba(96,165,250,0.06)" />
+      <circle cx="40" cy="40" r="15" stroke="rgba(96,165,250,0.3)" strokeWidth="1" fill="none" strokeDasharray="4 3" />
     </svg>
   );
 }
@@ -114,7 +114,7 @@ export function HeroSection() {
       <div className="absolute top-0 left-0 w-[600px] h-[600px] rounded-full opacity-30"
         style={{ background: "radial-gradient(circle, rgba(15,118,110,0.5) 0%, transparent 70%)", transform: "translate(-30%, -30%)" }} />
       <div className="absolute bottom-0 right-0 w-[500px] h-[500px] rounded-full opacity-20"
-        style={{ background: "radial-gradient(circle, rgba(212,175,55,0.4) 0%, transparent 70%)", transform: "translate(30%, 30%)" }} />
+        style={{ background: "radial-gradient(circle, rgba(37,99,235,0.4) 0%, transparent 70%)", transform: "translate(30%, 30%)" }} />
 
       {/* Background Images */}
       <AnimatePresence mode="wait">
@@ -185,7 +185,7 @@ export function HeroSection() {
             {/* Headline */}
             <h1 className="font-display text-5xl font-light leading-[1.02] text-white sm:text-6xl lg:text-7xl">
               <span className="block text-white/95">{slide.title}</span>
-              <span className="block" style={{ background: "linear-gradient(135deg, #D4AF37 0%, #f0d060 50%, #D4AF37 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+              <span className="block" style={{ background: "linear-gradient(135deg, #60a5fa 0%, #dbeafe 50%, #60a5fa 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
                 {slide.titleAccent}
               </span>
             </h1>
@@ -238,7 +238,7 @@ export function HeroSection() {
             >
               {/* Main image card */}
               <div className="relative overflow-hidden rounded-[1.75rem] border border-gold-400/20 bg-white/8 shadow-2xl backdrop-blur-xl"
-                style={{ boxShadow: "0 32px 80px rgba(0,0,0,0.4), 0 0 0 1px rgba(212,175,55,0.15)" }}>
+                style={{ boxShadow: "0 32px 80px rgba(0,0,0,0.4), 0 0 0 1px rgba(96,165,250,0.15)" }}>
 
                 {/* Moroccan arch top decoration */}
                 <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-gold-400/70 to-transparent" />
@@ -283,7 +283,7 @@ export function HeroSection() {
                 animate={{ y: [0, 6, 0] }}
                 transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", delay: 1 }}
                 className="mt-3 ml-8 rounded-2xl border border-gold-400/20 bg-white/8 px-5 py-3.5 backdrop-blur-xl"
-                style={{ boxShadow: "0 8px 32px rgba(0,0,0,0.3), 0 0 0 1px rgba(212,175,55,0.1)" }}
+                style={{ boxShadow: "0 8px 32px rgba(0,0,0,0.3), 0 0 0 1px rgba(96,165,250,0.1)" }}
               >
                 <div className="flex items-center gap-3">
                   <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-brand-700/60">

@@ -11,9 +11,9 @@ const config: Config = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ["DM Sans", "system-ui", "sans-serif"],
-        display: ["Cormorant Garamond", "Georgia", "serif"],
-        serif: ["Cormorant Garamond", "Georgia", "serif"],
+        sans: ["Inter", "system-ui", "sans-serif"],
+        display: ["Inter", "system-ui", "sans-serif"],
+        serif: ["Inter", "system-ui", "sans-serif"],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -43,16 +43,16 @@ const config: Config = {
           900: "#134e4a",
         },
         gold: {
-          50: "#fffdf0",
-          100: "#fff8d4",
-          200: "#ffeea8",
-          300: "#ffe06e",
-          400: "#f5cc3a",
-          500: "#D4AF37",
-          600: "#b8930a",
-          700: "#96760a",
-          800: "#7a5e0d",
-          900: "#664e10",
+          50: "#eff6ff",
+          100: "#dbeafe",
+          200: "#bfdbfe",
+          300: "#93c5fd",
+          400: "#60a5fa",
+          500: "#2563eb",
+          600: "#1d4ed8",
+          700: "#1e40af",
+          800: "#1e3a8a",
+          900: "#172554",
         },
         emerald: {
           DEFAULT: "#0F766E",

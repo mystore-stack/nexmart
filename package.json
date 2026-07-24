@@ -21,7 +21,13 @@
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down",
     "docker:logs": "docker-compose logs -f",
-    "setup": "npm install && npx prisma generate && npx prisma db push && npm run db:seed"
+    "setup": "npm install && npx prisma generate && npx prisma db push && npm run db:seed",
+    "storybook": "start-storybook -p 6006",
+    "build-storybook": "build-storybook",
+    "test:a11y": "pa11y-ci http://127.0.0.1:9001",
+    "test:storybook:runner": "npx @storybook/test-runner --url http://127.0.0.1:9001"
+    ,
+    "test:playwright": "npx playwright test"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
@@ -87,9 +93,17 @@
     "zustand": "^4.5.4"
   },
   "devDependencies": {
+    "@storybook/react-webpack5": "^7.0.27",
+    "@storybook/addon-essentials": "^7.0.27",
+    "@storybook/addon-a11y": "^7.0.27",
+    "@storybook/builder-webpack5": "^7.0.27",
+    "@storybook/manager-webpack5": "^7.0.27",
+    "pa11y-ci": "^6.0.0",
+    "http-server": "^14.1.1",
     "@prisma/adapter-pg": "^7.8.0",
     "@tailwindcss/postcss": "^4.3.0",
     "@testing-library/react": "^16.3.2",
+    "@playwright/test": "^1.40.0",
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20.14.9",
     "@types/nodemailer": "^6.4.15",

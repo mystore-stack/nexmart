@@ -1,3 +1,34 @@
+import React from 'react';
+
+type Variant = 'primary' | 'secondary' | 'ghost';
+type Size = 'sm' | 'md' | 'lg';
+
+export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: Variant;
+  size?: Size;
+}
+
+export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(({ variant = 'primary', size = 'md', className = '', children, ...rest }, ref) => {
+  const base = 'inline-flex items-center justify-center font-medium rounded';
+  const sizeClass = size === 'sm' ? 'px-3 py-1.5 text-sm' : size === 'lg' ? 'px-5 py-3 text-lg' : 'px-4 py-2 text-base';
+
+  const variantClass =
+    variant === 'primary'
+      ? 'bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent200)] shadow-md'
+      : variant === 'secondary'
+      ? 'bg-[var(--color-surface)] border border-[var(--color-muted)] text-[var(--color-primary)]'
+      : 'bg-transparent text-[var(--color-primary)] hover:bg-[var(--color-backdrop)]/6';
+
+  return (
+    <button ref={ref} className={`${base} ${sizeClass} ${variantClass} ${className}`} {...rest}>
+      {children}
+    </button>
+  );
+});
+
+Button.displayName = 'Button';
+
+export default Button;
 // src/components/ui/Button.tsx — Moroccan Premium Buttons
 import React from "react";
 import Link from "next/link";
