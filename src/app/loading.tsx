@@ -1,4 +1,4 @@
-// src/app/loading.tsx — Moroccan Luxury Loading
+// src/app/loading.tsx â€” Moroccan Luxury Loading
 export default function Loading() {
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-moroccan-sand dark:bg-moroccan-navy">
@@ -16,10 +16,11 @@ export default function Loading() {
           </div>
         </div>
         <div className="text-center">
-          <p className="font-display text-lg font-semibold text-foreground">NexMart</p>
-          <p className="text-xs text-muted-foreground mt-0.5">Chargement en cours…</p>
+          <p className="font-display text-lg font-semibold text-foreground">NexStore</p>
+          <p className="text-xs text-muted-foreground mt-0.5">Chargement en coursâ€¦</p>
         </div>
       </div>
     </div>
   );
 }
+

@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { motion } from "framer-motion";
-import { Heart, ShoppingCart, Star, Eye, Sparkles, Truck, Crown } from "lucide-react";
+import { Heart, ShoppingCart, Star, Eye, Truck, Crown } from "lucide-react";
 import { useCartStore } from "@/store/cart";
 import { useWishlistStore } from "@/store/index";
 import { formatPrice, discountPercentage } from "@/utils/format";
@@ -36,15 +36,15 @@ export function ProductCard({ product, priority = false, index = 0 }: ProductCar
       initial={{ opacity: 0, y: 24 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.45, delay: index * 0.05, ease: "easeOut" }}
-      className="product-card group relative bg-white dark:bg-card"
+      className="product-card group relative bg-white"
       onMouseEnter={() => { setIsHovered(true); if (images.length > 1) setImageIdx(1); }}
       onMouseLeave={() => { setIsHovered(false); setImageIdx(0); }}
     >
       {/* Moroccan gold top accent */}
-      <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-400/0 to-transparent group-hover:via-gold-400/60 transition-all duration-500 z-10" />
+      <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-orange-400/0 to-transparent transition-all duration-500 group-hover:via-orange-400/60 z-10" />
 
       {/* Image area */}
-      <div className="relative aspect-[3/3.5] overflow-hidden bg-gradient-to-br from-moroccan-sand to-muted/50">
+      <div className="relative aspect-[3/3.5] overflow-hidden bg-gradient-to-br from-orange-50 to-slate-100">
         <Link href={`/products/${product.slug}`} onClick={trackView}>
           <Image
             src={images[imageIdx] || "/placeholder.jpg"}
@@ -55,7 +55,7 @@ export function ProductCard({ product, priority = false, index = 0 }: ProductCar
             priority={priority}
           />
           {/* Overlay on hover */}
-          <div className={`absolute inset-0 bg-gradient-to-t from-moroccan-navy/25 via-transparent to-transparent transition-opacity duration-300 ${isHovered ? "opacity-100" : "opacity-0"}`} />
+          <div className={`absolute inset-0 bg-gradient-to-t from-slate-900/20 via-transparent to-transparent transition-opacity duration-300 ${isHovered ? "opacity-100" : "opacity-0"}`} />
         </Link>
 
         {/* Badges */}
@@ -90,10 +90,10 @@ export function ProductCard({ product, priority = false, index = 0 }: ProductCar
               addWishlist(product);
               trackAiEvent({ type: "WISHLIST", productId: product.id, metadata: { source: "product_card" } });
             }}
-            className={`w-9 h-9 rounded-xl flex items-center justify-center shadow-lg backdrop-blur-md transition-all border ${
+            className={`w-9 h-9 rounded-xl flex items-center justify-center shadow-sm transition-all border ${
               inWishlist
                 ? "bg-red-500 text-white border-red-400/50"
-                : "bg-white/90 dark:bg-card/90 text-foreground hover:bg-red-50 hover:text-red-500 border-white/60 dark:border-white/10"
+                : "bg-white text-slate-700 hover:bg-red-50 hover:text-red-500 border-slate-200"
             }`}
             aria-label={inWishlist ? "Retirer des favoris" : "Ajouter aux favoris"}
           >
@@ -102,7 +102,7 @@ export function ProductCard({ product, priority = false, index = 0 }: ProductCar
           <Link
             href={`/products/${product.slug}`}
             onClick={trackView}
-            className="w-9 h-9 rounded-xl bg-white/90 dark:bg-card/90 text-foreground flex items-center justify-center shadow-lg backdrop-blur-md hover:bg-brand-50 hover:text-brand-700 transition-all border border-white/60 dark:border-white/10"
+            className="w-9 h-9 rounded-xl bg-white text-slate-700 flex items-center justify-center shadow-sm hover:bg-orange-50 hover:text-orange-700 transition-all border border-slate-200"
             aria-label="Voir le produit"
           >
             <Eye className="w-4 h-4" />
@@ -123,8 +123,7 @@ export function ProductCard({ product, priority = false, index = 0 }: ProductCar
               trackAiEvent({ type: "ADD_TO_CART", productId: product.id, metadata: { source: "product_card" } });
             }}
             disabled={isOutOfStock}
-            className="w-full btn-primary h-11 px-4 text-sm font-bold flex items-center justify-center gap-2 shadow-luxury disabled:opacity-60 disabled:cursor-not-allowed"
-            style={{ borderRadius: "0.75rem" }}
+            className="w-full flex h-10 items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-semibold text-white transition-all hover:bg-orange-500 disabled:cursor-not-allowed disabled:opacity-60"
           >
             <ShoppingCart className="w-4 h-4 flex-shrink-0" />
             Ajouter au panier
@@ -136,7 +135,7 @@ export function ProductCard({ product, priority = false, index = 0 }: ProductCar
       <div className="space-y-2.5 p-4">
         {/* Fast ship + stock indicator */}
         <div className="flex items-center justify-between gap-2">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-brand-50 dark:bg-brand-900/20 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-brand-700 dark:text-brand-400">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-orange-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-orange-600">
             <Truck className="h-2.5 w-2.5" />
             Livraison rapide
           </span>
@@ -149,7 +148,7 @@ export function ProductCard({ product, priority = false, index = 0 }: ProductCar
         <Link
           href={`/products/${product.slug}`}
           onClick={trackView}
-          className="block min-h-[2.5rem] text-sm font-semibold line-clamp-2 hover:text-brand-700 dark:hover:text-brand-400 transition-colors leading-snug text-foreground"
+          className="block min-h-[2.5rem] text-sm font-semibold leading-snug text-slate-700 transition-colors line-clamp-2 hover:text-orange-600"
         >
           {product.name}
         </Link>
@@ -161,15 +160,15 @@ export function ProductCard({ product, priority = false, index = 0 }: ProductCar
               {[1, 2, 3, 4, 5].map((s) => (
                 <Star
                   key={s}
-                  className={`w-3 h-3 ${
+                  className={`h-3 w-3 ${
                     s <= Math.round(product.rating)
-                      ? "text-gold-500 fill-gold-500"
-                      : "text-muted-foreground/30 fill-muted-foreground/10"
+                      ? "fill-orange-500 text-orange-500"
+                      : "fill-slate-200 text-slate-200"
                   }`}
                 />
               ))}
             </div>
-            <span className="text-[11px] text-muted-foreground">
+            <span className="text-[11px] text-slate-500">
               {product.rating.toFixed(1)} ({new Intl.NumberFormat("fr-MA").format(product.reviewCount)})
             </span>
           </div>
@@ -177,9 +176,9 @@ export function ProductCard({ product, priority = false, index = 0 }: ProductCar
 
         {/* Price */}
         <div className="flex items-baseline gap-2 pt-0.5">
-          <span className="price-main">{formatPrice(product.price)}</span>
+          <span className="text-base font-bold text-slate-900">{formatPrice(product.price)}</span>
           {product.comparePrice && product.comparePrice > product.price && (
-            <span className="price-compare">{formatPrice(product.comparePrice)}</span>
+            <span className="text-sm text-slate-400 line-through">{formatPrice(product.comparePrice)}</span>
           )}
         </div>
 
@@ -207,7 +206,7 @@ export function ProductCard({ product, priority = false, index = 0 }: ProductCar
       </div>
 
       {/* Bottom gold accent on hover */}
-      <div className="absolute bottom-0 inset-x-0 h-0.5 bg-gradient-to-r from-transparent via-gold-400/0 to-transparent group-hover:via-gold-400/50 transition-all duration-500" />
+      <div className="absolute bottom-0 inset-x-0 h-0.5 bg-gradient-to-r from-transparent via-orange-400/0 to-transparent transition-all duration-500 group-hover:via-orange-400/50" />
     </motion.div>
   );
 }
@@ -229,7 +228,7 @@ export function ProductGrid({ products, loading, columns = 4 }: ProductGridProps
 
   if (loading) {
     return (
-      <div className={`grid ${gridClass} gap-4 md:gap-6`}>
+      <div className={`grid ${gridClass} gap-3 sm:gap-4 md:gap-5`}>
         {Array.from({ length: 8 }).map((_, i) => (
           <ProductCardSkeleton key={i} />
         ))}
@@ -250,7 +249,7 @@ export function ProductGrid({ products, loading, columns = 4 }: ProductGridProps
   }
 
   return (
-    <div className={`grid ${gridClass} gap-4 md:gap-6`}>
+    <div className={`grid ${gridClass} gap-3 sm:gap-4 md:gap-5`}>
       {products.map((product, index) => (
         <ProductCard key={product.id} product={product} index={index} priority={index < 4} />
       ))}
@@ -260,7 +259,7 @@ export function ProductGrid({ products, loading, columns = 4 }: ProductGridProps
 
 export function ProductCardSkeleton() {
   return (
-    <div className="rounded-2xl overflow-hidden border border-gold-200/30 bg-white dark:bg-card">
+    <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
       <div className="aspect-[3/3.5] skeleton" />
       <div className="p-4 space-y-2.5">
         <div className="skeleton h-3.5 rounded-full w-2/3" />

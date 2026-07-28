@@ -1,5 +1,5 @@
 "use client";
-// src/app/login/page.tsx — NexMart Moroccan Luxury Login
+// src/app/login/page.tsx - NexStore Moroccan luxury login
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -78,7 +78,7 @@ export default function LoginPage() {
               </svg>
             </div>
             <h1 className="font-display text-3xl font-semibold">Bon retour !</h1>
-            <p className="text-muted-foreground mt-1.5 text-sm">Connectez-vous à votre compte NexMart</p>
+            <p className="text-muted-foreground mt-1.5 text-sm">Connectez-vous à votre compte NexStore</p>
           </div>
 
           {error && (

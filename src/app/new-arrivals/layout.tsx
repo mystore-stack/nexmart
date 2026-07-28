@@ -1,6 +1,6 @@
 export const metadata = {
-  title: 'New Arrivals - NexMart Maroc',
-  description: 'Discover new products on NexMart Maroc',
+  title: 'New Arrivals - NexStore Maroc',
+  description: 'Discover new products on NexStore Maroc',
 }
 
 export default function NewArrivalsLayout({
@@ -10,3 +10,4 @@ export default function NewArrivalsLayout({
 }) {
   return <>{children}</>
 }
+

@@ -1,9 +1,9 @@
-// src/app/m/layout.tsx — Mobile app shell
+// src/app/m/layout.tsx â€” Mobile app shell
 import type { Metadata, Viewport } from "next";
 
 export const metadata: Metadata = {
-  title: { default: "NexMart", template: "%s | NexMart" },
-  description: "NexMart — Premium Moroccan marketplace.",
+  title: { default: "NexStore", template: "%s | NexStore" },
+  description: "NexStore â€” Premium Moroccan marketplace.",
 };
 
 export const viewport: Viewport = {
@@ -20,3 +20,4 @@ export default function MobileRootLayout({ children }: { children: React.ReactNo
     </div>
   );
 }
+

@@ -29,49 +29,39 @@ export function FlashSaleSection({ products }: Props) {
   const { h, m, s } = useCountdown(endTimeRef.current);
 
   return (
-    <div className="relative overflow-hidden">
-      {/* Moroccan pattern */}
-      <div className="absolute inset-0 moroccan-pattern-bg opacity-20" />
-      <div className="absolute top-0 left-0 w-80 h-80 opacity-20"
-        style={{ background: "radial-gradient(circle, rgba(15,118,110,0.5) 0%, transparent 70%)", transform: "translate(-30%,-30%)" }} />
-      <div className="absolute bottom-0 right-0 w-64 h-64 opacity-15"
-        style={{ background: "radial-gradient(circle, rgba(212,175,55,0.5) 0%, transparent 70%)", transform: "translate(30%,30%)" }} />
+    <div className="relative overflow-hidden rounded-[1.75rem] border border-orange-500/20 bg-slate-950 p-5 sm:p-6 lg:p-8">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(249,115,22,0.18),_transparent_35%)]" />
+      <div className="absolute inset-0 bg-[linear-gradient(90deg,_rgba(15,23,42,0.9),_rgba(15,23,42,0.78))]" />
 
-      {/* Top gold line */}
-      <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-400/60 to-transparent" />
-
-      <div className="relative space-y-8">
+      <div className="relative space-y-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-red-500 to-rose-600 shadow-lg">
-              <Flame className="h-6 w-6 text-white" />
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-orange-500 shadow-lg">
+              <Flame className="h-5 w-5 text-white" />
             </div>
             <div>
-              <span className="section-label text-gold-300 mb-1 block">Offres limitées</span>
-              <h2 className="font-display text-3xl font-semibold text-white">
+              <span className="section-label mb-1 block text-orange-300">Offres limitées</span>
+              <h2 className="font-display text-2xl font-semibold text-white sm:text-3xl">
                 Vente Flash
               </h2>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 text-white/60 text-sm">
-              <Clock className="h-4 w-4 text-gold-400" />
-              <span className="text-xs uppercase tracking-wide font-medium">Se termine dans</span>
-            </div>
+          <div className="flex items-center gap-3 rounded-full border border-white/10 bg-white/10 px-3 py-2 backdrop-blur">
+            <Clock className="h-4 w-4 text-orange-300" />
+            <span className="text-[11px] uppercase tracking-[0.24em] text-white/70">Se termine dans</span>
             <div className="flex items-center gap-1.5">
               {[h, m, s].map((unit, i) => (
                 <React.Fragment key={i}>
                   <motion.div
                     key={`${unit}-${i}`}
-                    initial={{ scale: 0.9 }}
+                    initial={{ scale: 0.95 }}
                     animate={{ scale: 1 }}
-                    className="flex h-12 w-12 items-center justify-center rounded-xl border border-gold-400/25 bg-white/10 backdrop-blur font-display text-lg font-bold text-white"
-                    style={{ boxShadow: "0 4px 12px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1)" }}
+                    className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/10 text-sm font-semibold text-white"
                   >
                     {unit}
                   </motion.div>
-                  {i < 2 && <span className="text-gold-400 font-bold text-lg">:</span>}
+                  {i < 2 && <span className="text-orange-300">:</span>}
                 </React.Fragment>
               ))}
             </div>
@@ -81,17 +71,12 @@ export function FlashSaleSection({ products }: Props) {
         <ProductGrid products={products.slice(0, 4)} columns={4} />
 
         <div className="text-center">
-          <Link
-            href="/deals"
-            className="btn btn-gold btn-lg group font-display tracking-wide"
-          >
+          <Link href="/deals" className="btn btn-gold btn-lg group font-display tracking-wide">
             Voir toutes les offres flash
             <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
           </Link>
         </div>
       </div>
-
-      <div className="absolute bottom-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-400/50 to-transparent" />
     </div>
   );
 }

@@ -1,5 +1,5 @@
 "use client";
-// src/app/checkout/success/page.tsx — Moroccan Luxury
+// src/app/checkout/success/page.tsx â€” Moroccan Luxury
 import { Suspense, useEffect } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -44,20 +44,20 @@ function SuccessContent() {
           </div>
         </div>
 
-        <h1 className="font-display text-4xl font-semibold mb-3 text-foreground">Commande confirmée !</h1>
+        <h1 className="font-display text-4xl font-semibold mb-3 text-foreground">Commande confirmÃ©e !</h1>
 
         {/* Gold divider */}
         <div className="mx-auto mb-5 h-px w-24 bg-gradient-to-r from-transparent via-gold-400 to-transparent" />
 
         <p className="text-muted-foreground leading-relaxed mb-3 text-base">
-          Merci pour votre achat sur <strong className="text-brand-700 dark:text-brand-400">NexMart Maroc</strong>.
+          Merci pour votre achat sur <strong className="text-brand-700 dark:text-brand-400">NexStore Maroc</strong>.
           Votre commande est en cours de traitement.
         </p>
 
         {/* Star rating prompt */}
         <div className="mx-auto mb-8 inline-flex items-center gap-2 rounded-full border border-gold-200/40 bg-gold-50/60 dark:bg-gold-900/10 px-4 py-2">
           {[...Array(5)].map((_, i) => <Star key={i} className="h-4 w-4 fill-gold-400 text-gold-400" />)}
-          <span className="text-xs font-medium text-gold-700 dark:text-gold-400">NexMart · 4.9/5</span>
+          <span className="text-xs font-medium text-gold-700 dark:text-gold-400">NexStore Â· 4.9/5</span>
         </div>
 
         <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
@@ -82,3 +82,4 @@ export default function CheckoutSuccessPage() {
     </Suspense>
   );
 }
+

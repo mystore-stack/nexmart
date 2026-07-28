@@ -19,7 +19,7 @@ export default function VendorLayout({ children }: { children: React.ReactNode }
       <aside className="w-64 border-r border-border bg-card hidden md:flex flex-col">
         <div className="p-6 border-b border-border">
           <p className="font-bold">Espace vendeur</p>
-          <p className="text-xs text-muted-foreground">NexMart MA</p>
+          <p className="text-xs text-muted-foreground">NexStore MA</p>
         </div>
         <nav className="p-4 space-y-1 flex-1">
           {NAV.map(({ href, label, icon: Icon }) => (
@@ -45,3 +45,4 @@ export default function VendorLayout({ children }: { children: React.ReactNode }
     </div>
   );
 }
+

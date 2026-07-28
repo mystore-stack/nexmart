@@ -1,4 +1,4 @@
-// src/app/layout.tsx — NexMart Moroccan Luxury (local fonts fallback)
+// src/app/layout.tsx - NexStore Moroccan luxury marketplace
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
@@ -20,23 +20,23 @@ const AIChatWidget = dynamic(
 
 export const metadata: Metadata = {
   title: {
-    default: "NexMart Maroc — Marketplace Premium",
-    template: "%s | NexMart Maroc",
+    default: "NexStore Maroc - Enterprise Marketplace",
+    template: "%s | NexStore Maroc",
   },
   description:
-    "NexMart est la marketplace premium du Maroc — shopping intelligent par IA, artisanat authentique, paiement sécurisé et livraison express.",
-  keywords: ["marketplace maroc", "shopping premium maroc", "artisanat marocain", "ecommerce maroc", "nexmart"],
-  authors: [{ name: "NexMart Maroc" }],
-  creator: "NexMart",
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://nexmart.ma"),
+    "NexStore est la marketplace premium du Maroc: shopping IA, produits marocains, deals internationaux, paiement securise et livraison express.",
+  keywords: ["marketplace maroc", "shopping premium maroc", "artisanat marocain", "ecommerce maroc", "nexstore"],
+  authors: [{ name: "NexStore Maroc" }],
+  creator: "NexStore",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://nexstore.ma"),
   alternates: { canonical: "/" },
   openGraph: {
-    type: "website", locale: "fr_MA", url: "https://nexmart.ma", siteName: "NexMart Maroc",
-    title: "NexMart Maroc — Marketplace Premium",
+    type: "website", locale: "fr_MA", url: "https://nexstore.ma", siteName: "NexStore Maroc",
+    title: "NexStore Maroc - Enterprise Marketplace",
     description: "Shopping premium au Maroc avec recommandations IA et artisanat authentique.",
-    images: [{ url: "/og-image.jpg", width: 1200, height: 630, alt: "NexMart Maroc" }],
+    images: [{ url: "/og-image.jpg", width: 1200, height: 630, alt: "NexStore Maroc" }],
   },
-  twitter: { card: "summary_large_image", title: "NexMart Maroc", creator: "@nexmart_ma" },
+  twitter: { card: "summary_large_image", title: "NexStore Maroc", creator: "@nexstore_ma" },
   robots: { index: true, follow: true },
   icons: { icon: "/favicon.ico", shortcut: "/favicon-16x16.png", apple: "/apple-touch-icon.png" },
 };

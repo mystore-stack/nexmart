@@ -64,3 +64,4 @@ export type { SessionData } from "./session-manager";
 
 // Deprecated constants
 export const SESSION_COOKIE = "nexmart_session_id"; // No longer used
+

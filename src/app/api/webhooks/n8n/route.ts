@@ -1,5 +1,5 @@
 import { OrderStatus } from "@prisma/client";
-// src/app/api/webhooks/n8n/route.ts — NexMart ↔ n8n Bridge
+// src/app/api/webhooks/n8n/route.ts â€” NexStore â†” n8n Bridge
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
@@ -29,3 +29,4 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }
+

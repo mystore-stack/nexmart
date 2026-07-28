@@ -1,43 +1,69 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { ProductListingShell } from "@/components/catalog/ProductListingShell";
-import { getCatalogCategories, getCatalogMaxPrice, getCategoryBySlug } from "@/lib/catalog-queries";
+import { prisma } from "@/lib/prisma";
+import { getDefaultOrganizationId } from "@/lib/tenant";
+import { CategoryPageClient } from "@/components/category";
+import { getCategoryBySlug, getCatalogMaxPrice } from "@/lib/catalog-queries";
 
-type Props = { params: { slug: string }; searchParams: Record<string, string | string[] | undefined> };
+type Props = {
+  params: { slug: string };
+  searchParams: Record<string, string | string[] | undefined>;
+};
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const category = await getCategoryBySlug(params.slug);
-  if (!category) return { title: "Catégorie introuvable" };
+  if (!category) return { title: "Categorie introuvable" };
   return {
-    title: category.name,
-    description: category.description || `Produits ${category.name} sur NexMart MA`,
+    title: `${category.name} - NexStore`,
+    description:
+      category.description ||
+      `Decouvrez tous les produits ${category.name} sur NexStore MA`,
   };
 }
 
-export default async function CategoryDetailPage({ params, searchParams }: Props) {
-  const [category, categories, maxPrice] = await Promise.all([
+async function getCategoryProducts(categoryId: string) {
+  const organizationId = await getDefaultOrganizationId();
+
+  const products = await prisma.product.findMany({
+    where: {
+      organizationId,
+      categoryId,
+      published: true,
+    },
+    include: {
+      category: true,
+      variants: true,
+    },
+    orderBy: { soldCount: "desc" },
+    take: 100,
+  });
+
+  return products as any;
+}
+
+export default async function CategoryDetailPage({
+  params,
+  searchParams,
+}: Props) {
+  const [category, maxPrice] = await Promise.all([
     getCategoryBySlug(params.slug),
-    getCatalogCategories(),
     getCatalogMaxPrice(),
   ]);
 
   if (!category) notFound();
 
-  const mergedParams = { ...searchParams, category: params.slug };
+  const products = await getCategoryProducts(category.id);
 
   return (
-    <ProductListingShell
-      title={category.name}
-      description={category.description || `Découvrez tous les produits ${category.name}`}
-      breadcrumbs={[
-        { label: "Accueil", href: "/" },
-        { label: "Catégories", href: "/categories" },
-        { label: category.name },
-      ]}
-      categories={categories as never}
+    <CategoryPageClient
+      categoryName={category.name}
+      categoryDescription={
+        category.description ||
+        `Decouvrez tous les produits ${category.name}`
+      }
+      categoryImage={category.image || undefined}
+      initialProducts={products}
       maxPrice={maxPrice}
-      searchParams={mergedParams}
-      forcedParams={{ category: params.slug }}
     />
   );
 }

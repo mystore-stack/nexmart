@@ -10,32 +10,48 @@ import {
 
 const GROUPS = [
   {
-    label: 'Commerce',
+    label: 'Main',
     items: [
-      { icon: LayoutDashboard, label: 'Overview', href: '/admin' },
+      { icon: LayoutDashboard, label: 'Dashboard', href: '/admin' },
       { icon: ShoppingBag, label: 'Orders', href: '/admin/orders', badge: '24' },
       { icon: Package, label: 'Products', href: '/admin/products' },
-      { icon: Boxes, label: 'Inventory', href: '/admin/products' },
       { icon: Users, label: 'Customers', href: '/admin/users' },
     ],
   },
   {
-    label: 'Growth',
+    label: 'Catalog',
     items: [
-      { icon: BarChart3, label: 'Analytics', href: '/admin/analytics' },
+      { icon: Tags, label: 'Categories', href: '/admin/categories' },
+      { icon: Boxes, label: 'Inventory', href: '/admin/products' },
+      { icon: BriefcaseBusiness, label: 'Vendors', href: '/admin/vendors' },
+    ],
+  },
+  {
+    label: 'Marketing',
+    items: [
       { icon: Megaphone, label: 'Campaigns', href: '/admin/deals' },
+      { icon: Sparkles, label: 'Flash Deals', href: '/admin/deals' },
       { icon: Gift, label: 'Bundle Deals', href: '/admin/bundles' },
-      { icon: Sparkles, label: 'AI Studio', href: '/admin/ai' },
+      { icon: BriefcaseBusiness, label: 'Super Deals', href: '/admin/deals' },
+      { icon: Boxes, label: 'MyStoreBox', href: '/admin/mystery-box' },
+      { icon: Megaphone, label: 'Sponsored Products', href: '/admin/ads' },
       { icon: CircleDollarSign, label: 'Coupons', href: '/admin/coupons' },
     ],
   },
   {
-    label: 'Workspace',
+    label: 'Analytics',
     items: [
-      { icon: Tags, label: 'Categories', href: '/admin/categories' },
-      { icon: ClipboardList, label: 'Homepage Builder', href: '/admin/cms' },
+      { icon: BarChart3, label: 'Analytics', href: '/admin/analytics' },
+      { icon: Sparkles, label: 'AI Studio', href: '/admin/ai' },
+      { icon: FileText, label: 'Reports', href: '/admin/analytics' },
+    ],
+  },
+  {
+    label: 'Settings',
+    items: [
       { icon: Bell, label: 'Notifications', href: '/admin/notifications' },
       { icon: FileText, label: 'Audit Log', href: '/admin/audit' },
+      { icon: Settings2, label: 'Settings', href: '/admin/settings' },
     ],
   },
 ];
@@ -46,7 +62,7 @@ export function AdminSidebar() {
     <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col bg-[#111827] text-white lg:flex">
       <div className="flex h-20 items-center gap-3 border-b border-white/10 px-6">
         <span className="grid h-9 w-9 place-items-center rounded-xl bg-blue-600 text-lg font-black">N</span>
-        <span><strong className="block text-sm">NexMart</strong><small className="text-[10px] text-slate-400">COMMERCE OS</small></span>
+        <span><strong className="block text-sm">NexStore</strong><small className="text-[10px] text-slate-400">COMMERCE OS</small></span>
       </div>
       <nav className="flex-1 space-y-6 overflow-y-auto px-3 py-6">
         {GROUPS.map((group) => (
@@ -77,8 +93,9 @@ export function AdminSidebar() {
         <Link href="/admin/settings" className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium text-slate-400 transition-colors hover:bg-white/5 hover:text-white">
           <Settings2 className="h-[17px] w-[17px]" /> Settings
         </Link>
-        <p className="px-3 pt-3 text-[10px] text-slate-600">NexMart Commerce OS · v2.0</p>
+        <p className="px-3 pt-3 text-[10px] text-slate-600">NexStore Commerce OS Â· v2.0</p>
       </div>
     </aside>
   );
 }
+

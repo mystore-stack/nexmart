@@ -1,6 +1,6 @@
 export const metadata = {
-  title: 'Checkout - NexMart Maroc',
-  description: 'Secure checkout for NexMart Maroc',
+  title: 'Checkout - NexStore Maroc',
+  description: 'Secure checkout for NexStore Maroc',
 }
 
 export default function CheckoutLayout({
@@ -10,3 +10,4 @@ export default function CheckoutLayout({
 }) {
   return <>{children}</>
 }
+

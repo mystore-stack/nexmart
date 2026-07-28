@@ -1,27 +1,30 @@
 // src/app/api/admin/analytics/route.ts
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { withAdmin } from "@/lib/withApi";
-import { ok } from "@/lib/api-response";
 import { requireAdmin } from "@/lib/auth-api";
-import { getCache, setCache, CACHE_TTL } from "@/lib/redis";
 import { subDays, startOfDay, format } from "date-fns";
 
 export const dynamic = "force-dynamic";
 
-export const GET = withAdmin(async ({ req }) => {
-  const { organizationId } = await requireAdmin();
+export async function GET(req: NextRequest) {
+  try {
+    const { organizationId } = await requireAdmin();
 
-  const range = parseInt(req.nextUrl.searchParams.get("range") || "30");
-  const cacheKey = `analytics:dashboard:${organizationId}:${range}`;
-
-  const cached = await getCache(cacheKey);
-  if (cached) return ok(cached);
+    const range = parseInt(req.nextUrl.searchParams.get("range") || "30");
 
     const now = new Date();
     const startDate = startOfDay(subDays(now, range));
     const prevStart = startOfDay(subDays(now, range * 2));
     const prevEnd = startOfDay(subDays(now, range));
+
+    // Get organization first to ensure it exists
+    const organization = await prisma.organization.findFirst({
+      where: { id: organizationId },
+    });
+
+    if (!organization) {
+      return NextResponse.json({ success: false, error: "Organization not found" }, { status: 404 });
+    }
 
     // Parallel queries for performance
     const [
@@ -52,7 +55,7 @@ export const GET = withAdmin(async ({ req }) => {
       prisma.order.count({ where: { organizationId, createdAt: { gte: startDate } } }),
       // Previous orders
       prisma.order.count({ where: { organizationId, createdAt: { gte: prevStart, lt: prevEnd } } }),
-      // New users
+      // New users (memberships)
       prisma.membership.count({ where: { organizationId, createdAt: { gte: startDate } } }),
       // Previous users
       prisma.membership.count({ where: { organizationId, createdAt: { gte: prevStart, lt: prevEnd } } }),
@@ -93,9 +96,9 @@ export const GET = withAdmin(async ({ req }) => {
 
     const currRev = currentRevenue._sum.total || 0;
     const prevRev = prevRevenue._sum.total || 0;
-    const revenueChange = prevRev ? ((currRev - prevRev) / prevRev) * 100 : 100;
-    const ordersChange = prevOrders ? ((currentOrders - prevOrders) / prevOrders) * 100 : 100;
-    const usersChange = prevUsers ? ((currentUsers - prevUsers) / prevUsers) * 100 : 100;
+    const revenueChange = prevRev ? ((currRev - prevRev) / prevRev) * 100 : 0;
+    const ordersChange = prevOrders ? ((currentOrders - prevOrders) / prevOrders) * 100 : 0;
+    const usersChange = prevUsers ? ((currentUsers - prevUsers) / prevUsers) * 100 : 0;
 
     // Build daily revenue chart data
     const dailyData: Record<string, { revenue: number; orders: number }> = {};
@@ -118,24 +121,32 @@ export const GET = withAdmin(async ({ req }) => {
     }));
 
     const result = {
-      summary: {
-        revenue: { total: currRev, change: Math.round(revenueChange * 10) / 10 },
-        orders: { total: currentOrders, change: Math.round(ordersChange * 10) / 10 },
-        users: { total: currentUsers, change: Math.round(usersChange * 10) / 10 },
-        products: { total: totalProducts, lowStock: lowStockProducts },
-      },
-      chartData,
+      totalRevenue: currRev,
+      totalOrders: currentOrders,
+      totalUsers: currentUsers,
+      totalProducts: totalProducts,
       topProducts: topProducts.map((p) => ({
-        ...p,
-        revenue: p.soldCount * p.price,
+        id: p.id,
+        name: p.name,
+        soldCount: p.soldCount,
+        price: p.price,
       })),
-      ordersByStatus: ordersByStatus.reduce((acc, item) => {
-        acc[item.status] = item._count.status;
-        return acc;
-      }, {} as Record<string, number>),
-      recentOrders,
+      recentOrders: recentOrders.map((order) => ({
+        id: order.id,
+        orderNumber: order.orderNumber,
+        user: { name: order.user.name, email: order.user.email },
+        total: order.total,
+        status: order.status,
+        createdAt: order.createdAt,
+      })),
     };
 
-  await setCache(cacheKey, result, CACHE_TTL.SHORT);
-  return ok(result);
-});
+    return NextResponse.json({ success: true, data: result });
+  } catch (error) {
+    console.error("[ANALYTICS API] Error:", error);
+    return NextResponse.json(
+      { success: false, error: "Failed to fetch analytics data" },
+      { status: 500 }
+    );
+  }
+}

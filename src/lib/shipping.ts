@@ -3,12 +3,9 @@
 const MOROCCAN_CITIES: Record<string, { zone: 1 | 2 | 3 }> = {
   casablanca: { zone: 1 },
   rabat: { zone: 1 },
-  salé: { zone: 1 },
   sale: { zone: 1 },
   marrakech: { zone: 2 },
-  fès: { zone: 2 },
   fes: { zone: 2 },
-  meknès: { zone: 2 },
   meknes: { zone: 2 },
   tanger: { zone: 2 },
   agadir: { zone: 2 },
@@ -21,19 +18,19 @@ const MOROCCAN_CITIES: Record<string, { zone: 1 | 2 | 3 }> = {
 export const CARRIERS = {
   amana: {
     name: "Amana",
-    logo: "https://nexmart.ma/carriers/amana.png",
+    logo: "https://nexstore.ma/carriers/amana.png",
     prices: { 1: 30, 2: 40, 3: 55 },
     days: { 1: "1-2 jours", 2: "2-3 jours", 3: "3-5 jours" },
   },
   chrono_diali: {
     name: "Chrono Diali",
-    logo: "https://nexmart.ma/carriers/chronodiali.png",
+    logo: "https://nexstore.ma/carriers/chronodiali.png",
     prices: { 1: 50, 2: 60, 3: 80 },
     days: { 1: "24h", 2: "24-48h", 3: "2-3 jours" },
   },
   jibli: {
     name: "Jibli",
-    logo: "https://nexmart.ma/carriers/jibli.png",
+    logo: "https://nexstore.ma/carriers/jibli.png",
     prices: { 1: 20, 2: 30, 3: 45 },
     days: { 1: "2-3 jours", 2: "3-4 jours", 3: "4-6 jours" },
   },
@@ -78,3 +75,4 @@ export function getValidatedShippingCost(
   }
   return selected.price;
 }
+

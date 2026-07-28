@@ -1,6 +1,6 @@
 "use client";
 /**
- * AIChatWidget — NexBot Moroccan Luxury AI Chat
+ * AIChatWidget â€” NexBot Moroccan Luxury AI Chat
  * Premium Moroccan design with full streaming support
  */
 import React, { useState, useRef, useEffect, useCallback } from "react";
@@ -16,7 +16,7 @@ interface Message {
 }
 
 const QUICK_QUESTIONS = [
-  "Où est ma commande ? 📦",
+  "OÃ¹ est ma commande ? ðŸ“¦",
   "Politique de retour",
   "Modes de paiement",
   "Livraison Maroc",
@@ -28,7 +28,7 @@ export function AIChatWidget() {
     {
       id: "welcome",
       role: "assistant",
-      content: "Bonjour ! 👋 Je suis **NexBot**, votre assistant IA NexMart.\nComment puis-je vous aider aujourd'hui ?",
+      content: "Bonjour ! ðŸ‘‹ Je suis **NexBot**, votre assistant IA NexStore.\nComment puis-je vous aider aujourd'hui ?",
       timestamp: new Date(),
     },
   ]);
@@ -92,7 +92,7 @@ export function AIChatWidget() {
       });
       if (!(res.headers.get("Content-Type") || "").includes("text/event-stream")) {
         const data = await res.json();
-        const botMsg: Message = { id: `bot-${Date.now()}`, role: "assistant", content: data.message || data.error || "Désolé, une erreur est survenue.", timestamp: new Date() };
+        const botMsg: Message = { id: `bot-${Date.now()}`, role: "assistant", content: data.message || data.error || "DÃ©solÃ©, une erreur est survenue.", timestamp: new Date() };
         if (data.conversationId) { setConversationId(data.conversationId); window.localStorage.setItem("nexmart_ai_conversation_id", data.conversationId); }
         setMessages((prev) => [...prev, botMsg]);
         if (!open) setUnread((n) => n + 1);
@@ -106,7 +106,7 @@ export function AIChatWidget() {
       });
       if (!open) setUnread((n) => n + 1);
     } catch {
-      setMessages((prev) => [...prev, { id: `err-${Date.now()}`, role: "assistant", content: "Connexion interrompue. Réessayez ou contactez support@nexmart.ma", timestamp: new Date() }]);
+      setMessages((prev) => [...prev, { id: `err-${Date.now()}`, role: "assistant", content: "Connexion interrompue. RÃ©essayez ou contactez support@nexstore.ma", timestamp: new Date() }]);
     } finally { setLoading(false); }
   };
 
@@ -144,7 +144,7 @@ export function AIChatWidget() {
             {/* Gold top line */}
             <div className="h-px bg-gradient-to-r from-transparent via-gold-400/70 to-transparent flex-shrink-0" />
 
-            {/* Header — Moroccan dark */}
+            {/* Header â€” Moroccan dark */}
             <div className="relative flex flex-shrink-0 items-center gap-3 bg-moroccan-navy p-4 text-white">
               <div className="absolute inset-0 moroccan-pattern-bg opacity-15" />
               <div className="relative flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-brand-700 shadow-brand">
@@ -157,7 +157,7 @@ export function AIChatWidget() {
                 </div>
                 <div className="flex items-center gap-1.5">
                   <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-green-400" />
-                  <span className="text-[11px] text-white/65">Assistant IA · En ligne</span>
+                  <span className="text-[11px] text-white/65">Assistant IA Â· En ligne</span>
                 </div>
               </div>
               <button onClick={() => setOpen(false)}
@@ -221,7 +221,7 @@ export function AIChatWidget() {
             <div className="flex-shrink-0 border-t border-gold-200/30 dark:border-gold-800/15 bg-white/80 dark:bg-card/80 p-3 backdrop-blur">
               <form onSubmit={(e) => { e.preventDefault(); sendMessage(input); }} className="flex gap-2">
                 <input ref={inputRef} value={input} onChange={(e) => setInput(e.target.value)}
-                  placeholder="Écrivez votre message…" disabled={loading} maxLength={1000}
+                  placeholder="Ã‰crivez votre messageâ€¦" disabled={loading} maxLength={1000}
                   className="flex-1 rounded-xl border border-border bg-muted/60 px-3.5 py-2.5 text-sm outline-none transition-all placeholder:text-muted-foreground focus:border-brand-500/50 focus:ring-2 focus:ring-brand-500/10" />
                 <button type="submit" disabled={!input.trim() || loading}
                   className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-brand-700 text-white transition-all hover:bg-brand-600 hover:shadow-brand disabled:opacity-40"
@@ -231,14 +231,14 @@ export function AIChatWidget() {
               </form>
               <p className="mt-2 flex items-center justify-center gap-1 text-center text-[10px] text-muted-foreground">
                 <Sparkles className="h-2.5 w-2.5 text-gold-500" />
-                Powered by NexMart AI · Maroc
+                Powered by NexStore AI Â· Maroc
               </p>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* FAB trigger — Moroccan style */}
+      {/* FAB trigger â€” Moroccan style */}
       <motion.button
         onClick={() => setOpen((o) => !o)}
         whileHover={{ scale: 1.06 }}
@@ -298,3 +298,4 @@ async function readAssistantStream(
     }
   }
 }
+

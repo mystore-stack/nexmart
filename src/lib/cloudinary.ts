@@ -103,3 +103,4 @@ export async function getSignedUploadParams(folder: string = "nexmart") {
 }
 
 export default cloudinary;
+

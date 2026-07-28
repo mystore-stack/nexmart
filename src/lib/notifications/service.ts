@@ -1,4 +1,4 @@
-// src/lib/notifications/service.ts — Unified notification service
+// src/lib/notifications/service.ts â€” Unified notification service
 // Provides a unified interface for all notification channels (Telegram, Email, etc.)
 
 import { 
@@ -11,7 +11,7 @@ import {
 } from "./telegram";
 import { sendEmail } from "@/lib/email";
 
-// ─── Order Notifications ───────────────────────────────────────
+// â”€â”€â”€ Order Notifications â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
  * Send notification when an order is created
@@ -42,11 +42,11 @@ export async function sendOrderCreatedNotification(order: {
   });
 
   // Send email confirmation to customer
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://nexmart.ma";
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://nexstore.ma";
   const itemsHtml = order.items.map(item => `
     <div style="padding: 10px; border-bottom: 1px solid #eee;">
       <div style="font-weight: bold;">${item.name}</div>
-      <div style="color: #666;">Qty: ${item.quantity} × ${item.price.toFixed(2)} DH</div>
+      <div style="color: #666;">Qty: ${item.quantity} Ã— ${item.price.toFixed(2)} DH</div>
     </div>
   `).join('');
 
@@ -71,7 +71,7 @@ export async function sendOrderCreatedNotification(order: {
       <body>
         <div class="container">
           <div class="header">
-            <h1>Order Confirmed! 🎉</h1>
+            <h1>Order Confirmed! ðŸŽ‰</h1>
             <p>Thank you for your purchase</p>
           </div>
           <div class="content">
@@ -130,7 +130,7 @@ export async function sendAdminNotification(notification: {
   }
 }
 
-// ─── Re-export Telegram functions for direct use ────────────────
+// â”€â”€â”€ Re-export Telegram functions for direct use â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export async function sendPaymentReceivedNotification(order: {
   orderNumber?: string;
@@ -157,7 +157,7 @@ export {
   sendTelegramMessage,
 } from "./telegram";
 
-// ─── Email Notifications ───────────────────────────────────────
+// â”€â”€â”€ Email Notifications â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 /**
  * Send shipping status update email
@@ -173,24 +173,24 @@ export async function sendShippingUpdateEmail(params: {
 }) {
   const statusMessages = {
     PROCESSING: {
-      title: "Your order is being prepared 📦",
+      title: "Your order is being prepared ðŸ“¦",
       message: "Great news! Your order is now being prepared for shipment.",
       color: "#667eea",
     },
     SHIPPED: {
-      title: "Your order has shipped! 🚚",
+      title: "Your order has shipped! ðŸšš",
       message: "Great news! Your order has been shipped and is on its way to you.",
       color: "#11998e",
     },
     DELIVERED: {
-      title: "Your order has been delivered! 🎉",
+      title: "Your order has been delivered! ðŸŽ‰",
       message: "Your order has been delivered. Enjoy your purchase!",
       color: "#f093fb",
     },
   };
 
   const statusInfo = statusMessages[params.status];
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://nexmart.ma";
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://nexstore.ma";
 
   await sendEmail({
     to: params.customerEmail,
@@ -256,7 +256,7 @@ export async function sendAbandonedCartEmail(params: {
 }) {
   const stageMessages = {
     1: {
-      subject: "You left something behind! 🛒",
+      subject: "You left something behind! ðŸ›’",
       message: "We noticed you left some items in your cart. Don't miss out!",
       discount: null,
     },
@@ -266,14 +266,14 @@ export async function sendAbandonedCartEmail(params: {
       discount: null,
     },
     3: {
-      subject: "Last chance! 5% off your order 🎁",
+      subject: "Last chance! 5% off your order ðŸŽ",
       message: "Here's a special offer just for you - complete your order now!",
       discount: 5,
     },
   };
 
   const stageInfo = stageMessages[params.stage];
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://nexmart.ma";
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://nexstore.ma";
   const couponText = params.couponCode 
     ? `<div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 20px; margin: 20px 0; border-radius: 5px; text-align: center;">
         <p style="margin: 0; font-size: 18px; font-weight: bold;">Use code: <span style="font-size: 24px; color: #667eea;">${params.couponCode}</span></p>
@@ -286,7 +286,7 @@ export async function sendAbandonedCartEmail(params: {
       <img src="${item.image}" alt="${item.name}" style="width: 80px; height: 80px; object-fit: cover; border-radius: 5px; margin-right: 15px;">
       <div style="flex: 1;">
         <div style="font-weight: bold; margin-bottom: 5px;">${item.name}</div>
-        <div style="color: #666;">Qty: ${item.quantity} × ${item.price.toFixed(2)} DH</div>
+        <div style="color: #666;">Qty: ${item.quantity} Ã— ${item.price.toFixed(2)} DH</div>
       </div>
     </div>
   `).join('');
@@ -328,3 +328,4 @@ export async function sendAbandonedCartEmail(params: {
     `,
   });
 }
+

@@ -1,5 +1,5 @@
 "use client";
-// src/app/register/page.tsx — NexMart Moroccan Luxury Register
+// src/app/register/page.tsx â€” NexStore Moroccan Luxury Register
 import React, { useState, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -10,7 +10,7 @@ import { useAuthStore } from "@/store/index";
 import toast from "react-hot-toast";
 
 const PW_RULES = [
-  { label: "8+ caractères", test: (p: string) => p.length >= 8 },
+  { label: "8+ caractÃ¨res", test: (p: string) => p.length >= 8 },
   { label: "Majuscule", test: (p: string) => /[A-Z]/.test(p) },
   { label: "Minuscule", test: (p: string) => /[a-z]/.test(p) },
   { label: "Chiffre", test: (p: string) => /\d/.test(p) },
@@ -47,13 +47,13 @@ function RegisterContent() {
       if (data.success) {
         const user = data.user ?? data.data?.user;
         if (user) setUser(user);
-        toast.success("Bienvenue sur NexMart ! 🎉");
+        toast.success("Bienvenue sur NexStore ! ðŸŽ‰");
         router.push(from); router.refresh();
       } else {
-        setError(data.error || "Échec de l'inscription.");
+        setError(data.error || "Ã‰chec de l'inscription.");
       }
     } catch {
-      setError("Une erreur est survenue. Veuillez réessayer.");
+      setError("Une erreur est survenue. Veuillez rÃ©essayer.");
     } finally {
       setLoading(false);
     }
@@ -85,8 +85,8 @@ function RegisterContent() {
                 <circle cx="20" cy="20" r="4" fill="rgba(212,175,55,0.9)" />
               </svg>
             </div>
-            <h1 className="font-display text-3xl font-semibold">Créer un compte</h1>
-            <p className="text-muted-foreground mt-1.5 text-sm">Rejoignez la communauté NexMart Maroc</p>
+            <h1 className="font-display text-3xl font-semibold">CrÃ©er un compte</h1>
+            <p className="text-muted-foreground mt-1.5 text-sm">Rejoignez la communautÃ© NexStore Maroc</p>
           </div>
 
           {error && (
@@ -138,7 +138,7 @@ function RegisterContent() {
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-muted-foreground">Force du mot de passe</span>
                     <span className={`font-bold ${pwStrength >= 3 ? "text-brand-600" : "text-muted-foreground"}`}>
-                      {STRENGTH_LABELS[pwStrength - 1] || "Très faible"}
+                      {STRENGTH_LABELS[pwStrength - 1] || "TrÃ¨s faible"}
                     </span>
                   </div>
                   <div className="flex gap-1">
@@ -167,14 +167,14 @@ function RegisterContent() {
                 J&apos;accepte les{" "}
                 <Link href="/terms" className="text-brand-700 dark:text-brand-400 hover:underline font-semibold">conditions d&apos;utilisation</Link>{" "}
                 et la{" "}
-                <Link href="/privacy" className="text-brand-700 dark:text-brand-400 hover:underline font-semibold">politique de confidentialité</Link>
+                <Link href="/privacy" className="text-brand-700 dark:text-brand-400 hover:underline font-semibold">politique de confidentialitÃ©</Link>
               </span>
             </label>
 
             <button type="submit" disabled={loading}
               className={`btn btn-primary btn-lg w-full font-display text-[0.95rem] tracking-wide group ${loading ? "loading" : ""}`}>
-              {loading ? "Création en cours…" : (
-                <>Créer mon compte <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" /></>
+              {loading ? "CrÃ©ation en coursâ€¦" : (
+                <>CrÃ©er mon compte <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" /></>
               )}
             </button>
           </form>
@@ -188,7 +188,7 @@ function RegisterContent() {
           <GoogleSignInButton redirectTo={from} />
 
           <p className="mt-6 text-center text-sm text-muted-foreground">
-            Déjà un compte ?{" "}
+            DÃ©jÃ  un compte ?{" "}
             <Link href="/login" className="font-semibold text-brand-700 dark:text-brand-400 hover:underline">
               Se connecter
             </Link>
@@ -206,3 +206,4 @@ export default function RegisterPage() {
     </Suspense>
   );
 }
+

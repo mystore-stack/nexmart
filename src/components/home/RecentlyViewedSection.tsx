@@ -25,7 +25,7 @@ export function RecentlyViewedSection() {
         </div>
         <div>
           <span className="section-label mb-0.5 block text-[11px]">Historique</span>
-          <h2 className="font-display text-2xl font-semibold">Récemment consultés</h2>
+          <h2 className="font-display text-2xl font-semibold">RÃ©cemment consultÃ©s</h2>
         </div>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
@@ -36,3 +36,4 @@ export function RecentlyViewedSection() {
     </div>
   );
 }
+

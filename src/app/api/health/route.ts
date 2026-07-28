@@ -1,4 +1,4 @@
-// src/app/api/health/route.ts — NexMart Health Check
+// src/app/api/health/route.ts â€” NexStore Health Check
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 export const dynamic = "force-dynamic";
@@ -14,3 +14,4 @@ export async function GET() {
     env: process.env.NODE_ENV,
   }, { status: dbOk ? 200 : 503 });
 }
+

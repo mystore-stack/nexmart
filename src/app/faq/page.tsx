@@ -2,19 +2,19 @@ import type { Metadata } from "next";
 import { StaticPage } from "@/components/content/StaticPage";
 import Link from "next/link";
 
-export const metadata: Metadata = { title: "FAQ | NexMart MA" };
+export const metadata: Metadata = { title: "FAQ | NexStore MA" };
 
 const FAQ = [
-  { q: "Quels sont les délais de livraison ?", a: "Entre 1 et 6 jours ouvrés selon la ville et le transporteur (Amana, Chrono Diali, Jibli)." },
-  { q: "La livraison est-elle gratuite ?", a: "Oui à partir de 500 MAD d'achat, selon les conditions affichées au checkout." },
-  { q: "Quels moyens de paiement acceptez-vous ?", a: "Carte bancaire via Stripe et paiement à la livraison." },
+  { q: "Quels sont les dÃ©lais de livraison ?", a: "Entre 1 et 6 jours ouvrÃ©s selon la ville et le transporteur (Amana, Chrono Diali, Jibli)." },
+  { q: "La livraison est-elle gratuite ?", a: "Oui Ã  partir de 500 MAD d'achat, selon les conditions affichÃ©es au checkout." },
+  { q: "Quels moyens de paiement acceptez-vous ?", a: "Carte bancaire via Stripe et paiement Ã  la livraison." },
   { q: "Comment retourner un produit ?", a: "Consultez notre politique de retour sous 14 jours sur la page Retours." },
-  { q: "Comment suivre ma commande ?", a: "Utilisez la page Suivi de commande avec votre numéro NX-..." },
+  { q: "Comment suivre ma commande ?", a: "Utilisez la page Suivi de commande avec votre numÃ©ro NX-..." },
 ];
 
 export default function FaqPage() {
   return (
-    <StaticPage title="Questions fréquentes">
+    <StaticPage title="Questions frÃ©quentes">
       <div className="space-y-6 not-prose">
         {FAQ.map((item) => (
           <details key={item.q} className="group border border-border rounded-xl p-4 bg-card">
@@ -33,3 +33,4 @@ export default function FaqPage() {
     </StaticPage>
   );
 }
+

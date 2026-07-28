@@ -35,24 +35,55 @@ export default function ProductsPage() {
     try {
       setLoading(true);
       setError(null);
-      const params = new URLSearchParams();
-      if (searchTerm) params.append('search', searchTerm);
-      
-      const response = await fetch(`/api/admin/products?${params.toString()}`);
-      if (!response.ok) throw new Error('Failed to fetch products');
+
+      console.log('[ADMIN PRODUCTS PAGE] Fetching products...');
+
+      const response = await fetch('/api/admin/products');
+      console.log('[ADMIN PRODUCTS PAGE] Response status:', response.status);
+
+      if (!response.ok) {
+        console.error('[ADMIN PRODUCTS PAGE] Response not OK:', response.status);
+        throw new Error('Failed to fetch products');
+      }
+
       const data = await response.json();
-      setProducts(data.data || []);
+      console.log('[ADMIN PRODUCTS PAGE] Full API Response:', JSON.stringify(data, null, 2));
+      console.log('[ADMIN PRODUCTS PAGE] data.success:', data.success);
+      console.log('[ADMIN PRODUCTS PAGE] data.data:', data.data);
+      console.log('[ADMIN PRODUCTS PAGE] typeof data.data:', typeof data.data);
+      console.log('[ADMIN PRODUCTS PAGE] Array.isArray(data.data):', Array.isArray(data.data));
+      console.log('[ADMIN PRODUCTS PAGE] data.data length:', data.data?.length);
+
+      // Handle different response formats
+      let productsData = [];
+      if (data.success && data.data) {
+        productsData = Array.isArray(data.data) ? data.data : [];
+        console.log('[ADMIN PRODUCTS PAGE] Using data.data path, length:', productsData.length);
+      } else if (Array.isArray(data)) {
+        productsData = data;
+        console.log('[ADMIN PRODUCTS PAGE] Using direct array path, length:', productsData.length);
+      } else {
+        console.error('[ADMIN PRODUCTS PAGE] Unknown response format:', data);
+        console.error('[ADMIN PRODUCTS PAGE] data keys:', Object.keys(data));
+      }
+
+      console.log('[ADMIN PRODUCTS PAGE] Final products data length:', productsData.length);
+      console.log('[ADMIN PRODUCTS PAGE] Setting products state...');
+
+      setProducts(productsData);
     } catch (err) {
+      console.error('[ADMIN PRODUCTS PAGE] Error:', err);
       setError('Failed to load products');
-      console.error('Error fetching products:', err);
+      setProducts([]);
     } finally {
+      console.log('[ADMIN PRODUCTS PAGE] Fetch complete, loading:', false);
       setLoading(false);
     }
   };
 
   useEffect(() => {
     fetchProducts();
-  }, [searchTerm]);
+  }, []); // Remove searchTerm dependency to avoid refetching
 
   const filteredProducts = products.map((p) => ({
     ...p,
@@ -61,6 +92,10 @@ export default function ProductsPage() {
   })).filter((p) =>
     p.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  console.log('[ADMIN PRODUCTS PAGE] Products state length:', products.length);
+  console.log('[ADMIN PRODUCTS PAGE] Filtered products length:', filteredProducts.length);
+  console.log('[ADMIN PRODUCTS PAGE] Search term:', searchTerm);
 
   const toggleSelect = (id: string) => {
     setSelectedProducts((prev) => {
@@ -101,8 +136,50 @@ export default function ProductsPage() {
     );
   }
 
+  // Debug: Show empty state message
+  if (products.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <AlertCircle className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
+          <p className="text-slate-600">No products found</p>
+          <p className="text-sm text-slate-500 mt-2">Products state is empty</p>
+          <button onClick={fetchProducts} className="mt-4 px-4 py-2 bg-brand-600 text-white rounded-lg">
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Debug: Show filtered products empty message
+  if (filteredProducts.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <AlertCircle className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
+          <p className="text-slate-600">No products match your search</p>
+          <p className="text-sm text-slate-500 mt-2">Total products: {products.length}</p>
+          <button onClick={() => setSearchTerm('')} className="mt-4 px-4 py-2 bg-brand-600 text-white rounded-lg">
+            Clear Search
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
+      {/* Debug Info */}
+      <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg">
+        <h3 className="font-bold text-yellow-800">Debug Info</h3>
+        <p>Products state length: {products.length}</p>
+        <p>Filtered products length: {filteredProducts.length}</p>
+        <p>Loading: {loading.toString()}</p>
+        <p>Error: {error || 'none'}</p>
+        <p>Search term: {searchTerm || 'none'}</p>
+      </div>
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>

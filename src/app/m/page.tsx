@@ -1,4 +1,4 @@
-// src/app/m/page.tsx — Mobile Home (Real Data + Mobile-Optimized Layout)
+// src/app/m/page.tsx â€” Mobile Home (Real Data + Mobile-Optimized Layout)
 import { MobileLayout } from "@/components/mobile/MobileLayout";
 import { SectionHeader } from "@/components/mobile/SectionHeader";
 import { ProductCard } from "@/components/mobile/ProductCard";
@@ -32,9 +32,9 @@ export default async function MobileHomePage() {
 
   return (
     <MobileLayout>
-      {/* ── Top bar ── */}
+      {/* â”€â”€ Top bar â”€â”€ */}
       <header className="flex items-center justify-between px-5 py-4 sticky top-0 z-30 bg-background/95 backdrop-blur border-b border-border">
-        <span className="font-display text-xl font-bold text-foreground tracking-tight">NexMart</span>
+        <span className="font-display text-xl font-bold text-foreground tracking-tight">NexStore</span>
         <div className="flex items-center gap-3">
           <Link href="/m/search" aria-label="Search" className="w-9 h-9 rounded-full bg-muted flex items-center justify-center">
             <svg className="w-4 h-4 text-foreground" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
@@ -51,7 +51,7 @@ export default async function MobileHomePage() {
 
       <div className="flex flex-col gap-10 py-6">
 
-        {/* ── 1. FLASH SALE BANNER ── */}
+        {/* â”€â”€ 1. FLASH SALE BANNER â”€â”€ */}
         <section className="px-4">
           <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-red-600 to-red-700 p-6">
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16" />
@@ -59,20 +59,20 @@ export default async function MobileHomePage() {
             <div className="relative">
               <div className="flex items-start justify-between mb-3">
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-widest text-white/80 mb-1">⚡ Limited Time</p>
+                  <p className="text-xs font-bold uppercase tracking-widest text-white/80 mb-1">âš¡ Limited Time</p>
                   <h2 className="text-2xl font-bold text-white">Flash Sale</h2>
                 </div>
                 <span className="text-3xl font-bold text-white/90">-50%</span>
               </div>
               <p className="text-sm text-white/80 mb-4">Limited quantity, first come first served</p>
               <Link href="/m/deals" className="inline-flex items-center gap-2 px-4 py-2 bg-white text-red-600 rounded-lg font-semibold text-sm hover:bg-neutral-50 transition-colors">
-                See Flash Deals →
+                See Flash Deals â†’
               </Link>
             </div>
           </div>
         </section>
 
-        {/* ── 2. Hero banner ── */}
+        {/* â”€â”€ 2. Hero banner â”€â”€ */}
         <section className="px-4">
           <div className="relative overflow-hidden rounded-2xl bg-neutral-100" style={{ aspectRatio: "4/3" }}>
             <img
@@ -88,13 +88,13 @@ export default async function MobileHomePage() {
                 Dress the<br />Moment.
               </h1>
               <Link href="/m/products" className="btn btn-gold btn-sm inline-flex text-sm font-bold">
-                Shop Now →
+                Shop Now â†’
               </Link>
             </div>
           </div>
         </section>
 
-        {/* ── 3. Smart categories ── */}
+        {/* â”€â”€ 3. Smart categories â”€â”€ */}
         <section className="px-4">
           <SectionHeader title="Browse" linkHref="/m/categories" />
           <div className="grid grid-cols-3 gap-2">
@@ -105,7 +105,7 @@ export default async function MobileHomePage() {
                 className="card-luxury flex flex-col items-center gap-2 rounded-2xl p-3 text-center active:scale-95 transition-transform"
               >
                 <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center text-xl">
-                  {CAT_ICON[cat.slug] || "📦"}
+                  {CAT_ICON[cat.slug] || "ðŸ“¦"}
                 </div>
                 <span className="text-[11px] font-semibold text-foreground leading-tight">{cat.name}</span>
               </Link>
@@ -113,7 +113,7 @@ export default async function MobileHomePage() {
           </div>
         </section>
 
-        {/* ── 4. Super Deals preview ── */}
+        {/* â”€â”€ 4. Super Deals preview â”€â”€ */}
         {deals.length > 0 && (
           <section>
             <div className="flex items-center justify-between px-4 mb-4">
@@ -126,7 +126,7 @@ export default async function MobileHomePage() {
                   <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
                   LIVE
                 </span>
-                <Link href="/m/deals" className="text-xs font-semibold text-primary">See all →</Link>
+                <Link href="/m/deals" className="text-xs font-semibold text-primary">See all â†’</Link>
               </div>
             </div>
             <div className="flex gap-3 overflow-x-auto no-scrollbar px-4 pb-1">
@@ -137,7 +137,7 @@ export default async function MobileHomePage() {
           </section>
         )}
 
-        {/* ── 5. Bundle preview ── */}
+        {/* â”€â”€ 5. Bundle preview â”€â”€ */}
         {bundle && (
           <section className="px-4">
             <SectionHeader title="Bundle Deals" subtitle="Save more" linkHref="/m/bundles" />
@@ -168,7 +168,7 @@ export default async function MobileHomePage() {
           </section>
         )}
 
-        {/* ── 6. Mystery Box ── */}
+        {/* â”€â”€ 6. Mystery Box â”€â”€ */}
         {box && (
           <section className="px-4">
             <div className="rounded-2xl p-6" style={{ backgroundColor: "#0F172A" }}>
@@ -186,13 +186,13 @@ export default async function MobileHomePage() {
               <p className="text-sm font-semibold text-white mb-1">{box.valueLabel}</p>
               <p className="text-sm text-neutral-400 leading-relaxed mb-5">{box.description}</p>
               <Link href="/m/mystery-box" className="btn btn-gold btn-md w-full justify-center inline-flex text-sm">
-                Open Your Box →
+                Open Your Box â†’
               </Link>
             </div>
           </section>
         )}
 
-        {/* ── 7. Featured products ── */}
+        {/* â”€â”€ 7. Featured products â”€â”€ */}
         <section className="px-4">
           <SectionHeader title="Featured" linkHref="/m/products" />
           <div className="grid grid-cols-2 gap-3">
@@ -202,7 +202,7 @@ export default async function MobileHomePage() {
           </div>
         </section>
 
-        {/* ── 8. Trending products ── */}
+        {/* â”€â”€ 8. Trending products â”€â”€ */}
         <section className="px-4">
           <SectionHeader title="Trending Now" subtitle="What's hot" linkHref="/m/products" />
           <div className="grid grid-cols-2 gap-3">
@@ -212,7 +212,7 @@ export default async function MobileHomePage() {
           </div>
         </section>
 
-        {/* ── 9. Promo Banner ── */}
+        {/* â”€â”€ 9. Promo Banner â”€â”€ */}
         <section className="px-4">
           <div className="grid grid-cols-2 gap-3">
             <Link href="/m/categories/fashion" className="relative overflow-hidden rounded-2xl aspect-square group">
@@ -240,7 +240,7 @@ export default async function MobileHomePage() {
           </div>
         </section>
 
-        {/* ── 10. Recently Viewed (placeholder) ── */}
+        {/* â”€â”€ 10. Recently Viewed (placeholder) â”€â”€ */}
         <section className="px-4">
           <SectionHeader title="Recently Viewed" linkHref="/m/products" />
           <div className="grid grid-cols-2 gap-3">
@@ -250,33 +250,33 @@ export default async function MobileHomePage() {
           </div>
         </section>
 
-        {/* ── 11. Why NexMart ── */}
+        {/* â”€â”€ 11. Why NexStore â”€â”€ */}
         <section className="px-4 py-8">
           <div className="grid gap-4">
             <div className="card-luxury rounded-xl p-4">
-              <div className="text-2xl mb-2">🚚</div>
+              <div className="text-2xl mb-2">ðŸšš</div>
               <h3 className="font-semibold text-foreground mb-1">Express Delivery</h3>
               <p className="text-xs text-muted-foreground">Get your order in 24-48 hours across Morocco</p>
             </div>
             <div className="card-luxury rounded-xl p-4">
-              <div className="text-2xl mb-2">🛡️</div>
+              <div className="text-2xl mb-2">ðŸ›¡ï¸</div>
               <h3 className="font-semibold text-foreground mb-1">Secure Checkout</h3>
-              <p className="text-xs text-muted-foreground">SSL encrypted • Stripe & CMI payments</p>
+              <p className="text-xs text-muted-foreground">SSL encrypted â€¢ Stripe & CMI payments</p>
             </div>
             <div className="card-luxury rounded-xl p-4">
-              <div className="text-2xl mb-2">💎</div>
+              <div className="text-2xl mb-2">ðŸ’Ž</div>
               <h3 className="font-semibold text-foreground mb-1">Curated Selection</h3>
               <p className="text-xs text-muted-foreground">Handpicked Moroccan luxury & authentic products</p>
             </div>
             <div className="card-luxury rounded-xl p-4">
-              <div className="text-2xl mb-2">📱</div>
+              <div className="text-2xl mb-2">ðŸ“±</div>
               <h3 className="font-semibold text-foreground mb-1">24/7 Support</h3>
               <p className="text-xs text-muted-foreground">Chat, email, or call us anytime</p>
             </div>
           </div>
         </section>
 
-        {/* ── 12. Newsletter Signup ── */}
+        {/* â”€â”€ 12. Newsletter Signup â”€â”€ */}
         <NewsletterSignup />
 
       </div>
@@ -284,8 +284,9 @@ export default async function MobileHomePage() {
   );
 }
 
-// Icon map (slug → emoji)
+// Icon map (slug â†’ emoji)
 const CAT_ICON: Record<string, string> = {
-  electronics: "📱", fashion: "👗", home: "🏡",
-  beauty: "💄", sports: "⚽", books: "📚",
+  electronics: "ðŸ“±", fashion: "ðŸ‘—", home: "ðŸ¡",
+  beauty: "ðŸ’„", sports: "âš½", books: "ðŸ“š",
 };
+

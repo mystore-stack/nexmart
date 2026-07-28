@@ -1,13 +1,13 @@
 import { StaticPage } from "@/components/content/StaticPage";
 
-export const metadata = { title: "À propos | NexMart MA" };
+export const metadata = { title: "Ã€ propos | NexStore MA" };
 
 export default function AboutPage() {
   return (
-    <StaticPage title="À propos de NexMart">
+    <StaticPage title="Ã€ propos de NexStore">
       <p>
-        NexMart MA est une marketplace e-commerce premium dédiée au marché marocain, avec livraison
-        nationale et paiement sécurisé.
+        NexStore MA est une marketplace e-commerce premium dÃ©diÃ©e au marchÃ© marocain, avec livraison
+        nationale et paiement sÃ©curisÃ©.
       </p>
       <p>
         Notre mission : rendre le shopping en ligne simple, rapide et fiable pour les familles et les
@@ -16,3 +16,4 @@ export default function AboutPage() {
     </StaticPage>
   );
 }
+

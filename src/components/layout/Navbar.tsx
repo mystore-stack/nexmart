@@ -1,415 +1,362 @@
 "use client";
-// src/components/layout/Navbar.tsx - Premium Moroccan Luxury Navbar
-import React, { useEffect, useRef, useState } from "react";
+
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-  Bell, ChevronDown, Heart, LogOut, Menu, Package,
-  Search, Settings, ShoppingCart, Sparkles, User, X, Star,
+  ChevronDown,
+  Headphones,
+  Heart,
+  Home,
+  Menu,
+  MonitorSmartphone,
+  Search,
+  ShieldCheck,
+  ShoppingBag,
+  ShoppingCart,
+  Sparkles,
+  Languages,
+  User,
+  X,
+  LayoutDashboard,
+  LogOut,
 } from "lucide-react";
 import { useCartStore } from "@/store/cart";
 import { useAuthStore, useUIStore } from "@/store/index";
+import { signOut } from "next-auth/react";
 
-const NAV_LINKS = [
+const categories = [
   {
-    label: "Boutique",
-    href: "/products",
-    children: [
-      { label: "Sélection IA", href: "/products?sort=recommended", note: "Recommandé pour vous" },
-      { label: "Électronique", href: "/products?category=electronics", note: "Appareils premium" },
-      { label: "Mode", href: "/products?category=fashion", note: "Nouvelles collections" },
-      { label: "Maison", href: "/products?category=home", note: "Art de vivre" },
-      { label: "Beauté", href: "/products?category=beauty", note: "Soins essentiels" },
-      { label: "Tous les produits", href: "/products", note: "Explorer la boutique" },
-    ],
+    label: "Electronics",
+    href: "/products?category=electronics",
+    groups: ["Phones", "Audio", "Smart home", "Wearables"],
   },
-  { label: "Promotions", href: "/deals" },
-  { label: "Marques", href: "/brands" },
-  { label: "Catégories", href: "/categories" },
+  {
+    label: "Fashion",
+    href: "/products?category=fashion",
+    groups: ["Kaftans", "Sneakers", "Bags", "Accessories"],
+  },
+  {
+    label: "Beauty",
+    href: "/products?category=beauty",
+    groups: ["Argan", "Fragrance", "Skincare", "Tools"],
+  },
+  {
+    label: "Home",
+    href: "/products?category=home-living",
+    groups: ["Zellige", "Lighting", "Kitchen", "Decor"],
+  },
+  {
+    label: "Moroccan Products",
+    href: "/products?category=moroccan-products",
+    groups: ["Leather", "Ceramics", "Amlou", "Cooperatives"],
+  },
 ];
 
-// Compact marketplace mark that stays legible at every breakpoint.
-function MoroccanLogo({ size = 40 }: { size?: number }) {
-  return (
-    <div
-      aria-hidden="true"
-      style={{ width: size, height: size }}
-      className="flex items-center justify-center rounded-[14px] bg-foreground text-background shadow-sm transition-transform duration-200 group-hover:rotate-[-4deg] group-hover:bg-brand-600"
-    >
-      <span className="text-lg font-black tracking-[-0.08em]">N<span className="text-brand-400">.</span></span>
-    </div>
-  );
-}
+const featuredMegaItems = [
+  { icon: Sparkles, title: "Luxury Edit", copy: "Premium Moroccan fashion and refined everyday essentials." },
+  { icon: MonitorSmartphone, title: "Tech Deals", copy: "Phones, audio, wearables, and smart devices." },
+  { icon: Home, title: "Home Studio", copy: "Clean interiors, lighting, bedding, and decor." },
+  { icon: Headphones, title: "Fast Picks", copy: "High-rated items ready for express shipping." },
+];
 
 export function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
   const [scrolled, setScrolled] = useState(false);
-  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+  const [megaOpen, setMegaOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
 
   const { items, openCart } = useCartStore();
-  const { user, logout } = useAuthStore();
+  const { user } = useAuthStore();
   const { openSearch, mobileMenuOpen, toggleMobileMenu, closeMobileMenu } = useUIStore();
 
   const cartCount = items.reduce((sum, item) => sum + item.quantity, 0);
-  const isAdmin = user?.role === "ADMIN" || user?.role === "SUPER_ADMIN";
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 12);
+    const onScroll = () => setScrolled(window.scrollY > 10);
     window.addEventListener("scroll", onScroll, { passive: true });
     onScroll();
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  useEffect(() => { closeMobileMenu(); }, [pathname, closeMobileMenu]);
+  useEffect(() => {
+    closeMobileMenu();
+  }, [pathname, closeMobileMenu]);
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSearch = (event: React.FormEvent) => {
+    event.preventDefault();
     const trimmed = searchQuery.trim();
-    if (!trimmed) { openSearch(); return; }
+    if (!trimmed) {
+      openSearch();
+      return;
+    }
     router.push(`/search?q=${encodeURIComponent(trimmed)}`);
     setSearchQuery("");
+  };
+
+  const handleLogout = async () => {
+    await signOut({ callbackUrl: "/login" });
   };
 
   return (
     <>
       <motion.header
-        className={`fixed inset-x-0 top-0 z-50 transition-all duration-400 ${
-          scrolled ? "navbar-glass" : "navbar-transparent"
-        }`}
-        initial={{ y: -100 }}
+        initial={{ y: -80 }}
         animate={{ y: 0 }}
-        transition={{ type: "spring", stiffness: 280, damping: 30 }}
+        transition={{ type: "spring", stiffness: 260, damping: 28 }}
+        className={`fixed inset-x-0 top-0 z-50 border-b border-slate-200 bg-white/95 backdrop-blur-xl transition-shadow duration-200 ${
+          scrolled ? "shadow-[0_8px_30px_rgba(15,23,42,0.07)]" : "shadow-none"
+        }`}
       >
-        {/* Announcement Bar */}
-        <div className="relative overflow-hidden bg-moroccan-navy">
-          <div className="absolute inset-0 moroccan-pattern-bg opacity-30" />
-          <div className="container-main flex h-9 items-center justify-center gap-3 text-xs font-semibold text-white/90">
-            <span className="flex items-center gap-2">
-              <Star className="h-3 w-3 text-brand-300 fill-brand-300" />
-              <span className="hidden sm:inline text-white/60">|</span>
-              <span>Livraison gratuite au Maroc dès 500 MAD</span>
-              <span className="hidden sm:inline text-white/60">|</span>
+        <div className="mx-auto flex h-20 max-w-[1440px] items-center gap-6 px-8">
+          <Link href="/" className="group flex items-center gap-3" aria-label="NexStore home">
+            <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-slate-950 text-lg font-black text-[#d6b25e] transition group-hover:bg-[#0f5d43] group-hover:text-white">
+              N
             </span>
-            <span className="hidden sm:inline text-white/55 text-[11px]">
-              Artisanat Premium · Paiement Sécurisé · Support 24h
-            </span>
-          </div>
-          <div className="absolute bottom-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-brand-500/50 to-transparent" />
-        </div>
+            <span className="text-2xl font-semibold tracking-normal text-slate-950">NexStore</span>
+          </Link>
 
-        <div className="container-main">
-          <div className="flex h-[4.25rem] items-center gap-4">
-            {/* Logo */}
-            <Link href="/" className="group flex shrink-0 items-center gap-3" aria-label="NexMart">
-              <motion.div whileHover={{ scale: 1.05 }} transition={{ duration: 0.2 }}>
-                <MoroccanLogo size={42} />
-              </motion.div>
-              <div className="hidden sm:block">
-                <span className="block font-display text-xl font-semibold tracking-tight leading-tight text-foreground">
-                  NexMart
-                </span>
-                <span className="block text-[9px] font-bold uppercase tracking-[0.15em] text-gold-600 dark:text-gold-500 -mt-0.5">
-                  Maroc · Premium
-                </span>
-              </div>
-            </Link>
-
-            {/* Desktop Nav */}
-            <nav className="hidden items-center gap-1 lg:flex ml-2">
-              {NAV_LINKS.map((link) => (
-                <div
-                  key={link.label}
-                  className="relative"
-                  onMouseEnter={() => link.children && setActiveDropdown(link.label)}
-                  onMouseLeave={() => setActiveDropdown(null)}
-                >
-                  <Link
-                    href={link.href}
-                    className={`flex items-center gap-1 rounded-xl px-3.5 py-2 text-sm font-medium transition-all duration-200 ${
-                      pathname === link.href
-                        ? "text-brand-700 bg-brand-50 dark:bg-brand-900/20 dark:text-brand-400"
-                        : "text-foreground/70 hover:bg-muted hover:text-foreground"
-                    }`}
-                  >
-                    {link.label}
-                    {link.children && (
-                      <ChevronDown className={`h-3.5 w-3.5 transition-transform ${activeDropdown === link.label ? "rotate-180" : ""}`} />
-                    )}
-                  </Link>
-
-                  <AnimatePresence>
-                    {link.children && activeDropdown === link.label && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 10, scale: 0.97 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 10, scale: 0.97 }}
-                        transition={{ duration: 0.18, ease: "easeOut" }}
-                        className="absolute left-0 top-full mt-2 w-[540px] overflow-hidden rounded-2xl border border-gold-200/60 bg-white/96 p-3 shadow-luxury-lg backdrop-blur-2xl dark:bg-moroccan-navy/95 dark:border-gold-800/30"
-                        style={{ boxShadow: "0 24px 64px rgba(15,23,42,0.14), 0 4px 16px rgba(15,118,110,0.08)" }}
-                      >
-                        <div className="grid grid-cols-[1fr_200px] gap-3">
-                          <div className="grid grid-cols-2 gap-1">
-                            {link.children.map((child) => (
-                              <Link
-                                key={child.label}
-                                href={child.href}
-                                className="group rounded-xl p-3 transition-all hover:bg-brand-50 dark:hover:bg-brand-900/20"
-                              >
-                                <span className="block text-sm font-semibold text-foreground group-hover:text-brand-700">{child.label}</span>
-                                <span className="mt-0.5 block text-xs text-muted-foreground">{child.note}</span>
-                              </Link>
-                            ))}
-                          </div>
-                          <div className="relative overflow-hidden rounded-xl p-4" style={{
-                            background: "linear-gradient(135deg, #0F766E 0%, #0a5c55 100%)"
-                          }}>
-                            <div className="absolute inset-0 moroccan-pattern-bg opacity-20" />
-                            <div className="relative">
-                              <div className="mb-3 flex h-8 w-8 items-center justify-center rounded-lg bg-gold-400/20">
-                                <Sparkles className="h-4 w-4 text-gold-300" />
-                              </div>
-                              <p className="text-sm font-display font-semibold text-white">Boutique IA</p>
-                              <p className="mt-1 text-xs leading-relaxed text-white/70">
-                                Recommandations adaptées à votre style et budget.
-                              </p>
-                              <Link href="/products?sort=recommended" className="mt-4 inline-flex items-center gap-1 text-xs font-bold text-gold-300 hover:text-gold-200 transition-colors">
-                                Explorer →
-                              </Link>
-                            </div>
-                          </div>
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              ))}
-            </nav>
-
-            {/* Search Bar */}
-            <form onSubmit={handleSearch} className="mx-2 hidden flex-1 md:flex">
-              <div className="relative w-full">
-                <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <input
-                  type="search"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Rechercher un produit..."
-                  className="h-11 w-full rounded-xl border border-border/80 bg-white/80 dark:bg-card/80 pl-11 pr-24 text-sm shadow-inner-sm outline-none backdrop-blur transition-all placeholder:text-muted-foreground focus:border-brand-500/60 focus:ring-3 focus:ring-brand-500/10 focus:bg-white"
-                  style={{ boxShadow: "inset 0 1px 3px rgba(15,23,42,0.06)" }}
-                />
-                <button
-                  type="submit"
-                  className="absolute right-1.5 top-1.5 inline-flex h-8 items-center gap-1.5 rounded-lg bg-brand-700 px-3 text-xs font-bold text-white transition-all hover:bg-brand-600 hover:shadow-brand"
-                >
-                  <Sparkles className="h-3 w-3" />
-                  Chercher
-                </button>
-              </div>
-            </form>
-
-            {/* Action Icons */}
-            <div className="ml-auto flex items-center gap-0.5">
-              <button onClick={openSearch} className="btn-ghost md:hidden" aria-label="Rechercher">
-                <Search className="h-5 w-5" />
-              </button>
-
-              <Link href="/wishlist" className="btn-ghost hidden sm:flex" aria-label="Favoris">
-                <Heart className="h-5 w-5" />
-              </Link>
-
-              {user && (
-                <Link href="/account/notifications" className="btn-ghost relative hidden sm:flex" aria-label="Notifications">
-                  <Bell className="h-5 w-5" />
-                  <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-brand-600 ring-2 ring-background" />
-                </Link>
-              )}
-
-              <button onClick={openCart} className="btn-ghost relative" aria-label={`Panier (${cartCount})`}>
-                <ShoppingCart className="h-5 w-5" />
-                <AnimatePresence>
-                  {cartCount > 0 && (
-                    <motion.span
-                      key={cartCount}
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      exit={{ scale: 0 }}
-                      className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-brand-700 px-1 text-[10px] font-black text-white"
-                    >
-                      {cartCount > 9 ? "9+" : cartCount}
-                    </motion.span>
-                  )}
-                </AnimatePresence>
-              </button>
-
-              {user ? (
-                <div
-                  className="relative hidden sm:block"
-                  onMouseEnter={() => setActiveDropdown("user")}
-                  onMouseLeave={() => setActiveDropdown(null)}
-                >
-                  <button className="flex items-center gap-2 rounded-xl border border-border/60 bg-white/70 dark:bg-card/70 py-1.5 pl-1.5 pr-3 text-sm font-medium backdrop-blur transition-all hover:bg-muted hover:border-gold-300/60">
-                    <div className="grid h-8 w-8 place-items-center overflow-hidden rounded-lg bg-brand-700 text-xs font-black text-white">
-                      {user.avatar ? (
-                        <Image src={user.avatar} alt={user.name} width={32} height={32} className="h-full w-full object-cover" />
-                      ) : user.name[0].toUpperCase()}
-                    </div>
-                    <span className="max-w-[80px] truncate text-foreground">{user.name.split(" ")[0]}</span>
-                    <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
-                  </button>
-
-                  <AnimatePresence>
-                    {activeDropdown === "user" && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 8, scale: 0.97 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 8, scale: 0.97 }}
-                        transition={{ duration: 0.15 }}
-                        className="absolute right-0 top-full mt-2 w-56 overflow-hidden rounded-2xl border border-gold-200/40 bg-white/97 p-1.5 shadow-luxury-lg backdrop-blur-2xl dark:bg-moroccan-navy/98 dark:border-gold-800/20"
-                      >
-                        <div className="mb-1 border-b border-border/60 px-3 py-3">
-                          <p className="truncate text-sm font-semibold">{user.name}</p>
-                          <p className="truncate text-xs text-muted-foreground">{user.email}</p>
-                        </div>
-                        {[
-                          { icon: User, label: "Mon compte", href: "/account" },
-                          { icon: Package, label: "Mes commandes", href: "/orders" },
-                          { icon: Heart, label: "Favoris", href: "/wishlist" },
-                          ...(isAdmin ? [{ icon: Settings, label: "Administration", href: "/admin" }] : []),
-                        ].map(({ icon: Icon, label, href }) => (
-                          <Link key={label} href={href} className="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm hover:bg-brand-50 dark:hover:bg-brand-900/20 hover:text-brand-700 transition-colors">
-                            <Icon className="h-4 w-4 text-muted-foreground" />
-                            {label}
-                          </Link>
-                        ))}
-                        <button
-                          onClick={logout}
-                          className="mt-1 flex w-full items-center gap-2.5 rounded-xl border-t border-border/50 px-3 py-2.5 text-left text-sm text-destructive hover:bg-destructive/8 transition-colors"
-                        >
-                          <LogOut className="h-4 w-4" />
-                          Se déconnecter
-                        </button>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              ) : (
-                <div className="hidden items-center gap-2 sm:flex ml-1">
-                  <Link href="/login" className="btn-outline h-10 px-4 text-sm flex items-center justify-center text-center">Connexion</Link>
-                  <Link href="/register" className="btn-primary h-10 px-5 text-sm flex items-center justify-center text-center">Rejoindre</Link>
-                </div>
-              )}
-
-              <button onClick={toggleMobileMenu} className="btn-ghost lg:hidden ml-1" aria-label="Menu">
-                {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          <form onSubmit={handleSearch} className="hidden flex-1 xl:block">
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-5 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+              <input
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                type="search"
+                placeholder="Search products, brands, sellers..."
+                className="h-[52px] w-full rounded-full border border-slate-200 bg-[#F9F9F9] px-14 py-4 text-sm font-medium text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#0f5d43] focus:bg-white focus:ring-4 focus:ring-emerald-100"
+              />
+              <button
+                type="submit"
+                className="absolute right-2 top-1/2 inline-flex h-10 -translate-y-1/2 items-center gap-2 rounded-full bg-[#0f5d43] px-5 text-sm font-bold text-white transition hover:bg-[#0b4834]"
+              >
+                Search
               </button>
             </div>
+          </form>
+
+          <div className="ml-auto flex items-center gap-2">
+            <button onClick={openSearch} className="grid h-11 w-11 place-items-center rounded-full text-slate-700 transition hover:bg-emerald-50 hover:text-[#0f5d43] xl:hidden" aria-label="Search">
+              <Search className="h-5 w-5" />
+            </button>
+            <div className="relative">
+              <button
+                onClick={() => setUserMenuOpen(!userMenuOpen)}
+                className="grid h-11 w-11 place-items-center rounded-full text-slate-700 transition hover:bg-emerald-50 hover:text-[#0f5d43]"
+                aria-label="Account"
+              >
+                <User className="h-5 w-5" />
+              </button>
+              <AnimatePresence>
+                {userMenuOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 8 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute right-0 top-14 w-56 rounded-xl border border-slate-200 bg-white shadow-xl"
+                  >
+                    {user ? (
+                      <div className="p-2">
+                        <div className="px-3 py-2 border-b border-slate-100 mb-2">
+                          <p className="text-sm font-medium text-slate-900">{user.name || user.email}</p>
+                          <p className="text-xs text-slate-500">{user.email}</p>
+                        </div>
+                        <Link
+                          href="/account"
+                          className="flex items-center gap-3 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 rounded-lg transition-colors"
+                          onClick={() => setUserMenuOpen(false)}
+                        >
+                          <User className="h-4 w-4" />
+                          Mon Compte
+                        </Link>
+                        <Link
+                          href="/orders"
+                          className="flex items-center gap-3 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 rounded-lg transition-colors"
+                          onClick={() => setUserMenuOpen(false)}
+                        >
+                          <ShoppingBag className="h-4 w-4" />
+                          Mes Commandes
+                        </Link>
+                        <Link
+                          href="/wishlist"
+                          className="flex items-center gap-3 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 rounded-lg transition-colors"
+                          onClick={() => setUserMenuOpen(false)}
+                        >
+                          <Heart className="h-4 w-4" />
+                          Ma Liste
+                        </Link>
+                        {(user.role === "ADMIN" || user.role === "SUPER_ADMIN") && (
+                          <Link
+                            href="/admin"
+                            className="flex items-center gap-3 px-3 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                            onClick={() => setUserMenuOpen(false)}
+                          >
+                            <LayoutDashboard className="h-4 w-4" />
+                            Admin Dashboard
+                          </Link>
+                        )}
+                        <div className="border-t border-slate-100 mt-2 pt-2">
+                          <button
+                            onClick={() => {
+                              handleLogout();
+                              setUserMenuOpen(false);
+                            }}
+                            className="flex items-center gap-3 w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          >
+                            <LogOut className="h-4 w-4" />
+                            Déconnexion
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="p-2">
+                        <Link
+                          href="/login"
+                          className="block px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 rounded-lg transition-colors"
+                          onClick={() => setUserMenuOpen(false)}
+                        >
+                          Connexion
+                        </Link>
+                        <Link
+                          href="/register"
+                          className="block px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 rounded-lg transition-colors"
+                          onClick={() => setUserMenuOpen(false)}
+                        >
+                          Inscription
+                        </Link>
+                      </div>
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+            <Link href="/wishlist" className="grid h-11 w-11 place-items-center rounded-full text-slate-700 transition hover:bg-emerald-50 hover:text-[#0f5d43]" aria-label="Wishlist">
+              <Heart className="h-5 w-5" />
+            </Link>
+            <button className="hidden h-11 items-center gap-1 rounded-full px-3 text-xs font-black text-slate-700 transition hover:bg-emerald-50 hover:text-[#0f5d43] md:inline-flex" aria-label="Language">
+              <Languages className="h-4 w-4" />
+              FR
+            </button>
+            <button onClick={openCart} className="relative grid h-11 w-11 place-items-center rounded-full text-slate-700 transition hover:bg-emerald-50 hover:text-[#0f5d43]" aria-label={`Cart (${cartCount})`}>
+              <ShoppingCart className="h-5 w-5" />
+              {cartCount > 0 && (
+                <span className="absolute right-0 top-0 grid h-5 min-w-5 place-items-center rounded-full bg-[#0f5d43] px-1 text-[10px] font-black text-white">
+                  {cartCount > 9 ? "9+" : cartCount}
+                </span>
+              )}
+            </button>
+            <button onClick={toggleMobileMenu} className="grid h-11 w-11 place-items-center rounded-full text-slate-700 transition hover:bg-emerald-50 hover:text-[#0f5d43] lg:hidden" aria-label="Menu">
+              {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </button>
           </div>
         </div>
 
-        {/* Gold bottom accent */}
-        {scrolled && (
-          <div className="absolute bottom-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-400/40 to-transparent" />
-        )}
-      </motion.header>
+        <div onMouseEnter={() => setMegaOpen(true)} onMouseLeave={() => setMegaOpen(false)} className="hidden border-t border-slate-100 lg:block">
+          <nav className="mx-auto flex h-12 max-w-[1440px] items-center gap-1 px-8">
+            <button className="mr-2 inline-flex h-9 items-center gap-2 rounded-lg bg-slate-950 px-4 text-sm font-semibold text-white transition hover:bg-[#0f5d43]">
+              <ShoppingBag className="h-4 w-4" />
+              All departments
+              <ChevronDown className={`h-4 w-4 transition ${megaOpen ? "rotate-180" : ""}`} />
+            </button>
+            {categories.map((category) => (
+              <Link
+                key={category.label}
+                href={category.href}
+                className="rounded-lg px-4 py-2 text-sm font-semibold text-slate-600 transition hover:bg-emerald-50 hover:text-[#0f5d43]"
+              >
+                {category.label}
+              </Link>
+            ))}
+          </nav>
 
-      <div className="h-[calc(4.25rem+36px)]" />
-
-      {/* Mobile Menu */}
-      <AnimatePresence>
-        {mobileMenuOpen && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-40 bg-moroccan-navy/50 backdrop-blur-sm lg:hidden"
-              onClick={closeMobileMenu}
-            />
-            <motion.div
-              initial={{ x: "100%" }}
-              animate={{ x: 0 }}
-              exit={{ x: "100%" }}
-              transition={{ type: "spring", stiffness: 300, damping: 32 }}
-              className="fixed bottom-0 right-0 top-0 z-50 w-full max-w-sm overflow-y-auto bg-moroccan-sand dark:bg-moroccan-navy border-l border-gold-200/40 dark:border-gold-800/20 p-5 shadow-2xl lg:hidden"
-            >
-              <div className="absolute inset-0 moroccan-pattern-bg opacity-5" />
-              <div className="relative">
-                <div className="mb-6 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <MoroccanLogo size={36} />
-                    <div>
-                      <span className="font-display text-lg font-semibold">NexMart</span>
-                      <span className="block text-[9px] font-bold uppercase tracking-widest text-gold-600 -mt-0.5">Maroc · Premium</span>
-                    </div>
-                  </div>
-                  <button onClick={closeMobileMenu} className="btn-ghost">
-                    <X className="h-5 w-5" />
-                  </button>
-                </div>
-
-                <form onSubmit={handleSearch} className="mb-5">
-                  <div className="relative">
-                    <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <input
-                      type="search"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Rechercher..."
-                      className="input pl-10"
-                    />
-                  </div>
-                </form>
-
-                <nav className="space-y-1.5">
-                  {NAV_LINKS.map((link) => (
-                    <div key={link.label} className="rounded-2xl border border-gold-200/40 bg-white/60 dark:bg-card/50 dark:border-gold-800/20 p-1">
-                      <Link href={link.href} className="flex items-center rounded-xl px-3.5 py-3 text-sm font-semibold hover:bg-brand-50 dark:hover:bg-brand-900/20 hover:text-brand-700 transition-colors">
-                        {link.label}
-                      </Link>
-                      {link.children && (
-                        <div className="grid grid-cols-2 gap-1 px-2 pb-2">
-                          {link.children.slice(0, 4).map((child) => (
-                            <Link key={child.label} href={child.href} className="rounded-xl px-3 py-2 text-xs text-muted-foreground hover:bg-muted hover:text-foreground transition-colors">
-                              {child.label}
+          <AnimatePresence>
+            {megaOpen && (
+              <motion.div
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 8 }}
+                transition={{ duration: 0.18 }}
+                className="absolute inset-x-0 top-[132px] border-y border-slate-200 bg-white shadow-[0_28px_70px_rgba(15,23,42,0.12)]"
+              >
+                <div className="mx-auto grid max-w-[1440px] grid-cols-[1fr_380px] gap-8 px-8 py-8">
+                  <div className="grid grid-cols-3 gap-5">
+                    {categories.map((category) => (
+                      <div key={category.label}>
+                        <Link href={category.href} className="flex items-center gap-2 text-sm font-bold text-slate-950 transition hover:text-[#0f5d43]">
+                          {category.label}
+                          <ArrowGlyph />
+                        </Link>
+                        <div className="mt-3 grid gap-2">
+                          {category.groups.map((item) => (
+                            <Link key={item} href={category.href} className="text-sm text-slate-500 transition hover:text-[#0f5d43]">
+                              {item}
                             </Link>
                           ))}
                         </div>
-                      )}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="rounded-xl border border-slate-200 bg-[#F9F9F9] p-5">
+                    <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-[#0f5d43]">
+                      <ShieldCheck className="h-4 w-4" />
+                      Featured marketplace edits
                     </div>
-                  ))}
-                </nav>
-
-                <div className="mt-6 grid grid-cols-2 gap-3 border-t border-gold-200/40 dark:border-gold-800/20 pt-5">
-                  {user ? (
-                    <>
-                      <Link href="/account" className="btn btn-outline h-11 w-full justify-center text-sm">Mon Compte</Link>
-                      <button onClick={logout} className="btn btn-outline h-11 w-full justify-center text-sm text-destructive">Déconnexion</button>
-                    </>
-                  ) : (
-                    <>
-                      <Link href="/login" className="btn btn-outline h-11 w-full justify-center text-sm">Connexion</Link>
-                      <Link href="/register" className="btn btn-primary h-11 w-full justify-center text-sm">Rejoindre</Link>
-                    </>
-                  )}
+                    <div className="mt-5 grid gap-3">
+                      {featuredMegaItems.map(({ icon: Icon, title, copy }) => (
+                        <Link key={title} href="/products" className="group flex gap-3 rounded-lg bg-white p-3 transition hover:shadow-sm">
+                          <span className="grid h-10 w-10 place-items-center rounded-lg bg-emerald-50 text-[#0f5d43]">
+                            <Icon className="h-5 w-5" />
+                          </span>
+                          <span>
+                            <span className="block text-sm font-semibold text-slate-950 group-hover:text-[#0f5d43]">{title}</span>
+                            <span className="mt-1 block text-xs leading-5 text-slate-500">{copy}</span>
+                          </span>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
                 </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </motion.header>
 
-                {/* Moroccan ornament */}
-                <div className="mt-8 flex justify-center">
-                  <svg width="80" height="40" viewBox="0 0 80 40" fill="none" className="opacity-20">
-                    <path d="M40 4 L76 20 L40 36 L4 20 Z" stroke="#D4AF37" strokeWidth="1" fill="none" />
-                    <path d="M40 12 L62 20 L40 28 L18 20 Z" stroke="#D4AF37" strokeWidth="1" fill="none" />
-                    <circle cx="40" cy="20" r="4" fill="#D4AF37" />
-                  </svg>
-                </div>
-              </div>
-            </motion.div>
-          </>
+      <div className="h-[132px]" />
+
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <motion.div
+            initial={{ x: "100%" }}
+            animate={{ x: 0 }}
+            exit={{ x: "100%" }}
+            transition={{ type: "spring", stiffness: 290, damping: 30 }}
+            className="fixed bottom-0 right-0 top-0 z-[60] w-full max-w-sm border-l border-slate-200 bg-white p-6 shadow-2xl lg:hidden"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-2xl font-semibold">NexStore</span>
+              <button onClick={closeMobileMenu} className="grid h-10 w-10 place-items-center rounded-full bg-slate-100" aria-label="Close menu">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="mt-6 grid gap-2">
+              {categories.map((category) => (
+                <Link key={category.label} href={category.href} className="rounded-lg border border-slate-200 px-4 py-3 text-sm font-semibold">
+                  {category.label}
+                </Link>
+              ))}
+            </div>
+          </motion.div>
         )}
       </AnimatePresence>
     </>
   );
+}
+
+function ArrowGlyph() {
+  return <span aria-hidden="true" className="text-[#0f5d43]">-&gt;</span>;
 }

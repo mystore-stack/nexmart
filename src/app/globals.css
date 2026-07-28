@@ -1,17 +1,17 @@
-/* NexMart — System font fallbacks (Google Fonts loaded at runtime via layout) */
-/* NexMart - Premium Moroccan Luxury Design System */
+/* NexStore â€” System font fallbacks (Google Fonts loaded at runtime via layout) */
+/* NexStore - Premium Moroccan Luxury Design System */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    /* NexMart marketplace palette */
-    --emerald: 221 83% 53%;
-    --emerald-light: 217 91% 60%;
-    --gold: 221 83% 53%;
-    --gold-light: 217 91% 60%;
-    --gold-dark: 224 76% 48%;
+    /* NexStore marketplace palette */
+    --emerald: 25 95% 53%;
+    --emerald-light: 24 95% 60%;
+    --gold: 25 95% 53%;
+    --gold-light: 24 95% 60%;
+    --gold-dark: 20 90% 45%;
     --navy: 222 47% 11%;
     --sand: 210 40% 96%;
     --ivory: 210 40% 98%;
@@ -30,7 +30,7 @@
     --secondary-foreground: 222 47% 15%;
     --muted: 214 32% 96%;
     --muted-foreground: 215 16% 47%;
-    --accent: 221 83% 53%;
+    --accent: 25 95% 53%;
     --accent-foreground: 0 0% 100%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
@@ -40,9 +40,9 @@
     --radius: 1.25rem;
     --surface: 210 40% 96%;
     --surface-2: 214 32% 94%;
-    --brand: 221 83% 53%;
-    --brand-rgb: 37, 99, 235;
-    --gold-rgb: 37, 99, 235;
+    --brand: 25 95% 53%;
+    --brand-rgb: 249, 115, 22;
+    --gold-rgb: 249, 115, 22;
     --toast-bg: #111827;
     --toast-fg: #FFFFFF;
   }
@@ -110,7 +110,7 @@
 
 @layer components {
 
-  /* ─── Moroccan Geometric Pattern SVG ─── */
+  /* â”€â”€â”€ Moroccan Geometric Pattern SVG â”€â”€â”€ */
   .moroccan-pattern-bg {
     background-image: url("data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='%230F766E' stroke-width='0.5' opacity='0.12'%3E%3Cpath d='M40 0 L80 40 L40 80 L0 40 Z'/%3E%3Cpath d='M40 10 L70 40 L40 70 L10 40 Z'/%3E%3Cpath d='M40 20 L60 40 L40 60 L20 40 Z'/%3E%3Ccircle cx='40' cy='40' r='8'/%3E%3Cpath d='M0 0 L20 20 M60 0 L80 20 M0 60 L20 80 M60 60 L80 80'/%3E%3C/g%3E%3C/svg%3E");
     background-size: 80px 80px;
@@ -121,10 +121,10 @@
     background-size: 60px 60px;
   }
 
-  /* ─── Card Styles ─── */
+  /* â”€â”€â”€ Card Styles â”€â”€â”€ */
   .card-luxury {
-    @apply rounded-2xl border border-white/70 bg-card/90 backdrop-blur-xl;
-    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 32px rgba(15, 23, 42, 0.07);
+    @apply rounded-2xl border border-slate-200/80 bg-white/95 backdrop-blur-xl;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03), 0 8px 24px rgba(15, 23, 42, 0.06);
     transition: box-shadow 0.35s ease, transform 0.35s ease, border-color 0.35s ease;
   }
   .card-luxury:hover {
@@ -136,7 +136,7 @@
     background: rgba(255, 255, 255, 0.72);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(37, 99, 235, 0.12);
+    border: 1px solid rgba(249, 115, 22, 0.12);
     box-shadow: 0 8px 32px rgba(15, 23, 42, 0.08), inset 0 1px 0 rgba(255,255,255,0.6);
   }
   .dark .glass-card {
@@ -145,16 +145,33 @@
   }
 
   .product-card {
-    @apply card-luxury overflow-hidden;
-    transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    @apply overflow-hidden rounded-[1.05rem] border border-slate-200 bg-white;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    transition: all 0.24s ease;
   }
   .product-card:hover {
-    transform: translateY(-6px);
-    box-shadow: 0 28px 72px rgba(37, 99, 235, 0.16), 0 8px 20px rgba(15, 23, 42, 0.08);
-    border-color: hsl(var(--gold) / 0.3);
+    transform: translateY(-3px);
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+    border-color: rgba(249, 115, 22, 0.25);
   }
 
-  /* ─── Button Styles ─── */
+  .market-grid {
+    @apply grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4;
+  }
+
+  .market-pill {
+    @apply inline-flex items-center gap-2 rounded-full border border-orange-200 bg-orange-50 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-orange-700;
+  }
+
+  .market-shell {
+    @apply rounded-[1.4rem] border border-orange-100 bg-white p-4 shadow-[0_1px_2px_rgba(15,23,42,0.04)] sm:p-6;
+  }
+
+  .market-panel {
+    @apply rounded-[1.6rem] border border-slate-200/80 bg-white/90 p-4 shadow-[0_10px_30px_rgba(15,23,42,0.04)] sm:p-6;
+  }
+
+  /* â”€â”€â”€ Button Styles â”€â”€â”€ */
   .btn {
     @apply inline-flex items-center justify-center gap-2 font-semibold select-none;
     text-align: center;
@@ -169,7 +186,7 @@
   }
 
   .btn-primary {
-    background: linear-gradient(135deg, #111827 0%, #2563EB 50%, #111827 100%);
+    background: linear-gradient(135deg, #111827 0%, #f97316 50%, #111827 100%);
     background-size: 200% 100%;
     color: white;
     font-weight: 700;
@@ -190,12 +207,12 @@
     opacity: 0;
     transition: opacity 0.3s ease;
   }
-  .btn-primary:hover { transform: translateY(-2px) scale(1.015); filter: brightness(1.05); box-shadow: 0 8px 32px rgba(37, 99, 235, 0.45), 0 2px 8px rgba(37, 99, 235, 0.25); }
+  .btn-primary:hover { transform: translateY(-2px) scale(1.015); filter: brightness(1.05); box-shadow: 0 12px 28px rgba(249, 115, 22, 0.28); }
   .btn-primary:hover::before { opacity: 1; }
   .btn-primary:active { transform: translateY(0) scale(0.99); }
 
   .btn-gold {
-    background: linear-gradient(135deg, #111827 0%, #2563EB 50%, #111827 100%);
+    background: linear-gradient(135deg, #111827 0%, #f97316 50%, #111827 100%);
     color: #0F172A;
     font-weight: 800;
     border-radius: 0.875rem;
@@ -238,16 +255,16 @@
   .btn-sm { height: 40px; padding-left: 0.875rem; padding-right: 0.875rem; font-size: 0.875rem; }
   .btn[disabled], .btn.disabled { @apply opacity-55 cursor-not-allowed pointer-events-none; transform: none; box-shadow: none; }
 
-  /* ─── Badges ─── */
+  /* â”€â”€â”€ Badges â”€â”€â”€ */
   .badge {
     @apply inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold;
   }
   .badge-emerald { background: rgba(37, 99, 235, 0.12); color: #1d4ed8; border: 1px solid rgba(37, 99, 235, 0.2); }
   .badge-gold { background: rgba(37, 99, 235, 0.10); color: #1d4ed8; border: 1px solid rgba(37, 99, 235, 0.18); }
   .badge-brand { background: #2563EB; color: white; }
-  .badge-sale { background: linear-gradient(135deg, #ef4444, #dc2626); color: white; box-shadow: 0 2px 8px rgba(239,68,68,0.35); }
+  .badge-sale { background: linear-gradient(135deg, #fb923c, #f97316); color: white; box-shadow: 0 2px 8px rgba(249,115,22,0.28); }
 
-  /* ─── Price ─── */
+  /* â”€â”€â”€ Price â”€â”€â”€ */
   .price-main {
     @apply text-xl font-black;
     color: hsl(var(--emerald));
@@ -259,11 +276,14 @@
     color: hsl(var(--muted-foreground));
   }
 
-  /* ─── Layout ─── */
-  .section { @apply py-12 md:py-16 lg:py-20; }
+  /* â”€â”€â”€ Layout â”€â”€â”€ */
+  .section { @apply py-10 md:py-14 lg:py-16; }
   .container-main { @apply mx-auto max-w-7xl px-4 sm:px-6 lg:px-8; }
+  .market-shell { @apply rounded-[1.75rem] border border-slate-200/80 bg-white p-5 shadow-sm sm:p-6 lg:p-8; }
+  .market-pill { @apply inline-flex items-center rounded-full border border-orange-200 bg-orange-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-orange-600; }
+  .market-grid { @apply grid grid-cols-2 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4; }
 
-  /* ─── Input ─── */
+  /* â”€â”€â”€ Input â”€â”€â”€ */
   .input-luxury {
     @apply w-full rounded-xl border border-border bg-white/80 px-4 py-3 text-sm outline-none backdrop-blur transition-all duration-200 placeholder:text-muted-foreground;
     box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06), inset 0 1px 0 rgba(255,255,255,0.9);
@@ -274,9 +294,9 @@
   }
   .input { @apply input-luxury; }
 
-  /* ─── Section Headers ─── */
+  /* â”€â”€â”€ Section Headers â”€â”€â”€ */
   .section-label {
-    @apply inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest;
+    @apply inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.28em];
     color: hsl(var(--gold));
     font-family: 'DM Sans', 'Inter', system-ui, sans-serif;
   }
@@ -287,20 +307,20 @@
     color: hsl(var(--foreground));
   }
 
-  /* ─── Gold accent divider ─── */
+  /* â”€â”€â”€ Gold accent divider â”€â”€â”€ */
   .gold-divider {
     height: 2px;
     width: 3rem;
-    background: linear-gradient(90deg, #2563EB, transparent);
+    background: linear-gradient(90deg, #f97316, transparent);
     border-radius: 99px;
   }
 
-  /* ─── Moroccan Arch Shape ─── */
+  /* â”€â”€â”€ Moroccan Arch Shape â”€â”€â”€ */
   .moroccan-arch {
     clip-path: polygon(0% 0%, 100% 0%, 100% 80%, 50% 100%, 0% 80%);
   }
 
-  /* ─── Skeleton ─── */
+  /* â”€â”€â”€ Skeleton â”€â”€â”€ */
   .skeleton {
     background: linear-gradient(90deg, hsl(var(--muted)) 0%, hsl(var(--surface-2)) 40%, hsl(var(--muted)) 80%);
     background-size: 200% 100%;
@@ -313,12 +333,12 @@
     animation: shimmer 1.8s ease-in-out infinite;
   }
 
-  /* ─── Stars ─── */
+  /* â”€â”€â”€ Stars â”€â”€â”€ */
   .stars { @apply flex items-center gap-0.5; }
   .star-filled { color: #2563EB; }
   .star-empty { color: hsl(var(--border)); }
 
-  /* ─── Navbar glass ─── */
+  /* â”€â”€â”€ Navbar glass â”€â”€â”€ */
   .navbar-glass {
     background: rgba(245, 241, 232, 0.88);
     backdrop-filter: blur(24px);
@@ -339,7 +359,7 @@
     background: rgba(15, 23, 42, 0.4);
   }
 
-  /* ─── Luxury gradient text ─── */
+  /* â”€â”€â”€ Luxury gradient text â”€â”€â”€ */
   .gradient-gold {
     background: linear-gradient(135deg, #1d4ed8 0%, #60a5fa 50%, #1d4ed8 100%);
     -webkit-background-clip: text;
@@ -354,19 +374,19 @@
   }
   .gradient-brand { @apply gradient-emerald; }
 
-  /* ─── Floating glow ─── */
+  /* â”€â”€â”€ Floating glow â”€â”€â”€ */
   .glow-emerald { box-shadow: 0 0 32px rgba(37, 99, 235, 0.4); }
   .glow-gold { box-shadow: 0 0 32px rgba(37, 99, 235, 0.3); }
   .glow-brand { @apply glow-emerald; }
 
-  /* ─── Luxury announcement bar ─── */
+  /* â”€â”€â”€ Luxury announcement bar â”€â”€â”€ */
   .announcement-bar {
     background: linear-gradient(135deg, #111827 0%, #2563EB 50%, #111827 100%);
     background-size: 200% 100%;
     animation: shimmer-bar 6s ease infinite;
   }
 
-  /* ─── Safe area ─── */
+  /* â”€â”€â”€ Safe area â”€â”€â”€ */
   .safe-top { padding-top: env(safe-area-inset-top); }
   .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
   .no-scrollbar::-webkit-scrollbar { display: none; }
@@ -377,7 +397,7 @@
   .text-balance { text-wrap: balance; }
 }
 
-/* ─── Keyframes ─── */
+/* â”€â”€â”€ Keyframes â”€â”€â”€ */
 @keyframes shimmer {
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
@@ -430,3 +450,11 @@
   will-change: transform;
 }
 .img-zoom:hover img { transform: scale(1.08); }
+
+
+
+/* Mobile optimization for 390px-430px screens */
+@import "../styles/mobile-optimization.css";
+
+/* Accessibility styles - WCAG 2.1 AA compliance */
+@import "../styles/accessibility.css";

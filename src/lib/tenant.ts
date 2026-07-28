@@ -27,17 +27,19 @@ export async function getDefaultOrganizationId() {
 export async function getOrganizationIdForUser(payload: Pick<AuthSession, "userId">) {
   console.log("[TENANT] Getting organizationId for userId:", payload.userId);
   
+  // First check for membership (highest priority)
   const membership = await prisma.membership.findFirst({
     where: { userId: payload.userId },
-    select: { organizationId: true },
+    select: { organizationId: true, role: true },
     orderBy: { createdAt: "asc" },
   });
 
   if (membership) {
-    console.log("[TENANT] Found membership, organizationId:", membership.organizationId);
+    console.log("[TENANT] Found membership, organizationId:", membership.organizationId, "role:", membership.role);
     return membership.organizationId;
   }
 
+  // Then check for owned organization
   const ownedOrganization = await prisma.organization.findFirst({
     where: { ownerId: payload.userId },
     select: { id: true },
@@ -60,3 +62,4 @@ export async function getOrganizationIdForUser(payload: Pick<AuthSession, "userI
     `This is required for multi-tenant data isolation.`
   );
 }
+

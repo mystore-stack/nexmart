@@ -6,8 +6,8 @@ import { Mail, Sparkles, Star, ShieldCheck, ArrowRight } from "lucide-react";
 
 const PERKS = [
   { icon: Star, text: "Offres exclusives membres" },
-  { icon: Sparkles, text: "Recommandations IA personnalisées" },
-  { icon: ShieldCheck, text: "Alertes de prix en temps réel" },
+  { icon: Sparkles, text: "Recommandations IA personnalisÃ©es" },
+  { icon: ShieldCheck, text: "Alertes de prix en temps rÃ©el" },
 ];
 
 export function NewsletterSection() {
@@ -75,7 +75,7 @@ export function NewsletterSection() {
           >
             <span className="h-1.5 w-1.5 rounded-full bg-gold-400 animate-pulse" />
             <span className="text-xs font-bold uppercase tracking-widest text-gold-300">
-              Communauté Exclusive
+              CommunautÃ© Exclusive
             </span>
           </motion.div>
 
@@ -103,7 +103,7 @@ export function NewsletterSection() {
             transition={{ duration: 0.5, delay: 0.2 }}
             className="mb-10 text-base text-white/55 leading-relaxed max-w-xl mx-auto"
           >
-            Abonnez-vous pour recevoir en avant-première les meilleures offres, les nouvelles collections et les recommandations de notre IA.
+            Abonnez-vous pour recevoir en avant-premiÃ¨re les meilleures offres, les nouvelles collections et les recommandations de notre IA.
           </motion.p>
 
           {/* Perks */}
@@ -139,7 +139,7 @@ export function NewsletterSection() {
                   <Star className="h-6 w-6 text-gold-400 fill-gold-400" />
                 </div>
                 <h3 className="font-display text-2xl font-semibold text-white mb-2">Bienvenue !</h3>
-                <p className="text-sm text-white/60">Vous êtes maintenant membre de la communauté NexMart. Vérifiez votre email.</p>
+                <p className="text-sm text-white/60">Vous Ãªtes maintenant membre de la communautÃ© NexStore. VÃ©rifiez votre email.</p>
               </motion.div>
             ) : (
               <form onSubmit={handleSubmit} className="mx-auto flex max-w-xl flex-col gap-3 sm:flex-row">
@@ -164,10 +164,11 @@ export function NewsletterSection() {
           </motion.div>
 
           <p className="mt-5 text-xs text-white/30">
-            En vous abonnant, vous acceptez notre politique de confidentialité. Désinscription possible à tout moment.
+            En vous abonnant, vous acceptez notre politique de confidentialitÃ©. DÃ©sinscription possible Ã  tout moment.
           </p>
         </div>
       </div>
     </section>
   );
 }
+

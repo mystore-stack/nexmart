@@ -8,8 +8,8 @@ import { getSession } from "@/lib/auth-api";
 import { ProductsClient } from "@/components/product/ProductsClient";
 
 export const metadata: Metadata = {
-  title: "Tous les produits | NexMart Maroc",
-  description: "Parcourez notre collection complète de produits premium au Maroc",
+  title: "Tous les produits | NexStore Maroc",
+  description: "Parcourez notre collection complÃ¨te de produits premium au Maroc",
 };
 
 export const dynamic = "force-dynamic";
@@ -99,3 +99,4 @@ function ProductsPageSkeleton() {
     </div>
   );
 }
+

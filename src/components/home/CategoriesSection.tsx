@@ -24,54 +24,46 @@ export function CategoriesSection({ categories }: Props) {
   if (categories.length === 0) return null;
 
   return (
-    <div className="space-y-7">
-      <div className="flex items-end justify-between">
+    <div className="space-y-4">
+      <div className="flex items-end justify-between gap-4">
         <div>
-          <span className="section-label mb-2 block">
-            <span className="inline-block w-8 h-px bg-gold-500 mr-2 align-middle" />
-            Nos collections
-          </span>
-          <h2 className="font-display text-3xl font-semibold md:text-4xl text-foreground">
+          <span className="section-label mb-2 block">Nos collections</span>
+          <h2 className="font-display text-2xl font-semibold text-foreground sm:text-3xl">
             Parcourir par catégorie
           </h2>
         </div>
-        <Link
-          href="/categories"
-          className="hidden sm:flex items-center gap-2 text-sm font-semibold text-brand-700 dark:text-brand-400 hover:text-brand-600 transition-colors group"
-        >
+        <Link href="/categories" className="hidden items-center gap-2 text-sm font-semibold text-orange-600 transition-colors group sm:flex">
           Tout voir
           <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
         </Link>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-8 gap-3">
-        {categories.slice(0, 8).map((cat, i) => {
+      <div className="grid gap-3 sm:grid-cols-2">
+        {categories.slice(0, 6).map((cat, i) => {
           const cfg = CATEGORY_CONFIGS[i % CATEGORY_CONFIGS.length];
           return (
             <motion.div
               key={cat.id}
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.06, duration: 0.4, ease: "easeOut" }}
+              transition={{ delay: i * 0.05, duration: 0.35, ease: "easeOut" }}
             >
               <Link
                 href={`/products?categoryId=${cat.id}`}
-                className="group flex flex-col items-center gap-3 p-4 rounded-2xl border border-gold-200/30 dark:border-gold-800/20 bg-white dark:bg-card hover:border-gold-400/50 dark:hover:border-gold-600/30 transition-all duration-300 hover:-translate-y-1.5"
-                style={{ boxShadow: "0 1px 3px rgba(15,23,42,0.06)" }}
+                className="group flex items-center gap-3 rounded-[1.2rem] border border-slate-200 bg-white p-3 transition-all duration-300 hover:-translate-y-1 hover:border-orange-300 hover:shadow-[0_10px_24px_rgba(15,23,42,0.06)]"
               >
-                <div className={`relative w-12 h-12 rounded-xl bg-gradient-to-br ${cfg.gradient} flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-md overflow-hidden`}>
-                  {/* Moroccan pattern overlay on icon */}
+                <div className={`relative h-12 w-12 shrink-0 overflow-hidden rounded-2xl bg-gradient-to-br ${cfg.gradient} shadow-md transition-transform duration-300 group-hover:scale-105`}>
                   <div className="absolute inset-0 moroccan-pattern-bg opacity-20" />
                   {cat.image ? (
-                    <Image src={cat.image} alt={cat.name} width={48} height={48} className="object-cover relative z-10" />
+                    <Image src={cat.image} alt={cat.name} width={48} height={48} className="relative z-10 h-full w-full object-cover" />
                   ) : (
-                    <span className="text-white font-display font-bold text-lg relative z-10">{cat.name[0]}</span>
+                    <span className="relative z-10 flex h-full w-full items-center justify-center text-lg font-semibold text-white">{cat.name[0]}</span>
                   )}
                 </div>
-                <div className="text-center">
-                  <p className="text-xs font-semibold leading-tight text-foreground group-hover:text-brand-700 dark:group-hover:text-brand-400 transition-colors">{cat.name}</p>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold leading-tight text-foreground transition-colors group-hover:text-orange-600">{cat.name}</p>
                   {cat._count && (
-                    <p className="text-[9px] text-muted-foreground mt-0.5 font-medium">
+                    <p className="mt-1 text-[11px] font-medium text-slate-500">
                       {cat._count.products} produits
                     </p>
                   )}

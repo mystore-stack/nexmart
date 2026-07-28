@@ -22,7 +22,13 @@ export function ProductListingShell({
   searchParams,
   forcedParams = {},
 }: ProductListingShellProps) {
-  const merged: Record<string, string | string[] | undefined> = { ...searchParams };
+  // Convert searchParams to plain object to avoid serialization issues
+  const plainSearchParams: Record<string, string | string[] | undefined> = {};
+  for (const [key, value] of Object.entries(searchParams)) {
+    plainSearchParams[key] = value;
+  }
+
+  const merged: Record<string, string | string[] | undefined> = { ...plainSearchParams };
   for (const [k, v] of Object.entries(forcedParams)) {
     merged[k] = v;
   }

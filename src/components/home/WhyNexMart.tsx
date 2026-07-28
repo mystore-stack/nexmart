@@ -1,5 +1,5 @@
 "use client";
-// src/components/home/WhyNexMart.tsx - Premium Moroccan
+// src/components/home/WhyNexStore.tsx - Premium Moroccan
 import React from "react";
 import { motion } from "framer-motion";
 import { ShieldCheck, Sparkles, Truck, Users, Star, Award } from "lucide-react";
@@ -8,7 +8,7 @@ const VALUES = [
   {
     icon: Award,
     title: "Artisanat Marocain Authentique",
-    description: "Soutenez les artisans locaux et découvrez des produits uniques de chaque région du Maroc, soigneusement sélectionnés.",
+    description: "Soutenez les artisans locaux et dÃ©couvrez des produits uniques de chaque rÃ©gion du Maroc, soigneusement sÃ©lectionnÃ©s.",
     stat: "500+",
     statLabel: "artisans partenaires",
     color: "from-brand-700 to-brand-600",
@@ -16,60 +16,60 @@ const VALUES = [
   {
     icon: Truck,
     title: "Livraison Express Partout",
-    description: "Suivi en temps réel et livraison express garantie pour toutes vos commandes, de Casablanca à Marrakech.",
+    description: "Suivi en temps rÃ©el et livraison express garantie pour toutes vos commandes, de Casablanca Ã  Marrakech.",
     stat: "24h",
-    statLabel: "délai de livraison",
+    statLabel: "dÃ©lai de livraison",
     color: "from-gold-600 to-gold-500",
   },
   {
     icon: ShieldCheck,
-    title: "Paiement Sécurisé & Fiable",
-    description: "Checkout sécurisé avec les meilleurs protocoles SSL, protection totale de vos données et transactions garanties.",
+    title: "Paiement SÃ©curisÃ© & Fiable",
+    description: "Checkout sÃ©curisÃ© avec les meilleurs protocoles SSL, protection totale de vos donnÃ©es et transactions garanties.",
     stat: "100%",
-    statLabel: "transactions sécurisées",
+    statLabel: "transactions sÃ©curisÃ©es",
     color: "from-moroccan-cobalt to-blue-700",
   },
   {
     icon: Sparkles,
     title: "Intelligence Artificielle",
-    description: "Notre IA analyse vos préférences pour vous proposer des recommandations personnalisées et pertinentes.",
+    description: "Notre IA analyse vos prÃ©fÃ©rences pour vous proposer des recommandations personnalisÃ©es et pertinentes.",
     stat: "2.4M+",
     statLabel: "recommandations/mois",
     color: "from-violet-700 to-violet-600",
   },
   {
     icon: Users,
-    title: "Communauté de Confiance",
-    description: "Rejoignez des millions d&apos;acheteurs satisfaits qui font confiance à NexMart pour leurs achats premium.",
+    title: "CommunautÃ© de Confiance",
+    description: "Rejoignez des millions d&apos;acheteurs satisfaits qui font confiance Ã  NexStore pour leurs achats premium.",
     stat: "1.2M+",
     statLabel: "clients actifs",
     color: "from-brand-700 to-teal-600",
   },
   {
     icon: Star,
-    title: "Qualité Premium Garantie",
-    description: "Chaque produit est vérifié et certifié par nos experts qualité pour vous offrir le meilleur de ce qui existe.",
-    stat: "4.9★",
+    title: "QualitÃ© Premium Garantie",
+    description: "Chaque produit est vÃ©rifiÃ© et certifiÃ© par nos experts qualitÃ© pour vous offrir le meilleur de ce qui existe.",
+    stat: "4.9â˜…",
     statLabel: "note moyenne",
     color: "from-moroccan-terracotta to-orange-600",
   },
 ];
 
-export function WhyNexMart() {
+export function WhyNexStore() {
   return (
     <div className="space-y-10">
       <div className="text-center max-w-2xl mx-auto">
         <span className="section-label mb-3 justify-center">
           <span className="inline-block w-8 h-px bg-gold-500 mr-2 align-middle" />
-          Pourquoi NexMart
+          Pourquoi NexStore
           <span className="inline-block w-8 h-px bg-gold-500 ml-2 align-middle" />
         </span>
         <h2 className="font-display text-4xl font-semibold md:text-5xl text-foreground mb-4">
-          L&apos;expérience shopping
-          <span className="block gradient-gold font-bold">marocaine réinventée</span>
+          L&apos;expÃ©rience shopping
+          <span className="block gradient-gold font-bold">marocaine rÃ©inventÃ©e</span>
         </h2>
         <p className="text-muted-foreground leading-relaxed">
-          NexMart combine tradition marocaine, technologie moderne et service premium pour vous offrir une expérience d&apos;achat inégalée.
+          NexStore combine tradition marocaine, technologie moderne et service premium pour vous offrir une expÃ©rience d&apos;achat inÃ©galÃ©e.
         </p>
       </div>
 
@@ -112,3 +112,4 @@ export function WhyNexMart() {
     </div>
   );
 }
+

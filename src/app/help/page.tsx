@@ -1,16 +1,16 @@
 import { StaticPage } from "@/components/content/StaticPage";
 import Link from "next/link";
 
-export const metadata = { title: "Aide | NexMart MA" };
+export const metadata = { title: "Aide | NexStore MA" };
 
 export default function HelpPage() {
   return (
     <StaticPage title="Centre d'aide">
-      <p>Questions fréquentes :</p>
+      <p>Questions frÃ©quentes :</p>
       <ul className="list-disc pl-6 space-y-2">
         <li>
           <Link href="/shipping" className="text-primary hover:underline">
-            Livraison et délais
+            Livraison et dÃ©lais
           </Link>
         </li>
         <li>
@@ -27,3 +27,4 @@ export default function HelpPage() {
     </StaticPage>
   );
 }
+

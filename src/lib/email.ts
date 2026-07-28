@@ -1,12 +1,12 @@
-// src/lib/email.ts — NexMart Maroc · Premium Email Templates
+// src/lib/email.ts â€” NexStore Maroc Â· Premium Email Templates
 import nodemailer from "nodemailer";
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://nexmart.ma";
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "https://nexstore.ma";
 const BRAND_GREEN = "#0F766E";
 const BRAND_GOLD = "#D4AF37";
 const BRAND_NAVY = "#0F172A";
 
-// ─── Transporter ─────────────────────────────────────────────
+// â”€â”€â”€ Transporter â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST || "smtp.gmail.com",
   port: parseInt(process.env.SMTP_PORT || "587"),
@@ -22,7 +22,7 @@ interface EmailOptions { to: string; subject: string; html: string; }
 export async function sendEmail({ to, subject, html }: EmailOptions) {
   try {
     await transporter.sendMail({
-      from: process.env.SMTP_FROM || `"NexMart Maroc" <noreply@nexmart.ma>`,
+      from: process.env.SMTP_FROM || `"NexStore Maroc" <noreply@nexstore.ma>`,
       to, subject, html,
     });
   } catch (err) {
@@ -30,7 +30,7 @@ export async function sendEmail({ to, subject, html }: EmailOptions) {
   }
 }
 
-// ─── Template de base — Design Marocain Premium ──────────────
+// â”€â”€â”€ Template de base â€” Design Marocain Premium â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const baseTemplate = (content: string, preheader = "") => `
 <!DOCTYPE html>
 <html lang="fr" dir="ltr">
@@ -38,7 +38,7 @@ const baseTemplate = (content: string, preheader = "") => `
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="color-scheme" content="light">
-  <title>NexMart Maroc</title>
+  <title>NexStore Maroc</title>
   ${preheader ? `<span style="display:none;max-height:0;overflow:hidden;">${preheader}</span>` : ""}
 </head>
 <body style="margin:0;padding:0;background:#F5F1E8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','DM Sans',sans-serif;">
@@ -61,8 +61,8 @@ const baseTemplate = (content: string, preheader = "") => `
                         <span style="color:${BRAND_GOLD};font-size:22px;font-weight:900;line-height:48px;">N</span>
                       </td>
                       <td style="padding-left:12px;vertical-align:middle;">
-                        <div style="color:#ffffff;font-size:22px;font-weight:700;letter-spacing:-0.5px;line-height:1.2;">NexMart</div>
-                        <div style="color:${BRAND_GOLD};font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;margin-top:2px;">MAROC · PREMIUM</div>
+                        <div style="color:#ffffff;font-size:22px;font-weight:700;letter-spacing:-0.5px;line-height:1.2;">NexStore</div>
+                        <div style="color:${BRAND_GOLD};font-size:10px;font-weight:700;letter-spacing:3px;text-transform:uppercase;margin-top:2px;">MAROC Â· PREMIUM</div>
                       </td>
                     </tr>
                   </table>
@@ -92,18 +92,18 @@ const baseTemplate = (content: string, preheader = "") => `
                       <td style="padding:0 12px;">
                         <a href="${APP_URL}/account" style="color:${BRAND_GREEN};text-decoration:none;font-size:13px;font-weight:600;">Mon Compte</a>
                       </td>
-                      <td style="color:${BRAND_GOLD};font-size:13px;">·</td>
+                      <td style="color:${BRAND_GOLD};font-size:13px;">Â·</td>
                       <td style="padding:0 12px;">
                         <a href="${APP_URL}/orders" style="color:${BRAND_GREEN};text-decoration:none;font-size:13px;font-weight:600;">Mes Commandes</a>
                       </td>
-                      <td style="color:${BRAND_GOLD};font-size:13px;">·</td>
+                      <td style="color:${BRAND_GOLD};font-size:13px;">Â·</td>
                       <td style="padding:0 12px;">
                         <a href="${APP_URL}/help" style="color:${BRAND_GREEN};text-decoration:none;font-size:13px;font-weight:600;">Support</a>
                       </td>
                     </tr>
                   </table>
                   <p style="margin:16px 0 0;color:#94a3b8;font-size:12px;">
-                    © ${new Date().getFullYear()} NexMart Maroc · Casablanca, Maroc 🇲🇦
+                    Â© ${new Date().getFullYear()} NexStore Maroc Â· Casablanca, Maroc ðŸ‡²ðŸ‡¦
                   </p>
                 </td>
               </tr>
@@ -123,7 +123,7 @@ const baseTemplate = (content: string, preheader = "") => `
 </html>
 `;
 
-// ─── Bouton CTA ───────────────────────────────────────────────
+// â”€â”€â”€ Bouton CTA â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const ctaButton = (text: string, url: string, color = BRAND_GREEN) => `
 <div style="text-align:center;margin:32px 0;">
   <a href="${url}"
@@ -135,36 +135,36 @@ const ctaButton = (text: string, url: string, color = BRAND_GREEN) => `
 </div>
 `;
 
-// ─── Divider doré ─────────────────────────────────────────────
+// â”€â”€â”€ Divider dorÃ© â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const goldDivider = `
 <div style="margin:28px 0;height:1px;background:linear-gradient(90deg,transparent,${BRAND_GOLD},transparent);"></div>
 `;
 
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // 1. Email de bienvenue
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 export async function sendWelcomeEmail(email: string, name: string) {
   await sendEmail({
     to: email,
-    subject: `🎉 Bienvenue sur NexMart, ${name.split(" ")[0]} !`,
+    subject: `ðŸŽ‰ Bienvenue sur NexStore, ${name.split(" ")[0]} !`,
     html: baseTemplate(`
       <h1 style="font-size:28px;font-weight:700;color:${BRAND_NAVY};margin:0 0 8px;line-height:1.2;">
-        Marhaba, ${name.split(" ")[0]}! 👋
+        Marhaba, ${name.split(" ")[0]}! ðŸ‘‹
       </h1>
       <p style="color:#64748b;font-size:15px;margin:0 0 4px;">Bienvenue sur la marketplace premium du Maroc.</p>
       ${goldDivider}
       <p style="color:#334155;font-size:15px;line-height:1.7;margin:0 0 24px;">
-        Votre compte NexMart est maintenant actif. Profitez d'une sélection de milliers de produits premium, 
+        Votre compte NexStore est maintenant actif. Profitez d'une sÃ©lection de milliers de produits premium, 
         de recommandations par IA et d'une livraison express partout au Maroc.
       </p>
 
       <!-- Benefits -->
       <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 28px;">
         ${[
-          ["🤖", "Recommandations IA", "Produits adaptés à votre style"],
-          ["🚚", "Livraison express", "Partout au Maroc en 24-48h"],
-          ["🔒", "Paiement sécurisé", "CMI · Stripe · SSL"],
-          ["⭐", "Qualité garantie", "Produits certifiés et authentiques"],
+          ["ðŸ¤–", "Recommandations IA", "Produits adaptÃ©s Ã  votre style"],
+          ["ðŸšš", "Livraison express", "Partout au Maroc en 24-48h"],
+          ["ðŸ”’", "Paiement sÃ©curisÃ©", "CMI Â· Stripe Â· SSL"],
+          ["â­", "QualitÃ© garantie", "Produits certifiÃ©s et authentiques"],
         ].map(([icon, title, desc]) => `
         <tr>
           <td style="padding:10px 0;border-bottom:1px solid #f1f5f9;vertical-align:top;width:44px;">
@@ -177,18 +177,18 @@ export async function sendWelcomeEmail(email: string, name: string) {
         </tr>`).join("")}
       </table>
 
-      ${ctaButton("🛍️ Découvrir la boutique", APP_URL + "/products")}
+      ${ctaButton("ðŸ›ï¸ DÃ©couvrir la boutique", APP_URL + "/products")}
 
       <p style="color:#94a3b8;font-size:12px;text-align:center;margin:0;">
-        Si vous n'avez pas créé ce compte, ignorez cet email.
+        Si vous n'avez pas crÃ©Ã© ce compte, ignorez cet email.
       </p>
-    `, `Bienvenue sur NexMart Maroc — votre marketplace premium 🇲🇦`),
+    `, `Bienvenue sur NexStore Maroc â€” votre marketplace premium ðŸ‡²ðŸ‡¦`),
   });
 }
 
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // 2. Confirmation de commande
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 export async function sendOrderConfirmation(
   email: string,
   name: string,
@@ -202,7 +202,7 @@ export async function sendOrderConfirmation(
   const itemsRows = order.items.map((item) => `
     <tr>
       <td style="padding:12px 0;border-bottom:1px solid #f1f5f9;color:#334155;font-size:14px;">${item.name}</td>
-      <td style="padding:12px 0;border-bottom:1px solid #f1f5f9;color:#64748b;font-size:14px;text-align:center;">×${item.quantity}</td>
+      <td style="padding:12px 0;border-bottom:1px solid #f1f5f9;color:#64748b;font-size:14px;text-align:center;">Ã—${item.quantity}</td>
       <td style="padding:12px 0;border-bottom:1px solid #f1f5f9;color:${BRAND_GREEN};font-size:14px;font-weight:700;text-align:right;">
         ${(item.price * item.quantity).toLocaleString("fr-MA")} DH
       </td>
@@ -211,30 +211,30 @@ export async function sendOrderConfirmation(
 
   await sendEmail({
     to: email,
-    subject: `✅ Commande confirmée — #${order.orderNumber}`,
+    subject: `âœ… Commande confirmÃ©e â€” #${order.orderNumber}`,
     html: baseTemplate(`
       <!-- Status badge -->
       <div style="text-align:center;margin-bottom:32px;">
-        <div style="display:inline-block;background:#f0fdfa;border:2px solid ${BRAND_GREEN};border-radius:50%;width:64px;height:64px;line-height:64px;text-align:center;font-size:28px;">✅</div>
-        <h1 style="font-size:26px;font-weight:700;color:${BRAND_NAVY};margin:16px 0 6px;">Commande confirmée !</h1>
+        <div style="display:inline-block;background:#f0fdfa;border:2px solid ${BRAND_GREEN};border-radius:50%;width:64px;height:64px;line-height:64px;text-align:center;font-size:28px;">âœ…</div>
+        <h1 style="font-size:26px;font-weight:700;color:${BRAND_NAVY};margin:16px 0 6px;">Commande confirmÃ©e !</h1>
         <p style="color:#64748b;font-size:14px;margin:0;">Merci pour votre achat, ${name.split(" ")[0]} !</p>
       </div>
 
       <!-- Order number -->
       <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:16px 20px;margin:0 0 24px;text-align:center;">
-        <p style="color:#64748b;font-size:12px;text-transform:uppercase;letter-spacing:2px;margin:0 0 6px;">Numéro de commande</p>
+        <p style="color:#64748b;font-size:12px;text-transform:uppercase;letter-spacing:2px;margin:0 0 6px;">NumÃ©ro de commande</p>
         <p style="color:${BRAND_NAVY};font-size:20px;font-weight:900;margin:0;letter-spacing:1px;">#${order.orderNumber}</p>
       </div>
 
       ${goldDivider}
 
       <!-- Items table -->
-      <h3 style="font-size:14px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:2px;margin:0 0 16px;">Détail de la commande</h3>
+      <h3 style="font-size:14px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:2px;margin:0 0 16px;">DÃ©tail de la commande</h3>
       <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 20px;">
         <thead>
           <tr>
             <th style="text-align:left;padding:8px 0;color:#94a3b8;font-size:11px;text-transform:uppercase;letter-spacing:1px;border-bottom:2px solid ${BRAND_NAVY};">Produit</th>
-            <th style="text-align:center;padding:8px 0;color:#94a3b8;font-size:11px;text-transform:uppercase;letter-spacing:1px;border-bottom:2px solid ${BRAND_NAVY};">Qté</th>
+            <th style="text-align:center;padding:8px 0;color:#94a3b8;font-size:11px;text-transform:uppercase;letter-spacing:1px;border-bottom:2px solid ${BRAND_NAVY};">QtÃ©</th>
             <th style="text-align:right;padding:8px 0;color:#94a3b8;font-size:11px;text-transform:uppercase;letter-spacing:1px;border-bottom:2px solid ${BRAND_NAVY};">Prix</th>
           </tr>
         </thead>
@@ -251,47 +251,47 @@ export async function sendOrderConfirmation(
 
       ${order.shippingAddress?.city ? `
       <div style="background:#f0fdfa;border-left:3px solid ${BRAND_GREEN};border-radius:0 8px 8px 0;padding:14px 18px;margin:0 0 24px;">
-        <p style="color:#64748b;font-size:12px;text-transform:uppercase;letter-spacing:1px;margin:0 0 4px;">Livraison à</p>
+        <p style="color:#64748b;font-size:12px;text-transform:uppercase;letter-spacing:1px;margin:0 0 4px;">Livraison Ã </p>
         <p style="color:${BRAND_NAVY};font-weight:700;font-size:14px;margin:0;">${order.shippingAddress.city}</p>
         ${order.shippingAddress.address ? `<p style="color:#64748b;font-size:13px;margin:4px 0 0;">${order.shippingAddress.address}</p>` : ""}
       </div>` : ""}
 
-      ${ctaButton("📦 Suivre ma commande", `${APP_URL}/orders/${order.orderNumber}`)}
-    `, `Commande #${order.orderNumber} confirmée — ${order.total.toLocaleString("fr-MA")} DH`),
+      ${ctaButton("ðŸ“¦ Suivre ma commande", `${APP_URL}/orders/${order.orderNumber}`)}
+    `, `Commande #${order.orderNumber} confirmÃ©e â€” ${order.total.toLocaleString("fr-MA")} DH`),
   });
 }
 
-// ═══════════════════════════════════════════════════════════════
-// 3. Réinitialisation mot de passe
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// 3. RÃ©initialisation mot de passe
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 export async function sendPasswordReset(email: string, name: string, token: string) {
   const resetUrl = `${APP_URL}/reset-password?token=${token}`;
   await sendEmail({
     to: email,
-    subject: "🔐 Réinitialiser votre mot de passe NexMart",
+    subject: "ðŸ” RÃ©initialiser votre mot de passe NexStore",
     html: baseTemplate(`
       <div style="text-align:center;margin-bottom:32px;">
-        <div style="display:inline-block;background:#fef3c7;border-radius:50%;width:64px;height:64px;line-height:64px;text-align:center;font-size:28px;">🔐</div>
-        <h1 style="font-size:24px;font-weight:700;color:${BRAND_NAVY};margin:16px 0 6px;">Réinitialisation du mot de passe</h1>
-        <p style="color:#64748b;font-size:14px;margin:0;">Bonjour ${name.split(" ")[0]}, nous avons reçu votre demande.</p>
+        <div style="display:inline-block;background:#fef3c7;border-radius:50%;width:64px;height:64px;line-height:64px;text-align:center;font-size:28px;">ðŸ”</div>
+        <h1 style="font-size:24px;font-weight:700;color:${BRAND_NAVY};margin:16px 0 6px;">RÃ©initialisation du mot de passe</h1>
+        <p style="color:#64748b;font-size:14px;margin:0;">Bonjour ${name.split(" ")[0]}, nous avons reÃ§u votre demande.</p>
       </div>
       ${goldDivider}
       <p style="color:#334155;font-size:15px;line-height:1.7;margin:0 0 8px;">
-        Cliquez sur le bouton ci-dessous pour créer un nouveau mot de passe. Ce lien expire dans <strong>1 heure</strong>.
+        Cliquez sur le bouton ci-dessous pour crÃ©er un nouveau mot de passe. Ce lien expire dans <strong>1 heure</strong>.
       </p>
-      ${ctaButton("🔑 Réinitialiser le mot de passe", resetUrl, BRAND_GOLD.replace("#D4AF37", "#b8930a"))}
+      ${ctaButton("ðŸ”‘ RÃ©initialiser le mot de passe", resetUrl, BRAND_GOLD.replace("#D4AF37", "#b8930a"))}
       <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:14px 18px;margin:0 0 8px;">
         <p style="color:#dc2626;font-size:13px;margin:0;">
-          ⚠️ Si vous n'avez pas fait cette demande, ignorez cet email. Votre compte est en sécurité.
+          âš ï¸ Si vous n'avez pas fait cette demande, ignorez cet email. Votre compte est en sÃ©curitÃ©.
         </p>
       </div>
-    `, "Réinitialisez votre mot de passe NexMart"),
+    `, "RÃ©initialisez votre mot de passe NexStore"),
   });
 }
 
-// ═══════════════════════════════════════════════════════════════
-// 4. Mise à jour de livraison
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// 4. Mise Ã  jour de livraison
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 export async function sendShippingUpdate(
   email: string,
   name: string,
@@ -300,22 +300,22 @@ export async function sendShippingUpdate(
   status: string
 ) {
   const statusConfig: Record<string, { emoji: string; color: string; message: string }> = {
-    CONFIRMED:  { emoji: "✅", color: "#0F766E", message: "Votre commande a été confirmée et est en cours de préparation." },
-    PROCESSING: { emoji: "⚙️", color: "#0F766E", message: "Votre commande est en cours de traitement par notre équipe." },
-    SHIPPED:    { emoji: "🚚", color: "#7c3aed", message: "Votre commande est en route ! Elle vous sera livrée prochainement." },
-    DELIVERED:  { emoji: "📦", color: "#059669", message: "Votre commande a été livrée. Nous espérons qu'elle vous satisfait !" },
-    CANCELLED:  { emoji: "❌", color: "#dc2626", message: "Votre commande a été annulée. Contactez-nous pour plus d'informations." },
+    CONFIRMED:  { emoji: "âœ…", color: "#0F766E", message: "Votre commande a Ã©tÃ© confirmÃ©e et est en cours de prÃ©paration." },
+    PROCESSING: { emoji: "âš™ï¸", color: "#0F766E", message: "Votre commande est en cours de traitement par notre Ã©quipe." },
+    SHIPPED:    { emoji: "ðŸšš", color: "#7c3aed", message: "Votre commande est en route ! Elle vous sera livrÃ©e prochainement." },
+    DELIVERED:  { emoji: "ðŸ“¦", color: "#059669", message: "Votre commande a Ã©tÃ© livrÃ©e. Nous espÃ©rons qu'elle vous satisfait !" },
+    CANCELLED:  { emoji: "âŒ", color: "#dc2626", message: "Votre commande a Ã©tÃ© annulÃ©e. Contactez-nous pour plus d'informations." },
   };
 
-  const cfg = statusConfig[status] || { emoji: "📋", color: BRAND_GREEN, message: "Votre commande a été mise à jour." };
+  const cfg = statusConfig[status] || { emoji: "ðŸ“‹", color: BRAND_GREEN, message: "Votre commande a Ã©tÃ© mise Ã  jour." };
 
   await sendEmail({
     to: email,
-    subject: `${cfg.emoji} Commande #${orderNumber} — ${status}`,
+    subject: `${cfg.emoji} Commande #${orderNumber} â€” ${status}`,
     html: baseTemplate(`
       <div style="text-align:center;margin-bottom:32px;">
         <div style="display:inline-block;background:#f0fdfa;border-radius:50%;width:64px;height:64px;line-height:64px;text-align:center;font-size:28px;">${cfg.emoji}</div>
-        <h1 style="font-size:24px;font-weight:700;color:${BRAND_NAVY};margin:16px 0 6px;">Mise à jour de commande</h1>
+        <h1 style="font-size:24px;font-weight:700;color:${BRAND_NAVY};margin:16px 0 6px;">Mise Ã  jour de commande</h1>
         <div style="display:inline-block;background:${cfg.color};color:#fff;padding:6px 18px;border-radius:99px;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;">${status}</div>
       </div>
       ${goldDivider}
@@ -325,24 +325,24 @@ export async function sendShippingUpdate(
       <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:16px 20px;margin:0 0 24px;">
         <table width="100%" cellpadding="0" cellspacing="0">
           <tr>
-            <td style="color:#64748b;font-size:13px;padding:6px 0;">Numéro de commande</td>
+            <td style="color:#64748b;font-size:13px;padding:6px 0;">NumÃ©ro de commande</td>
             <td style="color:${BRAND_NAVY};font-size:13px;font-weight:700;text-align:right;padding:6px 0;">#${orderNumber}</td>
           </tr>
           ${trackingNumber ? `
           <tr>
-            <td style="color:#64748b;font-size:13px;padding:6px 0;">Numéro de suivi</td>
+            <td style="color:#64748b;font-size:13px;padding:6px 0;">NumÃ©ro de suivi</td>
             <td style="color:${BRAND_GREEN};font-size:13px;font-weight:700;text-align:right;padding:6px 0;">${trackingNumber}</td>
           </tr>` : ""}
         </table>
       </div>
-      ${ctaButton("📦 Suivre ma commande", `${APP_URL}/orders/${orderNumber}`)}
-    `, `Commande #${orderNumber} — ${status}`),
+      ${ctaButton("ðŸ“¦ Suivre ma commande", `${APP_URL}/orders/${orderNumber}`)}
+    `, `Commande #${orderNumber} â€” ${status}`),
   });
 }
 
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 // 5. Email Newsletter / Promo
-// ═══════════════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 export async function sendPromoEmail(
   email: string,
   name: string,
@@ -350,7 +350,7 @@ export async function sendPromoEmail(
 ) {
   await sendEmail({
     to: email,
-    subject: `🎁 ${promo.title} — NexMart Maroc`,
+    subject: `ðŸŽ ${promo.title} â€” NexStore Maroc`,
     html: baseTemplate(`
       <!-- Hero promo -->
       <div style="background:${BRAND_NAVY};border-radius:16px;padding:40px 32px;text-align:center;margin:0 0 32px;position:relative;overflow:hidden;">
@@ -372,11 +372,12 @@ export async function sendPromoEmail(
         <p style="color:${BRAND_GREEN};font-size:28px;font-weight:900;margin:0;letter-spacing:4px;">${promo.code}</p>
       </div>` : ""}
 
-      ${ctaButton("🛍️ Profiter de l'offre", promo.ctaUrl || `${APP_URL}/deals`)}
+      ${ctaButton("ðŸ›ï¸ Profiter de l'offre", promo.ctaUrl || `${APP_URL}/deals`)}
 
       <p style="color:#94a3b8;font-size:12px;text-align:center;margin:0;">
-        Pour vous désinscrire, <a href="${APP_URL}/unsubscribe" style="color:${BRAND_GREEN};">cliquez ici</a>.
+        Pour vous dÃ©sinscrire, <a href="${APP_URL}/unsubscribe" style="color:${BRAND_GREEN};">cliquez ici</a>.
       </p>
     `, promo.title),
   });
 }
+

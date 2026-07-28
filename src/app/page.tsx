@@ -1,112 +1,57 @@
-// src/app/page.tsx — NexMart Moroccan Luxury Homepage
-import { Suspense } from "react";
-import { HeroSection } from "@/components/home/HeroSection";
-import { FlashSaleSection } from "@/components/home/FlashSaleSection";
-import { CategoriesSection } from "@/components/home/CategoriesSection";
-import { SuperDealsSection } from "@/components/home/SuperDealsSection";
-import { BundleDealsSection } from "@/components/home/BundleDealsSection";
-import { MysteryBoxSection } from "@/components/home/MysteryBoxSection";
-import { FeaturedProducts } from "@/components/home/FeaturedProducts";
-import { TrendingSection } from "@/components/home/TrendingSection";
-import { PromoBanner } from "@/components/home/PromoBanner";
-import { RecentlyViewedSection } from "@/components/home/RecentlyViewedSection";
-import { WhyNexMart } from "@/components/home/WhyNexMart";
-import { NewsletterSection } from "@/components/home/NewsletterSection";
-import { SkeletonGrid } from "@/components/ui/Skeleton";
-import { getHomePageData } from "@/lib/home-data";
 import type { Metadata } from "next";
+import { HeroSection, PremiumCategorySection } from "@/components/homepage";
+import {
+  TrustSection,
+  NewsletterSection,
+} from "@/components/marketplace";
+import { CuratedCollectionsSection } from "@/components/homepage/CuratedCollectionsSection";
+import { TrendingProductsSection } from "@/components/homepage/TrendingProductsSection";
+import { MoroccanIdentitySection } from "@/components/homepage/MoroccanIdentitySection";
+import { FeaturedProductsGrid } from "@/components/homepage/FeaturedProductsGrid";
 
 export const revalidate = 300;
 
 export const metadata: Metadata = {
-  title: "NexMart Maroc — Marketplace Premium",
+  title: "NexStore - Premium Moroccan Marketplace",
   description:
-    "Découvrez la marketplace premium du Maroc — artisanat authentique, produits sélectionnés par IA, paiement sécurisé et livraison express.",
+    "Discover premium products with fast delivery, secure payments, and curated Moroccan collections. Experience luxury shopping reimagined.",
 };
 
-export default async function HomePage() {
-  const { featured, trending, categories, flashSale, deals, bundles, mysteryBoxes } = await getHomePageData();
-  console.log("HomePage data:", { featured: featured.length, trending: trending.length, categories: categories.length, flashSale: flashSale.length, deals: deals.length, bundles: bundles.length, mysteryBoxes: mysteryBoxes.length });
-
+export default function PremiumHomePage() {
   return (
-    <div className="page-enter">
-      {/* Hero */}
-      <section className="container-main py-5 md:py-8">
-        <HeroSection />
-      </section>
+    <div className="w-full bg-white text-slate-950">
+      {/* Hero Section */}
+      <HeroSection />
 
-      {/* Flash Sale — dark moroccan bg */}
-      {flashSale.length > 0 && (
-        <section className="relative overflow-hidden bg-moroccan-navy py-14 md:py-20">
-          <div className="container-main">
-            <FlashSaleSection products={flashSale as any} />
-          </div>
-        </section>
-      )}
+      {/* Premium Category Section */}
+      <PremiumCategorySection />
 
-      {/* Super Deals */}
-      <SuperDealsSection deals={deals as any} />
+      {/* Curated Collections */}
+      <CuratedCollectionsSection />
 
-      {/* Categories */}
-      <section className="section">
-        <div className="container-main">
-          <CategoriesSection categories={categories as any} />
+      {/* Trending Products */}
+      <TrendingProductsSection />
+
+      {/* Moroccan Identity Section */}
+      <MoroccanIdentitySection />
+
+      {/* Featured Products Grid */}
+      <FeaturedProductsGrid />
+
+      {/* Trust Section */}
+      <section className="bg-slate-50 border-t border-slate-200">
+        <div className="mx-auto max-w-[1480px] px-4 py-12 sm:px-6 lg:px-8">
+          <TrustSection />
         </div>
       </section>
 
-      {/* Bundle Deals */}
-      <BundleDealsSection bundles={bundles as any} />
-
-      {/* Mystery Box */}
-      <MysteryBoxSection mysteryBoxes={mysteryBoxes as any} />
-
-      {/* Promo Banners */}
-      <section className="section bg-surface/60">
-        <div className="container-main">
-          <PromoBanner />
-        </div>
+      {/* Newsletter Section */}
+      <section className="mx-auto max-w-[1480px] px-4 py-12 sm:px-6 lg:px-8">
+        <NewsletterSection
+          title="Get Exclusive Deals"
+          subtitle="Subscribe to our newsletter for special offers and insider tips delivered directly to your inbox."
+        />
       </section>
-
-      {/* Featured Products */}
-      <section className="section">
-        <div className="container-main">
-          <Suspense fallback={<SkeletonGrid count={8} />}>
-            <FeaturedProducts products={featured as any} />
-          </Suspense>
-        </div>
-      </section>
-
-      {/* Trending — subtle sand bg with Moroccan pattern */}
-      <section className="section relative overflow-hidden">
-        <div className="absolute inset-0 bg-surface/50" />
-        <div className="absolute inset-0 moroccan-zellige-bg opacity-20" />
-        <div className="relative container-main">
-          <Suspense fallback={<SkeletonGrid count={8} />}>
-            <TrendingSection products={trending as any} />
-          </Suspense>
-        </div>
-      </section>
-
-      {/* Recently Viewed */}
-      <section className="section">
-        <div className="container-main">
-          <RecentlyViewedSection />
-        </div>
-      </section>
-
-      {/* Why NexMart */}
-      <section className="section relative overflow-hidden bg-surface/60">
-        <div className="absolute inset-0 moroccan-pattern-bg opacity-15" />
-        <div className="absolute inset-0" style={{
-          background: "radial-gradient(ellipse at 50% 50%, rgba(15,118,110,0.06) 0%, transparent 70%)"
-        }} />
-        <div className="relative container-main">
-          <WhyNexMart />
-        </div>
-      </section>
-
-      {/* Newsletter */}
-      <NewsletterSection />
     </div>
   );
 }

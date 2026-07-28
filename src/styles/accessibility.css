@@ -1,0 +1,440 @@
+/* Accessibility utilities - WCAG 2.1 AA compliance */
+
+/* Screen reader only - visually hide but keep accessible */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+.sr-only:active,
+.sr-only:focus {
+  position: static;
+  width: auto;
+  height: auto;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
+}
+
+/* Skip to main content link */
+.skip-to-content {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: hsl(var(--primary));
+  color: white;
+  padding: 8px 16px;
+  text-decoration: none;
+  z-index: 100;
+  font-weight: bold;
+  border-radius: 0 0 4px 4px;
+}
+
+.skip-to-content:focus {
+  top: 0;
+  outline: 3px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+
+/* Focus visible styles for keyboard navigation */
+:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Button focus styles */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+
+/* Ensure all interactive elements are accessible */
+a,
+button,
+input,
+select,
+textarea {
+  min-width: 44px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: more) {
+  :root {
+    --border: 215 13% 34%;
+    --muted-foreground: 215 13% 25%;
+  }
+
+  button {
+    border: 2px solid currentColor;
+  }
+
+  input,
+  textarea,
+  select {
+    border: 2px solid currentColor;
+  }
+}
+
+/* Reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Color blind friendly palette alternatives */
+@media (prefers-color-scheme: light) {
+  .colorblind-protanopia {
+    filter: url(#protanopia-filter);
+  }
+
+  .colorblind-deuteranopia {
+    filter: url(#deuteranopia-filter);
+  }
+
+  .colorblind-tritanopia {
+    filter: url(#tritanopia-filter);
+  }
+
+  .colorblind-achromatopsia {
+    filter: grayscale(100%);
+  }
+}
+
+/* Form label accessibility */
+label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: hsl(var(--foreground));
+}
+
+label.required::after {
+  content: " *";
+  color: red;
+  aria-label: "required";
+}
+
+/* Error message styles */
+.error-message {
+  display: block;
+  margin-top: 4px;
+  color: hsl(var(--destructive));
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+[aria-invalid="true"] {
+  border-color: hsl(var(--destructive));
+  box-shadow: 0 0 0 2px hsl(var(--destructive) / 0.1);
+}
+
+/* Help text */
+.help-text {
+  display: block;
+  margin-top: 4px;
+  color: hsl(var(--muted-foreground));
+  font-size: 0.875rem;
+}
+
+/* Loading indicator with accessible announcement */
+.loading {
+  position: relative;
+  pointer-events: none;
+}
+
+.loading::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: inherit;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Live region for screen reader announcements */
+[aria-live] {
+  position: relative;
+}
+
+[aria-live="polite"],
+[aria-live="assertive"] {
+  min-height: 1px;
+}
+
+/* Captions and transcripts */
+video::cue {
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  font-size: 1rem;
+}
+
+.transcript {
+  margin-top: 1rem;
+  padding: 1rem;
+  background: hsl(var(--secondary));
+  border-left: 4px solid hsl(var(--primary));
+  border-radius: 4px;
+}
+
+.transcript-title {
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+}
+
+/* Data table accessibility */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+}
+
+th {
+  font-weight: bold;
+  text-align: left;
+  padding: 0.75rem;
+  background: hsl(var(--secondary));
+  border-bottom: 2px solid hsl(var(--border));
+  scope: col;
+}
+
+td {
+  padding: 0.75rem;
+  border-bottom: 1px solid hsl(var(--border));
+}
+
+/* Breadcrumb navigation */
+nav[aria-label="Breadcrumb"] ol {
+  display: flex;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+nav[aria-label="Breadcrumb"] li {
+  display: flex;
+  align-items: center;
+}
+
+nav[aria-label="Breadcrumb"] li:not(:last-child)::after {
+  content: "/";
+  margin: 0 0.5rem;
+  color: hsl(var(--muted-foreground));
+}
+
+nav[aria-label="Breadcrumb"] a {
+  color: hsl(var(--primary));
+  text-decoration: none;
+}
+
+nav[aria-label="Breadcrumb"] a:hover {
+  text-decoration: underline;
+}
+
+nav[aria-label="Breadcrumb"] a:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+}
+
+/* Tooltip accessibility */
+.tooltip {
+  position: relative;
+}
+
+.tooltip[aria-label]::after {
+  content: attr(aria-label);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0.5rem 0.75rem;
+  background: hsl(var(--foreground));
+  color: hsl(var(--background));
+  border-radius: 4px;
+  font-size: 0.875rem;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.tooltip:hover::after,
+.tooltip:focus-visible::after {
+  opacity: 1;
+}
+
+/* Dialog/Modal accessibility */
+dialog {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  padding: 2rem;
+  border: none;
+  border-radius: 0.5rem;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  max-width: 90vw;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+dialog::backdrop {
+  background: rgba(0, 0, 0, 0.5);
+}
+
+dialog[open] {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Button group accessibility */
+[role="group"] > button {
+  border-radius: 0;
+}
+
+[role="group"] > button:first-child {
+  border-radius: 0.375rem 0 0 0.375rem;
+}
+
+[role="group"] > button:last-child {
+  border-radius: 0 0.375rem 0.375rem 0;
+}
+
+/* Tab panel accessibility */
+[role="tablist"] {
+  display: flex;
+  border-bottom: 2px solid hsl(var(--border));
+  margin-bottom: 1rem;
+}
+
+[role="tab"] {
+  padding: 0.75rem 1rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-weight: 500;
+  color: hsl(var(--muted-foreground));
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+}
+
+[role="tab"][aria-selected="true"] {
+  color: hsl(var(--primary));
+  border-bottom-color: hsl(var(--primary));
+}
+
+[role="tab"]:hover {
+  color: hsl(var(--foreground));
+}
+
+[role="tab"]:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: -2px;
+}
+
+/* Checkbox and radio accessibility */
+[type="checkbox"],
+[type="radio"] {
+  width: 20px;
+  height: 20px;
+  margin-right: 0.5rem;
+  cursor: pointer;
+}
+
+/* List accessibility */
+ul,
+ol {
+  margin: 1rem 0;
+  padding-left: 2rem;
+}
+
+li {
+  margin-bottom: 0.5rem;
+}
+
+/* Heading hierarchy */
+h1 {
+  font-size: 2.25rem;
+}
+
+h2 {
+  font-size: 1.875rem;
+  margin-top: 1.5rem;
+}
+
+h3 {
+  font-size: 1.5rem;
+}
+
+h4 {
+  font-size: 1.25rem;
+}
+
+h5,
+h6 {
+  font-size: 1rem;
+}
+
+/* Ensure sufficient line spacing */
+p,
+li {
+  line-height: 1.5;
+  letter-spacing: 0.02em;
+}
+
+/* Link underline (not just color) */
+a {
+  color: hsl(var(--primary));
+  text-decoration: underline;
+}
+
+a:hover {
+  text-decoration-thickness: 3px;
+}
+
+a:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+
+/* Image alt text visibility in development */
+@media (max-width: 0) {
+  img[alt] {
+    border: 1px solid red;
+  }
+
+  img:not([alt]) {
+    border: 2px solid red;
+  }
+}
+
+/* Print styles for accessibility */
+@media print {
+  a[href]::after {
+    content: " (" attr(href) ")";
+  }
+
+  .no-print {
+    display: none;
+  }
+}

@@ -1,6 +1,6 @@
 export const metadata = {
-  title: 'Orders - NexMart Maroc',
-  description: 'View your orders on NexMart Maroc',
+  title: 'Orders - NexStore Maroc',
+  description: 'View your orders on NexStore Maroc',
 }
 
 export default function OrdersLayout({
@@ -10,3 +10,4 @@ export default function OrdersLayout({
 }) {
   return <>{children}</>
 }
+

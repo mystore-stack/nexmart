@@ -1,6 +1,6 @@
 export const metadata = {
-  title: 'Account - NexMart Maroc',
-  description: 'Manage your account on NexMart Maroc',
+  title: 'Account - NexStore Maroc',
+  description: 'Manage your account on NexStore Maroc',
 }
 
 export default function AccountLayout({
@@ -10,3 +10,4 @@ export default function AccountLayout({
 }) {
   return <>{children}</>
 }
+

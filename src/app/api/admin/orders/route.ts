@@ -1,5 +1,5 @@
 // src/app/api/admin/orders/route.ts
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth-api";
 import { ok, forbidden, handleApiError, getPaginationParams, buildPaginationMeta } from "@/lib/api";
@@ -99,11 +99,15 @@ export async function GET(req: NextRequest) {
       console.warn("[ADMIN ORDERS] 3. The user may need a Membership or Organization ownership record");
     }
 
-    const responseData = { data: orders, pagination: buildPaginationMeta(total, page, limit) };
+    const responseData = {
+      success: true,
+      data: orders,
+      pagination: buildPaginationMeta(total, page, limit)
+    };
 
     console.log("[ADMIN ORDERS] RESPONSE PAYLOAD:", JSON.stringify(responseData, null, 2));
 
-    return ok(responseData);
+    return NextResponse.json(responseData);
   } catch (err) {
     return handleApiError(err);
   }

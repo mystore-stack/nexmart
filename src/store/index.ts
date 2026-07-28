@@ -1,4 +1,4 @@
-// src/store/index.ts — wishlist, UI, auth
+// src/store/index.ts â€” wishlist, UI, auth
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { immer } from "zustand/middleware/immer";
@@ -24,7 +24,7 @@ export const useWishlistStore = create<WishlistStore>()(
             createdAt: new Date().toISOString(),
           });
         });
-        toast.success("Added to wishlist ❤️");
+        toast.success("Added to wishlist â¤ï¸");
       },
       removeItem: (productId: string) => {
         set((state) => {
@@ -138,3 +138,4 @@ export const useAuthStore = create<AuthStore>()(
 );
 
 export { useCartStore } from "./cart";
+

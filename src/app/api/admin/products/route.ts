@@ -1,5 +1,5 @@
 // src/app/api/admin/products/route.ts
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { ok, created, getPaginationParams, buildPaginationMeta, handleApiError } from "@/lib/api-response";
@@ -100,15 +100,17 @@ export async function GET(req: NextRequest) {
 
     // Ensure products is always an array
     const productsArray = Array.isArray(products) ? products : [];
-    
-    const responseData = { 
-      data: productsArray, 
-      pagination: buildPaginationMeta(total, page, limit) 
+
+    const responseData = {
+      success: true,
+      data: productsArray,
+      pagination: buildPaginationMeta(total, page, limit)
     };
-    
+
     console.log("[ADMIN PRODUCTS] RESPONSE PAYLOAD:", JSON.stringify(responseData, null, 2));
-    
-    return ok(responseData);
+    console.log("[ADMIN PRODUCTS] Response data length:", responseData.data.length);
+
+    return NextResponse.json(responseData);
   } catch (err) {
     return handleApiError(err);
   }
@@ -227,3 +229,4 @@ export async function POST(req: NextRequest) {
     return handleApiError(err);
   }
 }
+

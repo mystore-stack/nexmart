@@ -18,8 +18,8 @@ export const Navbar: React.FC = () => {
     <header className="sticky top-0 z-50 backdrop-blur-sm bg-[var(--color-surface)]/80 border-b border-[var(--color-muted)]/10">
       <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-4">
         <div className="flex items-center gap-4">
-          <Link href="/" aria-label="NexMart home">
-            <div className="text-xl font-bold text-[var(--color-primary)]">NexMart</div>
+          <Link href="/" aria-label="NexStore home">
+            <div className="text-xl font-bold text-[var(--color-primary)]">NexStore</div>
           </Link>
           <nav aria-label="Main" className="hidden md:flex gap-2 items-center">
             <button onMouseEnter={() => setOpen(true)} onClick={() => setOpen((s) => !s)} className="px-3 py-2 rounded-md hover:bg-[var(--color-backdrop)]/6">
@@ -46,3 +46,4 @@ export const Navbar: React.FC = () => {
 };
 
 export default Navbar;
+

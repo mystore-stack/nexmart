@@ -55,10 +55,13 @@ export default function DealsPage() {
       const response = await fetch('/api/admin/deals');
       if (!response.ok) throw new Error('Failed to fetch deals');
       const data = await response.json();
-      setDeals(data.data || []);
+      // Ensure deals is always an array
+      const dealsData = Array.isArray(data.data) ? data.data : [];
+      setDeals(dealsData);
     } catch (err) {
       setError('Failed to load deals');
       console.error('Error fetching deals:', err);
+      setDeals([]); // Ensure deals is always an array on error
     } finally {
       setLoading(false);
     }

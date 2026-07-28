@@ -1,6 +1,6 @@
 import { MetadataRoute } from "next";
 
-const BASE = process.env.NEXT_PUBLIC_APP_URL || "https://nexmart.ma";
+const BASE = process.env.NEXT_PUBLIC_APP_URL || "https://nexstore.ma";
 
 export default function robots(): MetadataRoute.Robots {
   return {
@@ -16,3 +16,4 @@ export default function robots(): MetadataRoute.Robots {
     host: BASE,
   };
 }
+

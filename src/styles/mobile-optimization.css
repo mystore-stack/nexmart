@@ -1,0 +1,263 @@
+/* Mobile Optimization for 390px-430px screens */
+
+/* Safe area handling for notched devices */
+@supports (padding: max(0px)) {
+  body {
+    padding-left: max(12px, env(safe-area-inset-left));
+    padding-right: max(12px, env(safe-area-inset-right));
+  }
+}
+
+/* Viewport meta optimization */
+@viewport {
+  width: device-width;
+  initial-scale: 1;
+  maximum-scale: 5;
+  user-scalable: yes;
+}
+
+/* Mobile-first typography */
+@media (max-width: 430px) {
+  /* Reduce font sizes for mobile */
+  body {
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  h1 {
+    font-size: 24px;
+    line-height: 1.2;
+  }
+
+  h2 {
+    font-size: 20px;
+    line-height: 1.2;
+  }
+
+  h3 {
+    font-size: 16px;
+    line-height: 1.3;
+  }
+
+  .text-lg {
+    font-size: 15px;
+  }
+
+  .text-sm {
+    font-size: 12px;
+  }
+
+  .text-xs {
+    font-size: 11px;
+  }
+
+  /* Optimize spacing */
+  .px-4 {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .px-6 {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .px-8 {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .py-4 {
+    padding-top: 12px;
+    padding-bottom: 12px;
+  }
+
+  .py-6 {
+    padding-top: 16px;
+    padding-bottom: 16px;
+  }
+
+  .py-8 {
+    padding-top: 20px;
+    padding-bottom: 20px;
+  }
+
+  .py-12 {
+    padding-top: 24px;
+    padding-bottom: 24px;
+  }
+
+  /* Touch target optimization */
+  button,
+  a,
+  input[type="checkbox"],
+  input[type="radio"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Button padding */
+  .btn {
+    min-height: 44px;
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  /* Form input optimization */
+  input,
+  select,
+  textarea {
+    min-height: 44px;
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+
+  /* Grid optimization */
+  .grid-cols-2 {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .gap-4 {
+    gap: 12px;
+  }
+
+  .gap-6 {
+    gap: 12px;
+  }
+
+  /* Reduce border radius on mobile */
+  .rounded-2xl {
+    border-radius: 12px;
+  }
+
+  .rounded-xl {
+    border-radius: 8px;
+  }
+
+  /* Optimize cards */
+  .card {
+    border-radius: 12px;
+    padding: 12px;
+  }
+
+  /* Sticky footer CTA */
+  .sticky-cta {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 12px;
+    background: white;
+    border-top: 1px solid #e2e8f0;
+    z-index: 40;
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  /* Hide desktop elements */
+  .hidden-mobile {
+    display: none !important;
+  }
+
+  /* Horizontal scroll optimization */
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Image optimization */
+  img {
+    max-width: 100%;
+    height: auto;
+  }
+
+  /* Flexbox optimization */
+  .flex {
+    flex-wrap: wrap;
+  }
+
+  /* Prevent text selection on long press */
+  .no-select {
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+  }
+
+  /* Header optimization */
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    padding: 8px 12px;
+  }
+
+  /* Modal/drawer optimization */
+  dialog,
+  [role="dialog"] {
+    max-width: 100%;
+    max-height: 90vh;
+    border-radius: 20px 20px 0 0;
+  }
+
+  /* Swipe optimization */
+  .swipe-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Safe area for bottom navigation */
+  .bottom-nav {
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+  }
+}
+
+/* Extra small devices (390px and below) */
+@media (max-width: 390px) {
+  h1 {
+    font-size: 22px;
+  }
+
+  h2 {
+    font-size: 18px;
+  }
+
+  .px-4 {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+
+  .py-4 {
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
+
+  .gap-3 {
+    gap: 8px;
+  }
+
+  .gap-4 {
+    gap: 10px;
+  }
+}
+
+/* Optimize animations for reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Dark mode optimization for OLED screens */
+@media (prefers-color-scheme: dark) {
+  body {
+    background-color: #000;
+    color: #fff;
+  }
+}

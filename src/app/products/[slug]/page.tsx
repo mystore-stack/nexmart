@@ -88,7 +88,7 @@ export default async function ProductPage({ params }: Props) {
     description: product.description,
     image: product.images,
     sku: product.sku,
-    brand: { "@type": "Organization", name: "NexMart" },
+    brand: { "@type": "Organization", name: "NexStore" },
     offers: {
       "@type": "Offer",
       price: product.price,
@@ -179,4 +179,5 @@ export default async function ProductPage({ params }: Props) {
     </>
   );
 }
+
 

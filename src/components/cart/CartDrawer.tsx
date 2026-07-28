@@ -127,8 +127,8 @@ export function CartDrawer() {
               ) : (
                 <AnimatePresence initial={false}>
                   {items.map((item) => {
-                    const img = item.product.images?.[0] || "/placeholder.jpg";
-                    const price = item.variant?.price ?? item.product.price;
+                    const img = item.product?.images?.[0] || "/placeholder.jpg";
+                    const price = item.variant?.price ?? item.product?.price ?? 0;
                     return (
                       <motion.div
                         key={item.id}
@@ -138,15 +138,15 @@ export function CartDrawer() {
                         transition={{ duration: 0.2 }}
                         className="flex items-start gap-4 py-4 border-b border-gold-200/30 dark:border-gold-800/15 last:border-0"
                       >
-                        <Link href={`/products/${item.product.slug}`} onClick={closeCart} className="flex-shrink-0">
+                        <Link href={`/products/${item.product?.slug || '#'}`} onClick={closeCart} className="flex-shrink-0">
                           <div className="relative h-20 w-20 overflow-hidden rounded-xl border border-gold-200/30 dark:border-gold-800/20 bg-muted img-zoom">
-                            <Image src={img} alt={item.product.name} fill className="object-cover" sizes="80px" />
+                            <Image src={img} alt={item.product?.name || 'Product'} fill className="object-cover" sizes="80px" />
                           </div>
                         </Link>
                         <div className="flex flex-1 min-w-0 flex-col gap-1.5">
-                          <Link href={`/products/${item.product.slug}`} onClick={closeCart}
+                          <Link href={`/products/${item.product?.slug || '#'}`} onClick={closeCart}
                             className="text-sm font-semibold line-clamp-2 hover:text-brand-700 dark:hover:text-brand-400 transition-colors leading-snug">
-                            {item.product.name}
+                            {item.product?.name || 'Unknown Product'}
                           </Link>
                           {item.variant && (
                             <p className="text-xs text-muted-foreground">{item.variant.name}: {item.variant.label}</p>
@@ -164,7 +164,7 @@ export function CartDrawer() {
                               <button
                                 onClick={() => updateQuantity(item.id, item.quantity + 1)}
                                 className="flex h-6 w-6 items-center justify-center rounded-lg hover:bg-muted transition-colors"
-                                disabled={item.quantity >= (item.variant?.stock ?? item.product.stock)}
+                                disabled={item.quantity >= (item.variant?.stock ?? item.product?.stock ?? 999)}
                               >
                                 <Plus className="w-3 h-3" />
                               </button>

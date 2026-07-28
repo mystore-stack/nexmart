@@ -18,10 +18,13 @@ export default function BundlesPage() {
       const response = await fetch('/api/admin/bundles');
       if (!response.ok) throw new Error('Failed to fetch bundles');
       const data = await response.json();
-      setBundles(data.data || []);
+      // Ensure bundles is always an array
+      const bundlesData = Array.isArray(data.data) ? data.data : [];
+      setBundles(bundlesData);
     } catch (err) {
       setError('Failed to load bundles');
       console.error('Error fetching bundles:', err);
+      setBundles([]); // Ensure bundles is always an array on error
     } finally {
       setLoading(false);
     }

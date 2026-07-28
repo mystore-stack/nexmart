@@ -12,18 +12,18 @@ export function BundleDealsSection({ bundles }: BundleDealsSectionProps) {
   const featuredBundle = hasBundles ? bundles[0] : null;
 
   return (
-    <section className="section bg-surface/60">
+    <section className="section">
       <div className="container-main">
-        <div className="flex items-center justify-between mb-6">
+        <div className="mb-5 flex items-center justify-between gap-4">
           <div>
-            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-1">Save More</p>
-            <h2 className="font-display text-2xl font-semibold text-foreground">Bundle Deals</h2>
+            <p className="market-pill mb-2">Save More</p>
+            <h2 className="font-display text-2xl font-semibold text-foreground sm:text-3xl">Bundle Deals</h2>
           </div>
-          <Link href="/bundles" className="text-sm font-semibold text-primary hover:underline">
-            See all →
+          <Link href="/bundles" className="text-sm font-semibold text-slate-600 hover:text-orange-600">
+            Voir tout →
           </Link>
         </div>
-        <div className="card-luxury rounded-2xl p-6">
+        <div className="market-shell bg-[linear-gradient(135deg,_white,_#fff7ed)]">
           {featuredBundle ? (
             <>
               <div className="flex items-center gap-3 mb-6">

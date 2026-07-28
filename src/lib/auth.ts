@@ -177,3 +177,4 @@ export async function requireAdmin(): Promise<AuthSession> {
 export async function requireAdminFromRequest(req: NextRequest): Promise<AuthSession> {
   return requireAdminSession(req);
 }
+

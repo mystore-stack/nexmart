@@ -5,8 +5,8 @@ import { getCatalogCategories, getCatalogMaxPrice } from "@/lib/catalog-queries"
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Nouveautés",
-  description: "Les derniers produits ajoutés sur NexMart MA",
+  title: "NouveautÃ©s",
+  description: "Les derniers produits ajoutÃ©s sur NexStore MA",
 };
 
 export default async function NewArrivalsPage({
@@ -18,11 +18,11 @@ export default async function NewArrivalsPage({
 
   return (
     <ProductListingShell
-      title="Nouveautés"
-      description="Soyez les premiers à découvrir nos dernières arrivées."
+      title="NouveautÃ©s"
+      description="Soyez les premiers Ã  dÃ©couvrir nos derniÃ¨res arrivÃ©es."
       breadcrumbs={[
         { label: "Accueil", href: "/" },
-        { label: "Nouveautés" },
+        { label: "NouveautÃ©s" },
       ]}
       categories={categories as never}
       maxPrice={maxPrice}
@@ -31,3 +31,4 @@ export default async function NewArrivalsPage({
     />
   );
 }
+

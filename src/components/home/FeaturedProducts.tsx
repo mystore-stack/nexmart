@@ -13,30 +13,26 @@ export function FeaturedProducts({ products }: Props) {
   if (products.length === 0) return null;
 
   return (
-    <div className="space-y-8">
-      <div className="flex items-end justify-between">
+    <div className="space-y-5">
+      <div className="flex flex-col gap-4 rounded-[1.5rem] border border-orange-100 bg-[linear-gradient(135deg,_rgba(255,247,237,0.95),_white)] p-4 sm:flex-row sm:items-end sm:justify-between sm:p-6">
         <div>
-          <span className="section-label mb-2 block">
-            <span className="inline-block w-8 h-px bg-gold-500 mr-2 align-middle" />
-            Sélection Prestige
-          </span>
-          <h2 className="font-display text-3xl font-semibold md:text-4xl text-foreground">
-            Produits en vedette
-          </h2>
-          <div className="gold-divider mt-3" />
-        </div>
-        <div className="flex items-center gap-3">
-          <span className="hidden sm:flex items-center gap-1.5 rounded-full border border-gold-300/40 bg-gold-50 dark:bg-gold-900/20 px-3 py-1.5 text-xs font-bold text-gold-700 dark:text-gold-400">
+          <span className="market-pill mb-2 inline-flex items-center gap-2">
             <Crown className="h-3 w-3" /> Recommandé par l&apos;IA
           </span>
-          <Link
-            href="/products?featured=true"
-            className="flex items-center gap-1.5 text-sm font-semibold text-brand-700 dark:text-brand-400 hover:text-brand-600 transition-colors group"
-          >
-            Voir tout
-            <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
-          </Link>
+          <h2 className="text-2xl font-semibold text-foreground sm:text-3xl">
+            Produits en vedette
+          </h2>
+          <p className="mt-2 max-w-2xl text-sm text-slate-600">
+            Une sélection plus précise, pensée pour offrir un parcours simple et rapide.
+          </p>
         </div>
+        <Link
+          href="/products?featured=true"
+          className="inline-flex items-center gap-2 self-start rounded-full border border-orange-200 bg-white px-3 py-2 text-sm font-semibold text-orange-600 transition hover:border-orange-300 hover:bg-orange-50"
+        >
+          Voir tout
+          <ArrowRight className="h-4 w-4" />
+        </Link>
       </div>
 
       <ProductGrid products={products.slice(0, 8)} columns={4} />

@@ -1,11 +1,11 @@
 /**
- * /api/ai/describe — AI Product Description Generator
- * ────────────────────────────────────────────────────
+ * /api/ai/describe â€” AI Product Description Generator
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
  * Generates SEO-optimized, multilingual product descriptions
  * using Claude. Admin-only endpoint.
  *
  * POST { name, category, price, tags, existingDescription? }
- * → { description, seoTitle, seoDescription, tags, keyFeatures }
+ * â†’ { description, seoTitle, seoDescription, tags, keyFeatures }
  */
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth-api";
@@ -30,8 +30,8 @@ export async function POST(req: NextRequest) {
     const body = schema.parse(await req.json());
 
     const langInstructions = {
-      fr: "en français parfait, élégant et commercial",
-      ar: "باللغة العربية الفصحى",
+      fr: "en franÃ§ais parfait, Ã©lÃ©gant et commercial",
+      ar: "Ø¨Ø§Ù„Ù„ØºØ© Ø§Ù„Ø¹Ø±Ø¨ÙŠØ© Ø§Ù„ÙØµØ­Ù‰",
       en: "in professional English",
     }[body.language];
 
@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
       technical: "detailed and spec-focused, for informed buyers who want facts",
     }[body.tone];
 
-    const prompt = `You are an expert e-commerce copywriter for NexMart Maroc, a premium Moroccan marketplace.
+    const prompt = `You are an expert e-commerce copywriter for NexStore Maroc, a premium Moroccan marketplace.
 
 Create compelling product content ${langInstructions} for this product:
 
@@ -90,3 +90,4 @@ Respond ONLY with valid JSON (no markdown, no backticks):
     return NextResponse.json({ success: false, error: "Failed to generate description" }, { status: 500 });
   }
 }
+

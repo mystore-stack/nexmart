@@ -35,6 +35,7 @@ model User {
   viewedProducts   RecentlyViewed[]
   reviews          Review[]
   Session          Session[]
+  sellers          Seller[]
   wishlist         WishlistItem[]
 
   @@index([email])
@@ -77,9 +78,54 @@ model Category {
   @@index([organizationId])
 }
 
+model Brand {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @db.Uuid
+  name           String
+  slug           String
+  logo           String?
+  description    String?
+  country        String?
+  verified       Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  Organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  products       Product[]
+
+  @@unique([organizationId, slug])
+  @@index([organizationId])
+}
+
+model Seller {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @db.Uuid
+  userId         String?      @db.Uuid
+  name           String
+  slug           String
+  logo           String?
+  city           String?
+  country        String       @default("Morocco")
+  commissionRate Float        @default(0.12)
+  rating         Float        @default(0)
+  reviewCount    Int          @default(0)
+  verified       Boolean      @default(false)
+  active         Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  Organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  User           User?        @relation(fields: [userId], references: [id])
+  products       Product[]
+
+  @@unique([organizationId, slug])
+  @@index([organizationId])
+  @@index([userId])
+}
+
 model Product {
   id                 String                 @id @default(uuid()) @db.Uuid
   organizationId     String                 @db.Uuid
+  brandId            String?                @db.Uuid
+  sellerId           String?                @db.Uuid
   name               String
   slug               String
   description        String
@@ -105,8 +151,15 @@ model Product {
   cartItems          CartItem[]
   reservations       InventoryReservation[]
   orderItems         OrderItem[]
+  bundleProducts     BundleProduct[]
+  brand              Brand?                 @relation(fields: [brandId], references: [id])
   category           Category               @relation(fields: [categoryId], references: [id])
   Organization       Organization           @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  seller             Seller?                @relation(fields: [sellerId], references: [id])
+  advertisements     Advertisement[]
+  dealProducts       DealProduct[]
+  inventory          Inventory?
+  boxProducts        StoreBoxProduct[]
   variants           ProductVariant[]
   recentlyViewed     RecentlyViewed[]
   reviews            Review[]
@@ -115,6 +168,8 @@ model Product {
   @@unique([organizationId, sku])
   @@unique([organizationId, slug])
   @@index([categoryId])
+  @@index([brandId])
+  @@index([sellerId])
   @@index([published])
   @@index([featured])
   @@index([organizationId])
@@ -503,7 +558,7 @@ model Membership {
 }
 
 model Organization {
-  id                 String               @id @default(uuid()) @db.Uuid
+  id                 String               @id @default(uuid()) @db.Uuid 
   name               String
   slug               String               @unique
   logo               String?
@@ -520,14 +575,22 @@ model Organization {
   AiEvent            AiEvent[]
   AiProductEmbedding AiProductEmbedding[]
   AuditLog           AuditLog[]
+  Advertisement      Advertisement[]
+  Brand              Brand[]
+  Bundle             Bundle[]
   Category           Category[]
+  Campaign           Campaign[]
   Coupon             Coupon[]
   Customer           Customer[]
+  Deal               Deal[]
+  HomepageSection    HomepageSection[]
   Invoice            Invoice[]
   Membership         Membership[]
   Order              Order[]
   User               User                 @relation(fields: [ownerId], references: [id])
   Product            Product[]
+  Seller             Seller[]
+  StoreBox           StoreBox[]
   Subscription       Subscription?
 
   @@index([ownerId])
@@ -866,4 +929,239 @@ enum NotificationStatus {
   DELIVERED
   FAILED
   RETRYING
+}
+
+model Bundle {
+  id            String   @id @default(uuid()) @db.Uuid
+  organizationId String   @db.Uuid
+  name          String
+  slug          String
+  description   String?
+  image         String?
+  regularPrice  Float
+  bundlePrice   Float
+  discount      Int
+  active        Boolean  @default(true)
+  sales         Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  Organization  Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  products      BundleProduct[]
+
+  @@unique([organizationId, slug])
+  @@index([organizationId])
+}
+
+model BundleProduct {
+  id        String   @id @default(uuid()) @db.Uuid
+  bundleId  String   @db.Uuid
+  productId String   @db.Uuid
+  bundle    Bundle   @relation(fields: [bundleId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([bundleId, productId])
+  @@index([bundleId])
+  @@index([productId])
+}
+
+model Campaign {
+  id             String         @id @default(uuid()) @db.Uuid
+  organizationId String         @db.Uuid
+  name           String
+  slug           String
+  description    String?
+  type           CampaignType
+  startsAt       DateTime
+  endsAt         DateTime?
+  active         Boolean        @default(true)
+  heroTitle      String?
+  heroSubtitle   String?
+  heroImage      String?
+  ctaLabel       String?
+  ctaHref        String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  Organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  deals          Deal[]
+
+  @@unique([organizationId, slug])
+  @@index([organizationId])
+  @@index([active, startsAt, endsAt])
+}
+
+model Deal {
+  id             String        @id @default(uuid()) @db.Uuid
+  organizationId String        @db.Uuid
+  campaignId     String?       @db.Uuid
+  name           String
+  slug           String
+  type           DealType      @default(FLASH)
+  discountType   DiscountType  @default(PERCENTAGE)
+  discountValue  Float
+  startsAt       DateTime
+  endsAt         DateTime
+  stockLimit     Int?
+  soldCount      Int           @default(0)
+  active         Boolean       @default(true)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  Campaign       Campaign?     @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  Organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  products       DealProduct[]
+
+  @@unique([organizationId, slug])
+  @@index([organizationId])
+  @@index([campaignId])
+  @@index([active, startsAt, endsAt])
+}
+
+model DealProduct {
+  id        String  @id @default(uuid()) @db.Uuid
+  dealId    String  @db.Uuid
+  productId String  @db.Uuid
+  price     Float?
+  stock     Int?
+  position  Int     @default(0)
+  Deal      Deal    @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  Product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([dealId, productId])
+  @@index([dealId])
+  @@index([productId])
+}
+
+model StoreBox {
+  id             String            @id @default(uuid()) @db.Uuid
+  organizationId String            @db.Uuid
+  name           String
+  slug           String
+  description    String?
+  image          String?
+  cadence        BoxCadence
+  price          Float
+  comparePrice   Float?
+  active         Boolean           @default(true)
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  Organization   Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  products       StoreBoxProduct[]
+
+  @@unique([organizationId, slug])
+  @@index([organizationId])
+}
+
+model StoreBoxProduct {
+  id        String   @id @default(uuid()) @db.Uuid
+  boxId     String   @db.Uuid
+  productId String   @db.Uuid
+  quantity  Int      @default(1)
+  Box       StoreBox @relation(fields: [boxId], references: [id], onDelete: Cascade)
+  Product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([boxId, productId])
+  @@index([boxId])
+  @@index([productId])
+}
+
+model Advertisement {
+  id             String      @id @default(uuid()) @db.Uuid
+  organizationId String      @db.Uuid
+  productId      String      @db.Uuid
+  name           String
+  budget         Float
+  spend          Float       @default(0)
+  bidAmount      Float       @default(0)
+  impressions    Int         @default(0)
+  clicks         Int         @default(0)
+  startsAt       DateTime
+  endsAt         DateTime?
+  status         AdStatus    @default(DRAFT)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  Organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  Product        Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([productId])
+  @@index([status])
+}
+
+model HomepageSection {
+  id             String       @id @default(uuid()) @db.Uuid
+  organizationId String       @db.Uuid
+  key            String
+  title          String
+  subtitle       String?
+  type           SectionType
+  enabled        Boolean      @default(true)
+  position       Int          @default(0)
+  settings       Json?
+  responsive     Json?
+  startsAt       DateTime?
+  endsAt         DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  Organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, key])
+  @@index([organizationId, enabled, position])
+}
+
+model Inventory {
+  id             String       @id @default(uuid()) @db.Uuid
+  productId      String       @unique @db.Uuid
+  warehouseCode  String       @default("CASA-01")
+  quantity       Int          @default(0)
+  reserved       Int          @default(0)
+  safetyStock    Int          @default(5)
+  restockDate    DateTime?
+  updatedAt      DateTime     @updatedAt
+  Product        Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([warehouseCode])
+}
+
+enum CampaignType {
+  RAMADAN
+  BLACK_FRIDAY
+  MOROCCO_DEALS
+  SEASONAL
+  CUSTOM
+}
+
+enum DealType {
+  FLASH
+  SUPER
+  BUNDLE
+  BOX
+}
+
+enum DiscountType {
+  PERCENTAGE
+  FIXED
+  FREE_SHIPPING
+}
+
+enum BoxCadence {
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+}
+
+enum AdStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  ENDED
+}
+
+enum SectionType {
+  ANNOUNCEMENT
+  HERO
+  CATEGORIES
+  FLASH_DEALS
+  BUNDLES
+  STORE_BOX
+  PRODUCT_RAIL
+  EDITORIAL
 }

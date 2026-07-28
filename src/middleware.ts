@@ -6,7 +6,7 @@ import { generateRequestId } from "@/lib/idempotency";
 
 const PROTECTED_ROUTES = ["/account", "/checkout", "/orders", "/wishlist", "/vendor"];
 const ADMIN_ROUTES = ["/admin"];
-const AUTH_ROUTES = ["/login", "/register"];
+const AUTH_ROUTES = ["/login", "/register", "/admin/login"];
 
 const PROTECTED_API_PREFIXES = [
   "/api/cart",
@@ -85,8 +85,8 @@ export async function middleware(req: NextRequest) {
   // Protect admin routes
   if (ADMIN_ROUTES.some((r) => pathname.startsWith(r))) {
     if (!sessionData) {
-      console.log("[MIDDLEWARE] Admin route - no session, redirecting to login");
-      const loginUrl = new URL("/login", req.url);
+      console.log("[MIDDLEWARE] Admin route - no session, redirecting to admin login");
+      const loginUrl = new URL("/admin/login", req.url);
       loginUrl.searchParams.set("from", pathname);
       return NextResponse.redirect(loginUrl);
     }

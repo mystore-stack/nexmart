@@ -102,13 +102,13 @@ const DEFAULT_OPTIONS: WithApiOptions = {
 export function withApi<T = unknown>(
   handler: ApiHandler<T>,
   options: WithApiOptions = {}
-): (req: NextRequest, context?: { params?: Record<string, string> }) => Promise<NextResponse> {
+): (req: NextRequest, context: { params: Promise<any> }) => Promise<NextResponse> {
   const opts = { ...DEFAULT_OPTIONS, ...options };
 
-  return async (req: NextRequest, routeContext?: { params?: Record<string, string> }) => {
+  return async (req: NextRequest, routeContext: { params: Promise<any> }) => {
     const ctx: ApiContext = {
       req,
-      params: routeContext?.params,
+      params: await routeContext.params,
     };
 
     // Log request if enabled

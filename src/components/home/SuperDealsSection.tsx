@@ -14,29 +14,29 @@ export function SuperDealsSection({ deals }: SuperDealsSectionProps) {
   return (
     <section className="section">
       <div className="container-main">
-        <div className="flex items-center justify-between mb-6">
+        <div className="mb-5 flex items-center justify-between gap-4">
           <div>
-            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-1">Limited Time</p>
-            <h2 className="font-display text-2xl font-semibold text-foreground">Super Deals</h2>
+            <p className="market-pill mb-2">Limited Time</p>
+            <h2 className="font-display text-2xl font-semibold text-foreground sm:text-3xl">Super Deals</h2>
           </div>
           <div className="flex items-center gap-3">
-            <span className="flex items-center gap-2 text-sm font-bold text-red-500">
-              <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+            <span className="flex items-center gap-2 rounded-full border border-orange-200 bg-orange-50 px-3 py-1.5 text-sm font-semibold text-orange-600">
+              <span className="h-2 w-2 rounded-full bg-orange-500 animate-pulse" />
               LIVE
             </span>
-            <Link href="/m/deals" className="text-sm font-semibold text-primary hover:underline">
-              See all →
+            <Link href="/deals" className="text-sm font-semibold text-slate-600 hover:text-orange-600">
+              Voir tout →
             </Link>
           </div>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="market-grid">
           {hasDeals ? deals.slice(0, 4).map((deal) => (
             <Link
               key={deal.id}
               href={`/products/${deal.product.slug}`}
-              className="group relative bg-white dark:bg-card rounded-2xl overflow-hidden border border-gold-200/30 hover:border-gold-400/50 transition-all"
+              className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white transition-all hover:-translate-y-1 hover:border-orange-300"
             >
-              <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-moroccan-sand to-muted/50">
+              <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-orange-50 to-slate-100">
                 <Image
                   src={deal.product.images[0] || "/placeholder.jpg"}
                   alt={deal.product.name}
@@ -51,7 +51,7 @@ export function SuperDealsSection({ deals }: SuperDealsSectionProps) {
                 )}
               </div>
               <div className="p-4 space-y-2">
-                <h3 className="text-sm font-semibold line-clamp-2 group-hover:text-brand-700 transition-colors">
+                <h3 className="text-sm font-semibold line-clamp-2 transition-colors group-hover:text-orange-600">
                   {deal.product.name}
                 </h3>
                 <div className="flex items-baseline gap-2">
@@ -65,7 +65,7 @@ export function SuperDealsSection({ deals }: SuperDealsSectionProps) {
               </div>
             </Link>
           )) : (
-            <p className="text-muted-foreground text-center py-8 col-span-4">No deals available at the moment</p>
+            <p className="col-span-4 py-8 text-center text-sm text-slate-500">Aucune offre disponible pour le moment</p>
           )}
         </div>
       </div>

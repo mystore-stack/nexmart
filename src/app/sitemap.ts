@@ -1,5 +1,5 @@
 /**
- * Dynamic Sitemap — NexMart SEO
+ * Dynamic Sitemap â€” NexStore SEO
  */
 import { MetadataRoute } from "next";
 import { prisma } from "@/lib/prisma";
@@ -7,7 +7,7 @@ import { getDefaultOrganizationId } from "@/lib/tenant";
 
 export const revalidate = 14400;
 
-const BASE = process.env.NEXT_PUBLIC_APP_URL || "https://nexmart.ma";
+const BASE = process.env.NEXT_PUBLIC_APP_URL || "https://nexstore.ma";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   let products: { slug: string; updatedAt: Date; reviewCount: number }[] = [];
@@ -63,3 +63,4 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   return [...staticPages, ...categoryPages, ...productPages];
 }
+

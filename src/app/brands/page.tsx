@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Marques",
-  description: "Découvrez les marques disponibles sur NexMart MA",
+  description: "DÃ©couvrez les marques disponibles sur NexStore MA",
 };
 
 export const revalidate = 600;
@@ -19,7 +19,7 @@ export default async function BrandsPage() {
     <div className="page-enter">
       <PageHeader
         title="Marques"
-        description="Parcourez le catalogue par marque et étiquette produit."
+        description="Parcourez le catalogue par marque et Ã©tiquette produit."
         breadcrumbs={[
           { label: "Accueil", href: "/" },
           { label: "Marques" },
@@ -27,7 +27,7 @@ export default async function BrandsPage() {
       />
       <div className="container-main section">
         {brands.length === 0 ? (
-          <p className="text-center text-muted-foreground py-12">Aucune marque répertoriée pour le moment.</p>
+          <p className="text-center text-muted-foreground py-12">Aucune marque rÃ©pertoriÃ©e pour le moment.</p>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
             {brands.map((brand) => (
@@ -46,3 +46,4 @@ export default async function BrandsPage() {
     </div>
   );
 }
+

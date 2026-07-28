@@ -42,10 +42,14 @@ export default function CategoriesPage() {
       const response = await fetch('/api/admin/categories');
       if (!response.ok) throw new Error('Failed to fetch categories');
       const data = await response.json();
-      setCategories(data.data || []);
+      console.log('Categories API response:', data); // Debug log
+      // Ensure categories is always an array
+      const categoriesData = Array.isArray(data.data) ? data.data : [];
+      setCategories(categoriesData);
     } catch (err) {
       setError('Failed to load categories');
       console.error('Error fetching categories:', err);
+      setCategories([]); // Ensure categories is always an array on error
     } finally {
       setLoading(false);
     }

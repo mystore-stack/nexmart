@@ -43,7 +43,7 @@ export const useCartStore = create<CartStore>()(
           }
         });
         toast.success(`${product.name} added to cart`, {
-          icon: "🛒",
+          icon: "ðŸ›’",
           duration: 2000,
         });
         get().openCart();
@@ -178,3 +178,4 @@ export const useCartStore = create<CartStore>()(
     }
   )
 );
+

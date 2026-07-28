@@ -1,4 +1,4 @@
-// src/utils/format.ts — NexMart Maroc · Dirham MAD
+// src/utils/format.ts â€” NexStore Maroc Â· Dirham MAD
 
 export function formatPrice(amount: number, currency = "MAD"): string {
   if (currency === "MAD") {
@@ -61,3 +61,4 @@ export function generateOrderNumber(): string {
 export function classNames(...classes: (string | undefined | null | false)[]): string {
   return classes.filter(Boolean).join(" ");
 }
+

@@ -11,7 +11,7 @@ export function generateMetadata({ searchParams }: Props): Metadata {
   const q = searchParams.q || "";
   return {
 title: q ? `Search results for ${q}` : "Search",
-description: q ? `Browse results for ${q} on NexMart` : "Search NexMart",
+description: q ? `Browse results for ${q} on NexStore` : "Search NexStore",
   };
 }
 
@@ -51,3 +51,4 @@ Results for <span className="text-brand-500">{query}</span>
     </div>
   );
 }
+

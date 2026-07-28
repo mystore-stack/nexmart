@@ -326,16 +326,16 @@ export default function CheckoutPage() {
 
     const addr = addresses.find((a: any) => a.id === selectedAddress);
     if (!selectedAddress || !addr?.city) {
-      toast.error("Veuillez sélectionner une adresse de livraison");
+      toast.error("Veuillez sÃ©lectionner une adresse de livraison");
       return;
     }
     if (!paymentMethod) {
-      toast.error("Veuillez sélectionner un moyen de paiement");
+      toast.error("Veuillez sÃ©lectionner un moyen de paiement");
       setStep("Payment");
       return;
     }
     if (paymentMethod === "STRIPE" && !paymentIntentId) {
-      toast.error("Paiement non complété. Veuillez compléter le paiement d'abord.");
+      toast.error("Paiement non complÃ©tÃ©. Veuillez complÃ©ter le paiement d'abord.");
       setStep("Payment");
       return;
     }
@@ -448,7 +448,7 @@ export default function CheckoutPage() {
           return;
         }
         
-        toast.error(data.error || "Échec de la création de commande");
+        toast.error(data.error || "Ã‰chec de la crÃ©ation de commande");
         return;
       }
 
@@ -504,7 +504,7 @@ export default function CheckoutPage() {
     }
     catch (error) {
       console.error("Order placement error:", error);
-      toast.error("Échec de la commande. Veuillez réessayer.");
+      toast.error("Ã‰chec de la commande. Veuillez rÃ©essayer.");
       isProcessingOrderRef.current = false; // Reset flag on error
     } finally {
       setOrderLoading(false);
@@ -536,7 +536,7 @@ export default function CheckoutPage() {
               <div className="w-8 h-8 bg-gradient-to-br from-violet-600 to-sky-500 rounded-xl flex items-center justify-center text-white">
                 <Sparkles className="h-4 w-4" />
               </div>
-              NexMart
+              NexStore
             </div>
             <div className="flex items-center gap-1 text-xs font-bold text-muted-foreground">
               <Lock className="w-3.5 h-3.5" />
@@ -616,7 +616,7 @@ export default function CheckoutPage() {
                     onStripeSuccess={() => {
                       // Payment confirmed, allow proceeding to review
                       setPaymentCompleted(true);
-                      toast.success("Paiement réussi! Veuillez réviser votre commande.");
+                      toast.success("Paiement rÃ©ussi! Veuillez rÃ©viser votre commande.");
                     }}
                     onBack={() => setStep("Address")}
                     creatingPaymentIntent={creatingPaymentIntent}
@@ -740,7 +740,7 @@ export default function CheckoutPage() {
   );
 }
 
-// ─── Sub-components ──────────────────────────────────────────
+// â”€â”€â”€ Sub-components â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function AddressStep({ addresses, selected, onSelect, onNext }: AddressStepProps) {
   // UI-only shipping form (does not affect existing saved-address + shipping calculation flow)
@@ -788,7 +788,7 @@ function AddressStep({ addresses, selected, onSelect, onNext }: AddressStepProps
                 </div>
                 <div>
                   <p className="font-semibold text-sm">
-                    {addr.name} · {addr.phone}
+                    {addr.name} Â· {addr.phone}
                   </p>
                   <p className="text-sm text-muted-foreground mt-1">
                     {addr.line1}
@@ -952,7 +952,7 @@ function PaymentStep({ method, onMethodChange, clientSecret, paymentIntentId, gr
             <p className="font-semibold">Secure payment</p>
             <p className="text-muted-foreground">Amount due: {formatPrice(grandTotal)}</p>
             {paymentCompleted && (
-              <p className="text-green-600 font-medium mt-1">✓ Payment completed</p>
+              <p className="text-green-600 font-medium mt-1">âœ“ Payment completed</p>
             )}
           </div>
           {creatingPaymentIntent ? (
@@ -1018,11 +1018,11 @@ function StripePaymentForm({ onSuccess, paymentIntentId, grandTotal }: StripePay
 
   const handleSubmit = async () => {
     if (!stripe || !elements) {
-      toast.error("Stripe non chargé. Veuillez rafraîchir la page.");
+      toast.error("Stripe non chargÃ©. Veuillez rafraÃ®chir la page.");
       return;
     }
     if (!paymentIntentId) {
-      toast.error("Intent de paiement non trouvé. Veuillez réessayer.");
+      toast.error("Intent de paiement non trouvÃ©. Veuillez rÃ©essayer.");
       return;
     }
     setLoading(true);
@@ -1039,19 +1039,19 @@ function StripePaymentForm({ onSuccess, paymentIntentId, grandTotal }: StripePay
       console.log("Payment confirmation result:", { error, paymentIntent });
       
       if (error) {
-        toast.error(error.message || "Échec du paiement");
+        toast.error(error.message || "Ã‰chec du paiement");
       } else if (paymentIntent?.status === "succeeded") {
         console.log("Payment succeeded, calling onSuccess");
-        toast.success("Paiement réussi!");
+        toast.success("Paiement rÃ©ussi!");
         onSuccess();
       } else if (paymentIntent?.status === "processing") {
         toast.error("Le paiement est en cours de traitement. Veuillez patienter.");
       } else {
-        toast.error("Paiement non complété");
+        toast.error("Paiement non complÃ©tÃ©");
       }
     } catch (error) {
       console.error("Stripe payment error:", error);
-      toast.error("Une erreur s'est produite lors du paiement. Veuillez réessayer.");
+      toast.error("Une erreur s'est produite lors du paiement. Veuillez rÃ©essayer.");
     } finally {
       setLoading(false);
     }
@@ -1076,7 +1076,7 @@ function ReviewStep({ items, paymentMethod, grandTotal, loading, isPlacingOrder,
     <div className="rounded-2xl border border-gold-200/30 dark:border-gold-800/20 bg-white dark:bg-card p-6 space-y-6">
       <div className="flex items-center gap-3">
         <Check className="w-5 h-5 text-brand-500" />
-        <h2 className="text-xl font-bold">Réviser votre commande</h2>
+        <h2 className="text-xl font-bold">RÃ©viser votre commande</h2>
       </div>
 
       <div className="space-y-3">
@@ -1088,7 +1088,7 @@ function ReviewStep({ items, paymentMethod, grandTotal, loading, isPlacingOrder,
             <div className="flex-1">
               <p className="font-medium text-sm">{item.product.name}</p>
               {item.variant && <p className="text-xs text-muted-foreground">{item.variant.label}</p>}
-              <p className="text-xs text-muted-foreground">Qté: {item.quantity}</p>
+              <p className="text-xs text-muted-foreground">QtÃ©: {item.quantity}</p>
             </div>
             <p className="font-bold">{formatPrice((item.variant?.price ?? item.product.price) * item.quantity)}</p>
           </div>
@@ -1098,8 +1098,8 @@ function ReviewStep({ items, paymentMethod, grandTotal, loading, isPlacingOrder,
       <div className="p-4 rounded-xl bg-muted/50 flex items-center gap-3">
         {paymentMethod === "STRIPE" ? <CreditCard className="w-5 h-5" /> : <Truck className="w-5 h-5" />}
         <div>
-          <p className="text-sm font-medium">{paymentMethod === "STRIPE" ? "Paiement par carte via Stripe" : "Paiement à la livraison"}</p>
-          <p className="text-xs text-muted-foreground">{paymentMethod === "STRIPE" ? `Paiement sécurisé de ${formatPrice(grandTotal)}` : "Payez à la réception de votre commande"}</p>
+          <p className="text-sm font-medium">{paymentMethod === "STRIPE" ? "Paiement par carte via Stripe" : "Paiement Ã  la livraison"}</p>
+          <p className="text-xs text-muted-foreground">{paymentMethod === "STRIPE" ? `Paiement sÃ©curisÃ© de ${formatPrice(grandTotal)}` : "Payez Ã  la rÃ©ception de votre commande"}</p>
         </div>
       </div>
 
@@ -1128,3 +1128,4 @@ function ReviewStep({ items, paymentMethod, grandTotal, loading, isPlacingOrder,
     </div>
   );
 }
+

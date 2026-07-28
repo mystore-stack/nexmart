@@ -4,7 +4,7 @@
 
 import { startWorkers } from "@/lib/queues";
 
-console.log("🚀 Starting NexMart Queue Workers...");
+console.log("ðŸš€ Starting NexStore Queue Workers...");
 console.log(`   ENV: ${process.env.NODE_ENV}`);
 console.log(`   Redis: ${process.env.REDIS_URL || "redis://localhost:6379"}`);
 
@@ -20,3 +20,4 @@ process.on("SIGINT", async () => {
   console.log("SIGINT received: closing workers");
   process.exit(0);
 });
+

@@ -20,7 +20,7 @@ export default function WishlistPage() {
 
   const handleShare = async () => {
     if (navigator.share) {
-      await navigator.share({ title: "My NexMart Wishlist", url: window.location.href });
+      await navigator.share({ title: "My NexStore Wishlist", url: window.location.href });
     } else {
       navigator.clipboard.writeText(window.location.href);
       toast.success("Link copied!");
@@ -175,3 +175,4 @@ export default function WishlistPage() {
     </div>
   );
 }
+
