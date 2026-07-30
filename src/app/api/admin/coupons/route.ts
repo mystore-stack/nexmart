@@ -2,8 +2,7 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { getAuthFromRequest } from "@/lib/auth";
-import { getOrganizationIdForUser } from "@/lib/tenant";
+import { requireAdmin } from "@/lib/auth-api";
 import { ok, created, forbidden, handleApiError } from "@/lib/api";
 
 const couponSchema = z.object({
@@ -19,31 +18,22 @@ const couponSchema = z.object({
   active: z.boolean().default(true),
 });
 
-async function requireAdmin(req: NextRequest) {
-  const payload = await getAuthFromRequest(req);
-  if (!payload || (payload.role !== "ADMIN" && payload.role !== "SUPER_ADMIN")) {
-    throw new Error("Forbidden");
-  }
-  return { payload, organizationId: await getOrganizationIdForUser(payload) };
-}
-
 export async function GET(req: NextRequest) {
   try {
-    const { organizationId } = await requireAdmin(req);
+    const { organizationId } = await requireAdmin();
     const coupons = await prisma.coupon.findMany({
       where: { organizationId },
       orderBy: { createdAt: "desc" },
     });
     return ok(coupons);
   } catch (err) {
-    if ((err as Error).message === "Forbidden") return forbidden();
     return handleApiError(err);
   }
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const { organizationId } = await requireAdmin(req);
+    const { organizationId } = await requireAdmin();
     const body = await req.json();
     const data = couponSchema.parse(body);
 
@@ -56,7 +46,6 @@ export async function POST(req: NextRequest) {
     });
     return created(coupon);
   } catch (err: any) {
-    if ((err as Error).message === "Forbidden") return forbidden();
     if (err?.code === "P2002") return handleApiError(new Error("Coupon code already exists."));
     return handleApiError(err);
   }

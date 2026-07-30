@@ -2,8 +2,7 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { getAuthFromRequest } from "@/lib/auth";
-import { getOrganizationIdForUser } from "@/lib/tenant";
+import { requireAuth } from "@/lib/auth-api";
 import { ok, error, unauthorized, handleApiError } from "@/lib/api";
 
 const schema = z.object({
@@ -13,9 +12,8 @@ const schema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    const payload = await getAuthFromRequest(req);
-    if (!payload) return unauthorized();
-    const organizationId = await getOrganizationIdForUser(payload);
+    const session = await requireAuth();
+    const organizationId = session.organizationId;
 
     const body = await req.json();
     const { code, subtotal } = schema.parse(body);
@@ -41,7 +39,7 @@ export async function POST(req: NextRequest) {
     // Check per-user usage
     if (coupon.userLimit) {
       const userUsage = await prisma.order.count({
-        where: { organizationId, userId: payload.userId, couponId: coupon.id },
+        where: { organizationId, userId: session.userId, couponId: coupon.id },
       });
       if (userUsage >= coupon.userLimit) {
         return error("You have already used this coupon.");

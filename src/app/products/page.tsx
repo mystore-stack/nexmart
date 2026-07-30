@@ -1,8 +1,11 @@
 // src/app/products/page.tsx
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { getDefaultOrganizationId } from "@/lib/tenant";
+import { getOrganizationIdForUser } from "@/lib/tenant";
+import { getSession } from "@/lib/auth-api";
 import { ProductsClient } from "@/components/product/ProductsClient";
 
 export const metadata: Metadata = {
@@ -15,9 +18,27 @@ export const dynamic = "force-dynamic";
 export default async function ProductsPage({
   searchParams,
 }: {
-  searchParams: Record<string, string | string[] | undefined>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const organizationId = await getDefaultOrganizationId();
+  const resolvedSearchParams = await searchParams;
+  
+  // Redirect special tags to collection pages
+  const tag = resolvedSearchParams?.tag as string;
+  if (tag === "mystery-box") {
+    redirect("/collections/mystery-boxes");
+  }
+  if (tag === "sponsored") {
+    redirect("/collections/sponsored");
+  }
+  
+  const session = await getSession();
+  let organizationId;
+  if (session) {
+    organizationId = await getOrganizationIdForUser({ userId: session.userId });
+  } else {
+    organizationId = await getDefaultOrganizationId();
+  }
+
   const categories = await prisma.category.findMany({
     where: { organizationId, parentId: null },
     include: { _count: { select: { products: { where: { organizationId, published: true } } } } },
@@ -56,7 +77,7 @@ export default async function ProductsPage({
           <ProductsClient
             categories={categories as any}
             maxPrice={maxPrice._max.price || 1000}
-            searchParams={searchParams}
+            searchParams={resolvedSearchParams}
           />
         </Suspense>
       </div>

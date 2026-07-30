@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/auth";
-import { getOrganizationIdForUser } from "@/lib/tenant";
+import { requireAuth } from "@/lib/auth-api";
 import { z } from "zod";
 import { rateLimit } from "@/lib/api";
 
@@ -16,10 +15,10 @@ const updateSchema = z.object({
 // GET /api/reviews/[id] - Get single review
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
     
     const review = await prisma.review.findUnique({
       where: { id },
@@ -43,14 +42,14 @@ export async function GET(
 // PUT /api/reviews/[id] - Update review (within 7 days)
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const user = await requireAuth();
-    const organizationId = await getOrganizationIdForUser(user);
-    const { id } = params;
+    const session = await requireAuth();
+    const organizationId = session.organizationId;
+    const { id } = await params;
     
-    const rl = await rateLimit(`review:update:${user.userId}`, 5, 60 * 1000);
+    const rl = await rateLimit(`review:update:${session.userId}`, 5, 60 * 1000);
     if (!rl.success) {
       return NextResponse.json({ success: false, error: "Too many requests" }, { status: 429 });
     }
@@ -64,7 +63,7 @@ export async function PUT(
       return NextResponse.json({ success: false, error: "Review not found" }, { status: 404 });
     }
 
-    if (existingReview.userId !== user.userId) {
+    if (existingReview.userId !== session.userId) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
     }
 
@@ -116,11 +115,11 @@ export async function PUT(
 // DELETE /api/reviews/[id] - Delete review
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const user = await requireAuth();
-    const { id } = params;
+    const session = await requireAuth();
+    const { id } = await params;
 
     const existingReview = await prisma.review.findUnique({
       where: { id },
@@ -131,7 +130,7 @@ export async function DELETE(
       return NextResponse.json({ success: false, error: "Review not found" }, { status: 404 });
     }
 
-    if (existingReview.userId !== user.userId) {
+    if (existingReview.userId !== session.userId) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
     }
 

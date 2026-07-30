@@ -26,7 +26,9 @@ export default function AdminCategoriesPage() {
   const [editId, setEditId] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("/api/categories")
+    fetch("/api/categories", {
+      credentials: "include",
+    })
       .then((r) => r.json())
       .then((d) => { if (d.data) setCategories(d.data); })
       .finally(() => setLoading(false));
@@ -41,6 +43,7 @@ export default function AdminCategoriesPage() {
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify(form),
       });
       const data = await res.json();
@@ -65,7 +68,10 @@ export default function AdminCategoriesPage() {
 
   const deleteCategory = async (id: string) => {
     if (!confirm("Delete this category? Products won't be deleted.")) return;
-    const res = await fetch(`/api/admin/categories/${id}`, { method: "DELETE" });
+    const res = await fetch(`/api/admin/categories/${id}`, { 
+      method: "DELETE",
+      credentials: "include",
+    });
     if (res.ok) {
       setCategories((prev) => prev.filter((c) => c.id !== id));
       toast.success("Category deleted");

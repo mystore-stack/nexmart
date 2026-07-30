@@ -1,17 +1,16 @@
 // src/app/api/admin/dashboard/events/route.ts
 import { NextRequest } from "next/server";
 import { subscribeToChannel, PUBSUB_CHANNELS } from "@/lib/redis";
-import { requireAuth } from "@/lib/auth";
-import { getOrganizationIdForUser } from "@/lib/tenant";
+import { withAuth } from "@/lib/withApi";
+import { requireAuth } from "@/lib/auth-api";
 
 /**
  * GET /api/admin/dashboard/events
  * Real-time event streaming using Server-Sent Events (SSE)
  * Subscribes to Redis Pub/Sub channels and streams events to the client
  */
-export async function GET(req: NextRequest) {
-  const authUser = await requireAuth();
-  const organizationId = await getOrganizationIdForUser(authUser);
+export const GET = withAuth(async ({ req }) => {
+  const { organizationId } = await requireAuth();
 
   // Set up SSE headers
   const headers = new Headers({
@@ -76,4 +75,4 @@ export async function GET(req: NextRequest) {
   });
 
   return new Response(stream, { headers });
-}
+});

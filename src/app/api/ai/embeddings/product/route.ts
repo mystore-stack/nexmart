@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { requireAdminFromRequest } from "@/lib/auth";
-import { getOrganizationIdForUser } from "@/lib/tenant";
+import { requireAdmin } from "@/lib/auth-api";
 import { prisma } from "@/lib/prisma";
 import { upsertProductEmbedding } from "@/lib/ai/commerce";
 import { assertAiRequestAllowed } from "@/lib/ai/security";
@@ -17,8 +16,8 @@ const schema = z.object({
 export async function POST(req: NextRequest) {
   try {
     assertAiRequestAllowed(req);
-    const user = await requireAdminFromRequest(req);
-    const organizationId = await getOrganizationIdForUser(user);
+    const session = await requireAdmin();
+    const organizationId = session.organizationId;
     const body = schema.parse(await req.json().catch(() => ({})));
 
     const productIds = body.productId

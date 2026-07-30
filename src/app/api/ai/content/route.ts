@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { requireAdminFromRequest } from "@/lib/auth";
+import { requireAdmin } from "@/lib/auth-api";
 import { rateLimit } from "@/lib/api";
 import { CONTENT_GENERATION_PROMPT } from "@/lib/ai/prompts";
 import { createJson, moderateText } from "@/lib/ai/openai";
@@ -28,8 +28,8 @@ const schema = z.object({
 export async function POST(req: NextRequest) {
   try {
     assertAiRequestAllowed(req);
-    const user = await requireAdminFromRequest(req);
-    const rl = await rateLimit(`ai:content:${user.userId}`, 40, 60 * 60 * 1000);
+    const session = await requireAdmin();
+    const rl = await rateLimit(`ai:content:${session.userId}`, 40, 60 * 60 * 1000);
     if (!rl.success) {
       return NextResponse.json({ success: false, error: "Limite de génération IA atteinte." }, { status: 429 });
     }

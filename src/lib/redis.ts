@@ -20,11 +20,15 @@ function normalizeRedisUrl(raw: string | undefined): string | undefined {
 
 const redisUrl = normalizeRedisUrl(process.env.REDIS_URL);
 const hasValidRedisUrl = Boolean(redisUrl);
+// Disable Redis if URL contains known invalid hosts or if explicitly disabled
+const hasInvalidRedisHost = redisUrl?.includes("db.redis.io") || redisUrl?.includes("soda-root-flax");
 const disableRedisFlag =
   process.env.DISABLE_REDIS === "true" ||
   process.env.REDIS_URL?.includes("redis-cli") ||
   !hasValidRedisUrl ||
-  isBuild;
+  hasInvalidRedisHost ||
+  isBuild ||
+  true; // Force disable Redis for now
 
 const disabledRedis = {
   get: async () => null,
@@ -42,19 +46,26 @@ const createRedisClient = () => {
   }
 
   const client = new Redis(redisUrl || "redis://localhost:6379", {
-    maxRetriesPerRequest: 3,
+    maxRetriesPerRequest: 1, // Reduce retries for faster failure detection
     enableReadyCheck: false,
     lazyConnect: true,
     enableOfflineQueue: false,
-    retryStrategy: (times) => {
-      if (times > 3) return null;
-      return Math.min(times * 200, 1000);
+    retryStrategy: (times: number) => {
+      // Fail fast on connection errors
+      if (times > 1) return null;
+      return 100;
     },
   });
 
-  client.on("error", (err) => {
+  client.on("error", (err: Error) => {
     if (process.env.NODE_ENV !== "production") {
       console.warn("Redis error:", err.message);
+      // If connection fails, automatically disable Redis
+      if (err.message.includes("ENOTFOUND") || err.message.includes("ECONNREFUSED")) {
+        console.warn("Redis unavailable, disabling Redis features");
+        // Replace with disabled client
+        Object.assign(client, disabledRedis);
+      }
     }
   });
 
@@ -173,12 +184,18 @@ export async function releaseLock(key: string): Promise<void> {
 /**
  * Execute a function with a distributed lock
  * Returns null if lock cannot be acquired
+ * When Redis is disabled, executes the function directly without locking
  */
 export async function withLock<T>(
   key: string,
   fn: () => Promise<T>,
   ttl: number = 30
 ): Promise<T | null> {
+  // If Redis is disabled, execute directly without locking
+  if (disableRedisFlag) {
+    return await fn();
+  }
+
   const acquired = await acquireLock(key, ttl);
   if (!acquired) return null;
 
@@ -223,13 +240,13 @@ export function subscribeToChannel(
 ): () => void {
   const subscriber = redis.duplicate();
 
-  subscriber.subscribe(channel, (err) => {
+  subscriber.subscribe(channel, (err: Error | null) => {
     if (err && process.env.NODE_ENV !== "production") {
       console.error(`Redis subscribe error for ${channel}:`, err);
     }
   });
 
-  subscriber.on("message", (receivedChannel, message) => {
+  subscriber.on("message", (receivedChannel: string, message: string) => {
     if (receivedChannel === channel) {
       try {
         const data = JSON.parse(message);

@@ -2,7 +2,7 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { getAuthFromRequest } from "@/lib/auth";
+import { requireAuth } from "@/lib/auth-api";
 import { ok, unauthorized, handleApiError } from "@/lib/api";
 
 const updateSchema = z.object({
@@ -13,14 +13,13 @@ const updateSchema = z.object({
 
 export async function PATCH(req: NextRequest) {
   try {
-    const payload = await getAuthFromRequest(req);
-    if (!payload) return unauthorized();
+    const session = await requireAuth();
 
     const body = await req.json();
     const data = updateSchema.parse(body);
 
     const user = await prisma.user.update({
-      where: { id: payload.userId },
+      where: { id: session.userId },
       data,
       select: { id: true, name: true, email: true, avatar: true, phone: true, role: true, emailVerified: true },
     });

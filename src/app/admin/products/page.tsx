@@ -31,24 +31,99 @@ export default function AdminProductsPage() {
     if (filter === "published") params.set("published", "true");
     if (filter === "unpublished") params.set("published", "false");
 
+    console.log("[FRONTEND] Fetching products with params:", params.toString());
+
     try {
-      const res = await fetch(`/api/admin/products?${params}`);
-      const data = await res.json();
+      const res = await fetch(`/api/admin/products?${params}`, {
+        credentials: "include",
+      });
+      
+      console.log("[FRONTEND] Response status:", res.status, res.statusText);
+      
+      if (!res.ok) {
+        console.error("[FRONTEND] API returned error status:", res.status, res.statusText);
+        setProducts([]);
+        return;
+      }
+
+      const text = await res.text();
+      console.log("[FRONTEND] Response text length:", text.length);
+      console.log("[FRONTEND] Response text (first 500 chars):", text.substring(0, 500));
+      
+      if (!text) {
+        console.error("[FRONTEND] API returned empty response body");
+        setProducts([]);
+        return;
+      }
+
+      let data;
+      try {
+        data = JSON.parse(text);
+        console.log("[FRONTEND] Parsed data:", data);
+        console.log("[FRONTEND] data.success:", data.success);
+        console.log("[FRONTEND] data.data type:", typeof data.data);
+        console.log("[FRONTEND] data.data is array:", Array.isArray(data.data));
+        console.log("[FRONTEND] data.data length:", data.data?.length);
+      } catch (parseError) {
+        console.error("[FRONTEND] Failed to parse JSON response:", parseError);
+        console.error("[FRONTEND] Raw response text:", text);
+        setProducts([]);
+        return;
+      }
+      
       if (data.success) {
-        let prods = data.data;
+        // Handle nested response structure: { success: true, data: { data: [...], pagination: {...} } }
+        const responseData = data.data;
+        let prods = Array.isArray(responseData?.data) ? responseData.data : Array.isArray(data.data) ? data.data : [];
+        const pagination = responseData?.pagination || data.pagination;
+        
+        console.log("========== FULL API RESPONSE ==========");
+        console.log(JSON.stringify(data, null, 2));
+        console.log("success =", data.success);
+        console.log("data =", data.data);
+        console.log("responseData =", responseData);
+        console.log("responseData.data =", responseData?.data);
+        console.log("responseData.pagination =", responseData?.pagination);
+        console.log("isArray(responseData.data) =", Array.isArray(responseData?.data));
+        console.log("products length =", prods.length);
+        
         if (filter === "lowstock") {
           prods = prods.filter((p: any) => p.stock <= p.lowStockAt && p.stock > 0);
         }
+        
+        console.log("BEFORE setProducts");
+        console.log("incoming =", data);
+        console.log("products passed to state =", prods?.length);
+        
         setProducts(prods);
-        setTotal(data.pagination.total);
-        setTotalPages(data.pagination.totalPages);
+        setTotal(pagination?.total || 0);
+        setTotalPages(pagination?.totalPages || 1);
+        
+        // CRITICAL FIX: Log warning if API returns success but no data
+        if (prods.length === 0 && pagination?.total === 0) {
+          console.warn("[FRONTEND] WARNING: API returned success but no products found");
+          console.warn("[FRONTEND] This may indicate an organizationId mismatch in the backend");
+          console.warn("[FRONTEND] Check server logs for [TENANT] and [ADMIN PRODUCTS] warnings");
+        }
+      } else {
+        console.error("[FRONTEND] API returned success=false:", data);
+        toast.error(data.error || "Failed to load products");
+        setProducts([]);
       }
+    } catch (error) {
+      console.error("[FRONTEND] Error fetching products:", error);
+      setProducts([]);
     } finally {
       setLoading(false);
     }
   }, [page, search, filter]);
 
   useEffect(() => { fetchProducts(); }, [fetchProducts]);
+
+  // Log state changes
+  useEffect(() => {
+    console.log("STATE products changed:", products.length);
+  }, [products]);
 
   // Debounce search
   useEffect(() => {

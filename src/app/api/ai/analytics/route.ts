@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAdminFromRequest } from "@/lib/auth";
-import { getOrganizationIdForUser } from "@/lib/tenant";
+import { requireAdmin } from "@/lib/auth-api";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
   try {
-    const user = await requireAdminFromRequest(req);
-    const organizationId = await getOrganizationIdForUser(user);
+    const session = await requireAdmin();
+    const organizationId = session.organizationId;
     const days = Math.min(90, Math.max(7, Number(req.nextUrl.searchParams.get("days") || 30)));
     const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 

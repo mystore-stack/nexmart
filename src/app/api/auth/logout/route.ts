@@ -1,10 +1,17 @@
 // src/app/api/auth/logout/route.ts
-import { NextResponse } from "next/server";
-import { clearAuthCookies } from "@/lib/auth";
+// DEPRECATED: Use NextAuth for authentication
+// Logout via: POST /api/auth/signout
+import { NextRequest, NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
-export async function POST() {
-  clearAuthCookies();
-  return NextResponse.json({ success: true });
+export async function POST(req: NextRequest) {
+  return NextResponse.json(
+    {
+      success: false,
+      error: "DEPRECATED: Use NextAuth for authentication. Logout via POST /api/auth/signout.",
+      redirectTo: "/api/auth/signout",
+    },
+    { status: 410 }
+  );
 }

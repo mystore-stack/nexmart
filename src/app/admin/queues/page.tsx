@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { requireAuth } from "@/lib/auth";
 
 interface QueueStats {
   name: string;

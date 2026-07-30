@@ -2,8 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAuth, requireAuthFromRequest } from "@/lib/auth";
-import { getOrganizationIdForUser } from "@/lib/tenant";
+import { requireAuth } from "@/lib/auth-api";
 
 const wishlistSchema = z.object({
   productId: z.string().min(1),
@@ -13,10 +12,10 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const user = await requireAuth();
-    const organizationId = await getOrganizationIdForUser(user);
+    const session = await requireAuth();
+    const organizationId = session.organizationId;
     const items = await prisma.wishlistItem.findMany({
-      where: { userId: user.userId, product: { organizationId } },
+      where: { userId: session.userId, product: { organizationId } },
       include: { product: { include: { category: true, variants: true } } },
       orderBy: { createdAt: "desc" },
     });
@@ -29,8 +28,8 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
-    const user = await requireAuthFromRequest(req);
-    const organizationId = await getOrganizationIdForUser(user);
+    const session = await requireAuth();
+    const organizationId = session.organizationId;
     const { productId } = wishlistSchema.parse(await req.json());
 
     const product = await prisma.product.findFirst({
@@ -42,7 +41,7 @@ export async function POST(req: NextRequest) {
     }
 
     const existing = await prisma.wishlistItem.findUnique({
-      where: { userId_productId: { userId: user.userId, productId } },
+      where: { userId_productId: { userId: session.userId, productId } },
     });
 
     if (existing) {
@@ -50,7 +49,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, action: "removed" });
     }
 
-    await prisma.wishlistItem.create({ data: { userId: user.userId, productId } });
+    await prisma.wishlistItem.create({ data: { userId: session.userId, productId } });
     return NextResponse.json({ success: true, action: "added" }, { status: 201 });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Erreur serveur";

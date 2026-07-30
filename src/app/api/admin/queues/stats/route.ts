@@ -1,13 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireAuthFromRequest } from "@/lib/auth";
+import { requireAdmin } from "@/lib/auth-api";
 import { queueClient } from "@/lib/queue/client";
 
 export async function GET(req: NextRequest) {
   try {
-    const authUser = await requireAuthFromRequest(req);
-    if (authUser.role !== "ADMIN" && authUser.role !== "SUPER_ADMIN") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
-    }
+    const session = await requireAdmin();
 
     const stats = await queueClient.getStats();
 

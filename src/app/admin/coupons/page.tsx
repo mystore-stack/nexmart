@@ -44,7 +44,9 @@ export default function AdminCouponsPage() {
   const [editId, setEditId] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("/api/admin/coupons")
+    fetch("/api/admin/coupons", {
+      credentials: "include",
+    })
       .then((r) => r.json())
       .then((d) => { if (d.data) setCoupons(d.data); })
       .finally(() => setLoading(false));
@@ -69,6 +71,7 @@ export default function AdminCouponsPage() {
       const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify(body),
       });
       const data = await res.json();
@@ -96,6 +99,7 @@ export default function AdminCouponsPage() {
     const res = await fetch(`/api/admin/coupons/${coupon.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
+      credentials: "include",
       body: JSON.stringify({ active: !coupon.active }),
     });
     if (res.ok) {
@@ -105,7 +109,10 @@ export default function AdminCouponsPage() {
 
   const deleteCoupon = async (id: string) => {
     if (!confirm("Delete this coupon?")) return;
-    const res = await fetch(`/api/admin/coupons/${id}`, { method: "DELETE" });
+    const res = await fetch(`/api/admin/coupons/${id}`, { 
+      method: "DELETE",
+      credentials: "include",
+    });
     if (res.ok) {
       setCoupons((prev) => prev.filter((c) => c.id !== id));
       toast.success("Coupon deleted");

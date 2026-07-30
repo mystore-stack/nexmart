@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { requireAuth } from "@/lib/auth";
 
 export default function AdminNotificationsPage() {
   const [notifications, setNotifications] = useState<any[]>([]);
@@ -14,7 +13,9 @@ export default function AdminNotificationsPage() {
 
   const fetchNotifications = async () => {
     try {
-      const response = await fetch(`/api/admin/notifications?filter=${filter}`);
+      const response = await fetch(`/api/admin/notifications?filter=${filter}`, {
+        credentials: "include",
+      });
       const data = await response.json();
       setNotifications(data.notifications || []);
     } catch (error) {

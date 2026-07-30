@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import type { Prisma } from "@prisma/client";
-import { getAuthFromRequest } from "@/lib/auth";
-import { getDefaultOrganizationId, getOrganizationIdForUser } from "@/lib/tenant";
+import { getSession } from "@/lib/auth-api";
+import { getDefaultOrganizationId } from "@/lib/tenant";
 import { prisma } from "@/lib/prisma";
 import { assertAiRequestAllowed, clientIp } from "@/lib/ai/security";
 import { rateLimit } from "@/lib/api";
@@ -20,19 +20,19 @@ const schema = z.object({
 export async function POST(req: NextRequest) {
   try {
     assertAiRequestAllowed(req);
-    const user = await getAuthFromRequest(req).catch(() => null);
-    const rl = await rateLimit(`ai:event:${user?.userId || clientIp(req)}`, 120, 60 * 1000);
+    const session = await getSession().catch(() => null);
+    const rl = await rateLimit(`ai:event:${session?.userId || clientIp(req)}`, 120, 60 * 1000);
     if (!rl.success) {
       return NextResponse.json({ success: false, error: "Too many AI events" }, { status: 429 });
     }
-    const organizationId = user ? await getOrganizationIdForUser(user) : await getDefaultOrganizationId();
+    const organizationId = session?.organizationId || await getDefaultOrganizationId();
     const body = schema.parse(await req.json());
 
     try {
       await prisma.aiEvent.create({
         data: {
           organizationId,
-          ...(user?.userId ? { userId: user.userId } : {}),
+          ...(session?.userId ? { userId: session.userId } : {}),
           ...(body.productId ? { productId: body.productId } : {}),
           type: body.type as any,
           ...(body.query ? { query: body.query } : {}),

@@ -12,8 +12,7 @@ import dynamic from "next/dynamic";
 import "./globals.css";
 
 const AIChatWidget = dynamic(
-  () => import("@/components/ai/AIChatWidget").then((m) => m.AIChatWidget),
-  { ssr: false }
+  () => import("@/components/ai/AIChatWidget").then((m) => m.AIChatWidget)
 );
 
 export const metadata: Metadata = {

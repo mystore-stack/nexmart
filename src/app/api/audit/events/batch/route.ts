@@ -7,6 +7,10 @@ import type { AuditEventType } from "@/lib/audit/types";
  * POST /api/audit/events/batch
  * Log multiple audit events in a batch
  * Optimized to prevent connection storms by using sequential processing with connection reuse
+ * 
+ * ALWAYS returns structured JSON:
+ * Success: { success: true, processed, successful, failed }
+ * Failure: { success: false, error: string, code: string }
  */
 export async function POST(req: NextRequest) {
   try {
@@ -15,7 +19,7 @@ export async function POST(req: NextRequest) {
 
     if (!eventBatch || !Array.isArray(eventBatch)) {
       return NextResponse.json(
-        { success: false, error: "Events array required" },
+        { success: false, error: "Events array required", code: "INVALID_EVENTS_ARRAY" },
         { status: 400 }
       );
     }
@@ -55,6 +59,8 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    console.log("[AUDIT API] batch events processed:", { sessionId, processed: eventBatch.length, successful, failed });
+
     return NextResponse.json({
       success: true,
       processed: eventBatch.length,
@@ -64,7 +70,7 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error("[AUDIT] Batch event logging error:", error);
     return NextResponse.json(
-      { success: false, error: "Failed to log batch events" },
+      { success: false, error: "Failed to log batch events", code: "BATCH_ERROR" },
       { status: 500 }
     );
   }

@@ -42,17 +42,67 @@ export default function AdminOrdersPage() {
     if (statusFilter) params.set("status", statusFilter);
 
     try {
-      const res = await fetch(`/api/admin/orders?${params}`);
-      const data = await res.json();
+      const res = await fetch(`/api/admin/orders?${params}`, {
+        credentials: "include",
+      });
+
+      if (!res.ok) {
+        console.error("[FRONTEND] API returned error status:", res.status, res.statusText);
+        setOrders([]);
+        return;
+      }
+
+      const text = await res.text();
+      if (!text) {
+        console.error("[FRONTEND] API returned empty response body");
+        setOrders([]);
+        return;
+      }
+
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (e) {
+        console.error("[FRONTEND] Failed to parse JSON response:", text);
+        setOrders([]);
+        return;
+      }
+
       if (data.success) {
-        setOrders(Array.isArray(data.data) ? data.data : []);
-        setTotal(data.pagination?.total || 0);
-        setTotalPages(data.pagination?.totalPages || 1);
+        // Handle nested response structure: { success: true, data: { data: [...], pagination: {...} } }
+        const responseData = data.data;
+        const ordersArray = Array.isArray(responseData?.data) ? responseData.data : Array.isArray(data.data) ? data.data : [];
+        const pagination = responseData?.pagination || data.pagination;
+
+        console.log("========== FULL ORDERS API RESPONSE ==========");
+        console.log(JSON.stringify(data, null, 2));
+        console.log("success =", data.success);
+        console.log("data =", data.data);
+        console.log("responseData =", responseData);
+        console.log("responseData.data =", responseData?.data);
+        console.log("responseData.pagination =", responseData?.pagination);
+        console.log("isArray(responseData.data) =", Array.isArray(responseData?.data));
+        console.log("orders length =", ordersArray.length);
+
+        console.log("BEFORE setOrders");
+        console.log("orders passed to state =", ordersArray?.length);
+
+        setOrders(ordersArray);
+        setTotal(pagination?.total || 0);
+        setTotalPages(pagination?.totalPages || 1);
+        
+        // CRITICAL FIX: Log warning if API returns success but no data
+        if (ordersArray.length === 0 && pagination?.total === 0) {
+          console.warn("[FRONTEND] WARNING: API returned success but no orders found");
+          console.warn("[FRONTEND] This may indicate an organizationId mismatch in the backend");
+          console.warn("[FRONTEND] Check server logs for [TENANT] and [ADMIN ORDERS] warnings");
+        }
       } else {
+        console.error("[FRONTEND] API returned success=false:", data);
         setOrders([]);
       }
     } catch (error) {
-      console.error("Failed to fetch orders:", error);
+      console.error("[FRONTEND] Failed to fetch orders:", error);
       setOrders([]);
     } finally {
       setLoading(false);
@@ -61,6 +111,11 @@ export default function AdminOrdersPage() {
 
   useEffect(() => { fetchOrders(); }, [fetchOrders]);
   useEffect(() => { setPage(1); }, [search, statusFilter]);
+
+  // Log state changes
+  useEffect(() => {
+    console.log("STATE orders changed:", orders.length);
+  }, [orders]);
 
   // SSE connection for real-time updates
   useEffect(() => {
@@ -139,6 +194,7 @@ export default function AdminOrdersPage() {
       const res = await fetch(`/api/admin/orders/${orderId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ status }),
       });
       if (res.ok) {

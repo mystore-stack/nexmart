@@ -2,12 +2,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAuth, requireAuthFromRequest } from "@/lib/auth";
-import { getOrganizationIdForUser } from "@/lib/tenant";
+import { requireAuth } from "@/lib/auth-api";
 
 const cartItemSchema = z.object({
-  productId: z.string().min(1),
-  variantId: z.string().optional().nullable(),
+  productId: z.string().uuid(),
+  variantId: z.string().uuid().optional().nullable(),
   quantity: z.number().int().min(1).max(99).default(1),
 });
 
@@ -15,23 +14,36 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const user = await requireAuth();
-    const organizationId = await getOrganizationIdForUser(user);
+    const session = await requireAuth();
+    const organizationId = session.organizationId;
+    
+    console.log("[CART API] GET request for user:", {
+      userId: session.userId,
+      organizationId,
+    });
+    
     const items = await prisma.cartItem.findMany({
-      where: { userId: user.userId, product: { organizationId } },
+      where: { userId: session.userId, product: { organizationId } },
       include: { product: { include: { category: true, variants: true } }, variant: true },
     });
+    
+    console.log("[CART API] Retrieved items:", {
+      itemCount: items.length,
+      items: items.map(i => ({ productId: i.productId, quantity: i.quantity })),
+    });
+    
     return NextResponse.json({ success: true, items });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Unauthorized";
+    console.error("[CART API] GET error:", message);
     return NextResponse.json({ success: false, error: message }, { status: 401 });
   }
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const user = await requireAuthFromRequest(req);
-    const organizationId = await getOrganizationIdForUser(user);
+    const session = await requireAuth();
+    const organizationId = session.organizationId;
     const { productId, variantId, quantity } = cartItemSchema.parse(await req.json());
 
     const product = await prisma.product.findFirst({
@@ -44,7 +56,7 @@ export async function POST(req: NextRequest) {
 
     const existing = await prisma.cartItem.findFirst({
       where: {
-        userId: user.userId,
+        userId: session.userId,
         productId,
         variantId: variantId ?? null,
       },
@@ -58,7 +70,7 @@ export async function POST(req: NextRequest) {
         })
       : await prisma.cartItem.create({
           data: {
-            userId: user.userId,
+            userId: session.userId,
             productId,
             variantId: variantId ?? undefined,
             quantity,
@@ -76,13 +88,13 @@ export async function POST(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
-    const user = await requireAuthFromRequest(req);
-    const organizationId = await getOrganizationIdForUser(user);
+    const session = await requireAuth();
+    const organizationId = session.organizationId;
 
     // Get all cart items for the user
     const cartItems = await prisma.cartItem.findMany({
-      where: { userId: user.userId },
-      select: { id: true, productId: true },
+      where: { userId: session.userId },
+      select: { id: true, productId: true, variantId: true },
     });
 
     if (cartItems.length === 0) {
@@ -90,6 +102,35 @@ export async function DELETE(req: NextRequest) {
     }
 
     const productIds = cartItems.map(item => item.productId);
+    
+    // Validate that all product IDs are valid UUIDs
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const invalidUuidItems = cartItems.filter(item => !uuidRegex.test(item.productId));
+    
+    if (invalidUuidItems.length > 0) {
+      console.log("[CART CLEANUP] Found items with invalid UUIDs:", {
+        userId: session.userId,
+        invalidCount: invalidUuidItems.length,
+        invalidIds: invalidUuidItems.map(i => i.productId),
+      });
+      
+      // Remove items with invalid UUIDs
+      await prisma.cartItem.deleteMany({
+        where: {
+          id: { in: invalidUuidItems.map(item => item.id) },
+        },
+      });
+      
+      return NextResponse.json({
+        success: true,
+        removedCount: invalidUuidItems.length,
+        details: invalidUuidItems.map(item => ({
+          cartItemId: item.id,
+          productId: item.productId,
+          reason: "invalid_uuid",
+        })),
+      });
+    }
 
     // Find products that exist and are published for this organization
     const validProducts = await prisma.product.findMany({
@@ -122,7 +163,7 @@ export async function DELETE(req: NextRequest) {
     }));
 
     console.log("[CART CLEANUP] Removed invalid cart items:", {
-      userId: user.userId,
+      userId: session.userId,
       removedCount: deleteResult.count,
       details: cleanupDetails,
     });

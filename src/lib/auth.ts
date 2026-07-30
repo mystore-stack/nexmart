@@ -35,6 +35,26 @@ export async function generateRefreshToken(payload: Omit<JwtPayload, "iat" | "ex
 }
 
 export async function generateTokenPair(user: Pick<User, "id" | "email" | "role">) {
+  // PRODUCTION PROTECTION: Verify user exists in database before generating tokens
+  const { prisma } = await import("@/lib/prisma");
+  console.log("[AUTH] Verifying user exists before generating token pair:", user.id);
+  
+  const dbUser = await prisma.user.findUnique({
+    where: { id: user.id },
+    select: { id: true, email: true, role: true },
+  });
+
+  if (!dbUser) {
+    console.error("[AUTH] Cannot generate tokens - user does not exist in database:", user.id);
+    throw new Error("User does not exist in database. Cannot generate authentication tokens.");
+  }
+
+  console.log("[AUTH] User verified, generating token pair:", {
+    userId: dbUser.id,
+    email: dbUser.email,
+    role: dbUser.role,
+  });
+
   const tokenPayload = { userId: user.id, email: user.email, role: user.role };
   const [accessToken, refreshToken] = await Promise.all([
     generateAccessToken(tokenPayload),
@@ -43,21 +63,61 @@ export async function generateTokenPair(user: Pick<User, "id" | "email" | "role"
   return { accessToken, refreshToken };
 }
 
-export async function verifyAccessToken(token: string): Promise<JwtPayload | null> {
+export async function verifyAccessToken(token: string): Promise<JwtPayload> {
   try {
+    console.log("[AUTH] Verifying access token");
     const { payload } = await jwtVerify(token, ACCESS_SECRET);
+    console.log("[AUTH] Access token verified successfully:", { userId: payload.userId, email: payload.email, role: payload.role });
+    
+    // PRODUCTION PROTECTION: Verify user exists in database
+    if (payload.userId) {
+      const { prisma } = await import("@/lib/prisma");
+      const user = await prisma.user.findUnique({
+        where: { id: payload.userId as string },
+        select: { id: true },
+      });
+      
+      if (!user) {
+        console.error("[AUTH] Access token valid but user does not exist in database:", payload.userId);
+        throw new Error("User does not exist in database. Access token is invalid.");
+      }
+      
+      console.log("[AUTH] User verified for access token:", payload.userId);
+    }
+    
     return payload as unknown as JwtPayload;
-  } catch {
-    return null;
+  } catch (error) {
+    console.error("[AUTH] Access token verification failed:", error);
+    throw new Error("Invalid or expired access token");
   }
 }
 
-export async function verifyRefreshToken(token: string): Promise<JwtPayload | null> {
+export async function verifyRefreshToken(token: string): Promise<JwtPayload> {
   try {
+    console.log("[AUTH] Verifying refresh token");
     const { payload } = await jwtVerify(token, REFRESH_SECRET);
+    console.log("[AUTH] Refresh token verified successfully:", { userId: payload.userId });
+    
+    // PRODUCTION PROTECTION: Verify user exists in database
+    if (payload.userId) {
+      const { prisma } = await import("@/lib/prisma");
+      const user = await prisma.user.findUnique({
+        where: { id: payload.userId as string },
+        select: { id: true },
+      });
+      
+      if (!user) {
+        console.error("[AUTH] Refresh token valid but user does not exist in database:", payload.userId);
+        throw new Error("User does not exist in database. Refresh token is invalid.");
+      }
+      
+      console.log("[AUTH] User verified for refresh token:", payload.userId);
+    }
+    
     return payload as unknown as JwtPayload;
-  } catch {
-    return null;
+  } catch (error) {
+    console.error("[AUTH] Refresh token verification failed:", error);
+    throw new Error("Invalid or expired refresh token");
   }
 }
 

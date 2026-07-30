@@ -21,6 +21,7 @@ import { useAuthStore, useUIStore } from "@/store/index";
 import { useSession, signOut as nextAuthSignOut } from "next-auth/react";
 import { useTheme } from "next-themes";
 import Image from "next/image";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 const NAV_LINKS = [
   {
@@ -215,12 +216,12 @@ export function Navbar() {
                   onMouseLeave={() => setActiveDropdown(null)}
                 >
                   <button className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-xl hover:bg-muted transition-colors ml-1">
-                    <div className="w-7 h-7 rounded-full overflow-hidden bg-foreground flex items-center justify-center text-background text-xs font-bold flex-shrink-0 ring-1 ring-border">
-                      {activeUser.avatar
-                        ? <Image src={activeUser.avatar} alt={activeUser.name ?? ""} width={28} height={28} className="object-cover" />
-                        : <span>{(activeUser.name ?? "U")[0].toUpperCase()}</span>
-                      }
-                    </div>
+                    <Avatar className="w-7 h-7">
+                      <AvatarImage src={activeUser.avatar || ""} />
+                      <AvatarFallback>
+                        {activeUser?.name?.charAt(0).toUpperCase() || "A"}
+                      </AvatarFallback>
+                    </Avatar>
                     <span className="text-sm font-medium max-w-[72px] truncate">
                       {(activeUser.name ?? "").split(" ")[0]}
                     </span>
@@ -344,12 +345,12 @@ export function Navbar() {
                 {activeUser ? (
                   <>
                     <div className="flex items-center gap-3 px-3 py-2 bg-muted rounded-xl">
-                      <div className="w-10 h-10 rounded-full overflow-hidden bg-foreground flex items-center justify-center text-background font-bold flex-shrink-0">
-                        {activeUser.avatar
-                          ? <Image src={activeUser.avatar} alt={activeUser.name ?? ""} width={40} height={40} className="object-cover" />
-                          : <span>{(activeUser.name ?? "U")[0]}</span>
-                        }
-                      </div>
+                      <Avatar className="w-10 h-10">
+                        <AvatarImage src={activeUser.avatar || ""} />
+                        <AvatarFallback>
+                          {activeUser?.name?.charAt(0).toUpperCase() || "A"}
+                        </AvatarFallback>
+                      </Avatar>
                       <div className="min-w-0">
                         <p className="font-semibold text-sm truncate">{activeUser.name}</p>
                         <p className="text-xs text-muted-foreground truncate">{activeUser.email}</p>

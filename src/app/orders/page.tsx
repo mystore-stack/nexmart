@@ -29,7 +29,7 @@ export default function OrdersPage() {
   useEffect(() => {
     fetch("/api/orders?limit=20")
       .then((r) => r.json())
-      .then((d) => { if (d.data) setOrders(d.data); })
+      .then((d) => { if (d.orders) setOrders(d.orders); })
       .finally(() => setLoading(false));
   }, []);
 

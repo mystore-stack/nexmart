@@ -37,10 +37,10 @@ export default function AdminOrdersPage() {
   const fetchOrders = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`/api/orders?page=${page}&status=${filter}`);
+      const response = await fetch(`/api/admin/orders?page=${page}&status=${filter}`);
       const data = await response.json();
       if (data.success) {
-        setOrders(data.orders);
+        setOrders(data.data);
         setTotal(data.pagination?.total || 0);
       }
     } catch (error) {
@@ -56,10 +56,10 @@ export default function AdminOrdersPage() {
 
   const handleUpdateStatus = async (orderId: string, data: any) => {
     try {
-      const response = await fetch("/api/orders/update-status", {
-        method: "POST",
+      const response = await fetch(`/api/admin/orders/${orderId}`, {
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orderId, ...data }),
+        body: JSON.stringify(data),
       });
       const result = await response.json();
       if (result.success) {

@@ -1,8 +1,13 @@
 import "dotenv/config";
-import { prisma } from "../lib/prisma";
+import { prisma } from "../src/lib/prisma";
 
 async function main() {
-  await prisma.organization.findFirst({
+  // Try to get the database metadata
+  const result = await prisma.$queryRaw`SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'`;
+  console.log("Tables in database:", result);
+  
+  // Now try to query User table
+  await prisma.user.findFirst({
     select: { id: true },
   });
 

@@ -3,9 +3,9 @@ import { randomUUID } from "crypto";
 import { z } from "zod";
 import { AiMessageRole, LocaleCode, type Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { getAuthFromRequest } from "@/lib/auth";
+import { getSession } from "@/lib/auth-api";
 import { rateLimit } from "@/lib/api";
-import { getDefaultOrganizationId, getOrganizationIdForUser } from "@/lib/tenant";
+import { getDefaultOrganizationId } from "@/lib/tenant";
 import { COMMERCE_ASSISTANT_PROMPT } from "@/lib/ai/prompts";
 import { createStreamingText, moderateText } from "@/lib/ai/openai";
 import type { AiChatMessage } from "@/lib/ai/types";
@@ -36,7 +36,7 @@ const chatSchema = z.object({
 
 export async function GET(req: NextRequest) {
   try {
-    const user = await getAuthFromRequest(req).catch(() => null);
+    const session = await getSession().catch(() => null);
     const conversationId = req.nextUrl.searchParams.get("conversationId");
     if (!conversationId) {
       return NextResponse.json({ success: true, conversation: null, messages: [] });
@@ -45,7 +45,7 @@ export async function GET(req: NextRequest) {
     const conversation = await prisma.aiConversation.findFirst({
       where: {
         id: conversationId,
-        ...(user?.userId ? { userId: user.userId } : { userId: null }),
+        ...(session?.userId ? { userId: session.userId } : { userId: null }),
       },
       include: { AiMessage: { orderBy: { createdAt: "asc" }, take: 50 } },
     });
@@ -73,20 +73,20 @@ export async function POST(req: NextRequest) {
   try {
     assertAiRequestAllowed(req);
     const ip = clientIp(req);
-    const user = await getAuthFromRequest(req).catch(() => null);
-    const rl = await rateLimit(`ai:chat:${user?.userId || ip}`, Number(process.env.AI_CHAT_RPM || 30), 60 * 1000);
+    const session = await getSession().catch(() => null);
+    const rl = await rateLimit(`ai:chat:${session?.userId || ip}`, Number(process.env.AI_CHAT_RPM || 30), 60 * 1000);
     if (!rl.success) {
       return NextResponse.json({ success: false, error: "Trop de requêtes IA." }, { status: 429 });
     }
 
     const body = chatSchema.parse(await req.json());
     const moderation = await moderateText(body.message);
-    const organizationId = user ? await getOrganizationIdForUser(user) : await getDefaultOrganizationId();
+    const organizationId = session?.organizationId || await getDefaultOrganizationId();
 
     const conversation = await getOrCreateConversation({
       conversationId: body.conversationId || undefined,
       organizationId,
-      userId: user?.userId,
+      userId: session?.userId,
       locale: body.locale,
       firstMessage: body.message,
     });
@@ -122,7 +122,7 @@ export async function POST(req: NextRequest) {
     }
 
     const context = await buildCommerceContext({
-      userId: user?.userId,
+      userId: session?.userId,
       organizationId,
       productSlug: body.context.productSlug,
       orderNumber: body.context.orderNumber,
@@ -144,7 +144,7 @@ export async function POST(req: NextRequest) {
         })),
     ];
 
-    const cacheableFaq = !user?.userId && !body.context.productSlug && !body.context.orderNumber;
+    const cacheableFaq = !session?.userId && !body.context.productSlug && !body.context.orderNumber;
     const cachedReply = cacheableFaq
       ? await getAiCache<string>("chat_faq", { locale: body.locale, message: body.message.trim().toLowerCase() })
       : null;

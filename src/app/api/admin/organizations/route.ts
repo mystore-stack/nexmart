@@ -1,13 +1,13 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAdminFromRequest } from "@/lib/auth";
+import { requireAdmin } from "@/lib/auth-api";
 import { ok, handleApiError } from "@/lib/api";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
   try {
-    await requireAdminFromRequest(req);
+    await requireAdmin();
     const orgs = await prisma.organization.findMany({
       include: {
         User: { select: { id: true, name: true, email: true } },

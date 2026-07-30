@@ -3,7 +3,7 @@
  * Analyzes product name + description → optimal SEO tags
  */
 import { NextRequest, NextResponse } from "next/server";
-import { getAuthFromRequest } from "@/lib/auth";
+import { requireAdmin } from "@/lib/auth-api";
 import { z } from "zod";
 
 const schema = z.object({
@@ -14,10 +14,7 @@ const schema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    const payload = await getAuthFromRequest(req).catch(() => null);
-    if (!payload || (payload.role !== "ADMIN" && payload.role !== "SUPER_ADMIN")) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
+    await requireAdmin();
     const body = schema.parse(await req.json());
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",

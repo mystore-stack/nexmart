@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/auth";
-import { getOrganizationIdForUser } from "@/lib/tenant";
+import { requireAdmin } from "@/lib/auth-api";
 import { z } from "zod";
 import { rateLimit } from "@/lib/api";
 
@@ -19,15 +18,10 @@ const updateStatusSchema = z.object({
 // POST /api/orders/update-status - Admin endpoint to update order status
 export async function POST(req: NextRequest) {
   try {
-    const user = await requireAuth();
-    const organizationId = await getOrganizationIdForUser(user);
+    const session = await requireAdmin();
+    const organizationId = session.organizationId;
     
-    // Check if user is admin or super admin
-    if (user.role !== "ADMIN" && user.role !== "SUPER_ADMIN") {
-      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 403 });
-    }
-
-    const rl = await rateLimit(`order:update:${user.userId}`, 30, 60 * 1000);
+    const rl = await rateLimit(`order:update:${session.userId}`, 30, 60 * 1000);
     if (!rl.success) {
       return NextResponse.json({ success: false, error: "Too many requests" }, { status: 429 });
     }

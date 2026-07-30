@@ -1,4 +1,5 @@
 import type { Config } from "tailwindcss";
+import tailwindcssAnimate from "tailwindcss-animate";
 
 const config: Config = {
   darkMode: ["class"],
@@ -57,6 +58,19 @@ const config: Config = {
           DEFAULT: "#0F766E",
           light: "#0d9488",
           dark: "#0a5c55",
+        },
+        ai: {
+          purple: "hsl(var(--ai-purple))",
+          blue: "hsl(var(--ai-blue))",
+          surface: "hsl(var(--ai-surface))",
+        },
+        violet: {
+          500: "#7C3AED",
+          600: "#6D28D9",
+        },
+        indigo: {
+          500: "#6366F1",
+          600: "#4F46E5",
         },
         moroccan: {
           navy: "#0F172A",
@@ -124,7 +138,7 @@ const config: Config = {
       screens: { xs: "475px" },
     },
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [tailwindcssAnimate],
 };
 
 export default config;

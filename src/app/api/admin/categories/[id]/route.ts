@@ -2,8 +2,7 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { getAuthFromRequest } from "@/lib/auth";
-import { getOrganizationIdForUser } from "@/lib/tenant";
+import { requireAdmin } from "@/lib/auth-api";
 import { ok, noContent, forbidden, notFound, handleApiError } from "@/lib/api";
 import { deleteCache, CACHE_KEYS } from "@/lib/redis";
 
@@ -17,25 +16,18 @@ const updateSchema = z.object({
   image: z.string().url().nullable().optional(),
 });
 
-async function requireAdmin(req: NextRequest) {
-  const payload = await getAuthFromRequest(req);
-  if (!payload || (payload.role !== "ADMIN" && payload.role !== "SUPER_ADMIN")) {
-    throw new Error("Forbidden");
-  }
-  return { payload, organizationId: await getOrganizationIdForUser(payload) };
-}
-
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { organizationId } = await requireAdmin(req);
+    const { organizationId } = await requireAdmin();
+    const { id } = await params;
     const body = await req.json();
     const data = updateSchema.parse(body);
 
     const category = await prisma.category.update({
-      where: { id: params.id, organizationId },
+      where: { id, organizationId },
       data: {
         ...data,
         ...(data.name ? { slug: toSlug(data.name) } : {}),
@@ -54,11 +46,12 @@ export async function PATCH(
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { organizationId } = await requireAdmin(req);
-    await prisma.category.delete({ where: { id: params.id, organizationId } });
+    const { organizationId } = await requireAdmin();
+    const { id } = await params;
+    await prisma.category.delete({ where: { id, organizationId } });
     await deleteCache(CACHE_KEYS.categories());
     return noContent();
   } catch (err: any) {

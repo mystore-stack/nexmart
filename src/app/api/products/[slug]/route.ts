@@ -5,10 +5,10 @@ import { CACHE_KEYS, CACHE_TTL, getCache, setCache } from "@/lib/redis";
 
 export async function GET(
   _req: NextRequest,
-  { params }: { params: { slug: string } }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
-    const slug = params.slug;
+    const { slug } = await params;
     const organizationId = await getDefaultOrganizationId();
     const cacheKey = CACHE_KEYS.productSlug(slug);
     const cached = await getCache(cacheKey);

@@ -262,9 +262,9 @@ export function Navbar() {
                     <div className="grid h-8 w-8 place-items-center overflow-hidden rounded-lg bg-brand-700 text-xs font-black text-white">
                       {user.avatar ? (
                         <Image src={user.avatar} alt={user.name} width={32} height={32} className="h-full w-full object-cover" />
-                      ) : user.name[0].toUpperCase()}
+                      ) : user.name?.[0]?.toUpperCase() || "U"}
                     </div>
-                    <span className="max-w-[80px] truncate text-foreground">{user.name.split(" ")[0]}</span>
+                    <span className="max-w-[80px] truncate text-foreground">{user.name?.split(" ")[0] || "User"}</span>
                     <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
                   </button>
 

@@ -41,6 +41,13 @@ export const useCartStore = create<CartStore>()(
           duration: 2000,
         });
         get().openCart();
+        
+        console.log("[CART STORE] Item added:", {
+          productId: product.id,
+          quantity,
+          variantId: variant?.id,
+          totalItems: get().items.length,
+        });
       },
 
       removeItem: (itemId: string) => {
@@ -118,12 +125,23 @@ export const useCartStore = create<CartStore>()(
       syncWithServer: async (userId: string) => {
         try {
           const { items } = get();
-          await fetch("/api/cart/sync", {
+          console.log("[CART STORE] Syncing to server:", {
+            userId,
+            itemCount: items.length,
+          });
+          const res = await fetch("/api/cart/sync", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ items }),
           });
-        } catch {}
+          const data = await res.json();
+          console.log("[CART STORE] Sync response:", {
+            success: data.success,
+            returnedItemCount: data.items?.length || 0,
+          });
+        } catch (error) {
+          console.error("[CART STORE] Sync error:", error);
+        }
       },
     })),
     {

@@ -14,10 +14,10 @@ const trackSchema = z.object({
 // GET /api/orders/track/[orderNumber] - Public order tracking
 export async function GET(
   req: NextRequest,
-  { params }: { params: { orderNumber: string } }
+  { params }: { params: Promise<{ orderNumber: string }> }
 ) {
   try {
-    const { orderNumber } = params;
+    const { orderNumber } = await params;
     const { searchParams } = new URL(req.url);
     const email = searchParams.get("email");
     const phone = searchParams.get("phone");

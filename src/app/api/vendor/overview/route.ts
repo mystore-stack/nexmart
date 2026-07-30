@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuthFromRequest } from "@/lib/auth";
+import { requireAuth } from "@/lib/auth-api";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await requireAuthFromRequest(req);
+    const session = await requireAuth();
 
     const org = await prisma.organization.findFirst({
       where: {

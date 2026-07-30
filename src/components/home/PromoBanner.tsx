@@ -5,7 +5,7 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowRight, Zap, Gift, Crown } from "lucide-react";
 
-const BANNERS = [
+const DEFAULT_BANNERS = [
   {
     icon: Zap,
     eyebrow: "Offre spéciale",
@@ -38,7 +38,18 @@ const BANNERS = [
   },
 ];
 
-export function PromoBanner() {
+interface PromoBannerProps {
+  banners?: any[];
+}
+
+const iconMap: Record<string, any> = {
+  Zap,
+  Crown,
+  Gift,
+};
+
+export function PromoBanner({ banners = [] }: PromoBannerProps) {
+  const BANNERS = banners.length > 0 ? banners : DEFAULT_BANNERS;
   return (
     <div className="space-y-7">
       <div className="text-center">
@@ -50,47 +61,50 @@ export function PromoBanner() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
-        {BANNERS.map((b, i) => (
-          <motion.div
-            key={b.title}
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: i * 0.1, duration: 0.45, ease: "easeOut" }}
-          >
-            <Link href={b.href} className="group block">
-              <div className={`relative overflow-hidden rounded-2xl bg-gradient-to-br ${b.gradient} p-7 transition-all duration-400 hover:-translate-y-1.5 hover:shadow-2xl`}
-                style={{ boxShadow: `0 8px 32px ${b.accentColor}` }}>
+        {BANNERS.map((b, i) => {
+          const Icon = iconMap[b.iconName] || b.icon || Zap;
+          return (
+            <motion.div
+              key={b.id || b.title}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.1, duration: 0.45, ease: "easeOut" }}
+            >
+              <Link href={b.href} className="group block">
+                <div className={`relative overflow-hidden rounded-2xl bg-gradient-to-br ${b.gradient} p-7 transition-all duration-400 hover:-translate-y-1.5 hover:shadow-2xl`}
+                  style={{ boxShadow: `0 8px 32px ${b.accentColor}` }}>
 
-                {/* Moroccan pattern overlay */}
-                <div className="absolute inset-0 moroccan-pattern-bg opacity-15" />
+                  {/* Moroccan pattern overlay */}
+                  <div className="absolute inset-0 moroccan-pattern-bg opacity-15" />
 
-                {/* Glow circle */}
-                <div className="absolute -right-8 -top-8 w-32 h-32 rounded-full opacity-20"
-                  style={{ background: `radial-gradient(circle, rgba(255,255,255,0.6) 0%, transparent 70%)` }} />
+                  {/* Glow circle */}
+                  <div className="absolute -right-8 -top-8 w-32 h-32 rounded-full opacity-20"
+                    style={{ background: `radial-gradient(circle, rgba(255,255,255,0.6) 0%, transparent 70%)` }} />
 
-                {/* Bottom accent */}
-                <div className="absolute bottom-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent" />
+                  {/* Bottom accent */}
+                  <div className="absolute bottom-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent" />
 
-                <div className="relative">
-                  {/* Icon */}
-                  <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-white/15 backdrop-blur-sm group-hover:scale-110 transition-transform duration-300">
-                    <b.icon className="h-5 w-5 text-white" />
-                  </div>
+                  <div className="relative">
+                    {/* Icon */}
+                    <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl bg-white/15 backdrop-blur-sm group-hover:scale-110 transition-transform duration-300">
+                      <Icon className="h-5 w-5 text-white" />
+                    </div>
 
-                  <p className="mb-1 text-xs font-bold uppercase tracking-widest text-white/60">{b.eyebrow}</p>
-                  <h3 className="font-display text-2xl font-semibold text-white mb-2 leading-tight">{b.title}</h3>
-                  <p className="text-sm text-white/65 leading-snug mb-5">{b.subtitle}</p>
+                    <p className="mb-1 text-xs font-bold uppercase tracking-widest text-white/60">{b.eyebrow}</p>
+                    <h3 className="font-display text-2xl font-semibold text-white mb-2 leading-tight">{b.title}</h3>
+                    <p className="text-sm text-white/65 leading-snug mb-5">{b.subtitle}</p>
 
-                  <div className="inline-flex items-center gap-2 text-sm font-bold text-white group-hover:gap-3 transition-all">
-                    {b.cta}
-                    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                    <div className="inline-flex items-center gap-2 text-sm font-bold text-white group-hover:gap-3 transition-all">
+                      {b.cta}
+                      <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                    </div>
                   </div>
                 </div>
-              </div>
-            </Link>
-          </motion.div>
-        ))}
+              </Link>
+            </motion.div>
+          );
+        })}
       </div>
     </div>
   );

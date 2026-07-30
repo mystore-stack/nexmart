@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { getAuthFromRequest } from "@/lib/auth";
-import { getDefaultOrganizationId, getOrganizationIdForUser } from "@/lib/tenant";
+import { getSession } from "@/lib/auth-api";
+import { getDefaultOrganizationId } from "@/lib/tenant";
 import { getCache, setCache } from "@/lib/redis";
 import { recommendationCandidates } from "@/lib/ai/commerce";
 import { AI_CACHE_TTL } from "@/lib/ai/cache";
@@ -16,16 +16,16 @@ const schema = z.object({
 
 export async function GET(req: NextRequest) {
   try {
-    const user = await getAuthFromRequest(req).catch(() => null);
+    const session = await getSession().catch(() => null);
     const query = schema.parse(Object.fromEntries(req.nextUrl.searchParams));
-    const organizationId = user ? await getOrganizationIdForUser(user) : await getDefaultOrganizationId();
-    const cacheKey = `ai:recs:v2:${organizationId}:${user?.userId || "anon"}:${query.context}:${query.productId || "none"}:${query.limit}`;
+    const organizationId = session?.organizationId || await getDefaultOrganizationId();
+    const cacheKey = `ai:recs:v2:${organizationId}:${session?.userId || "anon"}:${query.context}:${query.productId || "none"}:${query.limit}`;
     const cached = await getCache<unknown[]>(cacheKey);
     if (cached) return NextResponse.json({ success: true, products: cached, cached: true });
 
     const products = await recommendationCandidates({
       organizationId,
-      userId: user?.userId,
+      userId: session?.userId,
       productId: query.productId,
       limit: query.limit,
     });

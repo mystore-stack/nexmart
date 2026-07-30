@@ -1,10 +1,8 @@
 // src/middleware.ts
+// Production-safe NextAuth v5 middleware - single source of truth
 import { NextRequest, NextResponse } from "next/server";
-import { jwtVerify } from "jose";
-
-import { getJwtSecretKey } from "@/lib/env";
-
-const AUTH_COOKIE = "nexmart_auth";
+import { auth } from "@/lib/next-auth.config";
+import { generateRequestId } from "@/lib/idempotency";
 
 const PROTECTED_ROUTES = ["/account", "/checkout", "/orders", "/wishlist", "/vendor"];
 const ADMIN_ROUTES = ["/admin"];
@@ -24,50 +22,82 @@ const PROTECTED_API_PREFIXES = [
   "/api/vendor",
 ];
 
-const PUBLIC_API_AUTH = ["/api/auth/login", "/api/auth/register", "/api/auth/bridge"];
+const PUBLIC_API_AUTH = [
+  "/api/auth/login",
+  "/api/auth/register",
+  "/api/auth/bridge",
+  "/api/admin/diagnostics-public",
+  "/api/admin/products-test",
+  "/api/auth/debug",
+];
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
   const isApiRoute = pathname.startsWith("/api/");
 
+  console.log("[MIDDLEWARE] Request:", { pathname, isApiRoute });
+
   const response = NextResponse.next();
-  response.headers.set("X-Request-Id", crypto.randomUUID());
+  response.headers.set("X-Request-Id", generateRequestId());
 
-  let payload: { userId?: string; role?: string } | null = null;
+  // Get session from NextAuth v5 auth() - single source of truth
+  const session = await auth();
+  
+  console.log("[MIDDLEWARE] Session retrieved:", {
+    hasSession: !!session,
+    hasUser: !!session?.user,
+    userId: session?.user?.id,
+    email: session?.user?.email,
+    role: session?.user?.role,
+  });
+  
+  let sessionData: { userId?: string; role?: string; organizationId?: string } | null = null;
 
-  // Edge middleware must be resilient and must not initialize OpenID/OAuth device-flow logic.
-  // For now we rely only on the legacy AUTH cookie that we can verify locally.
-  const token = req.cookies.get(AUTH_COOKIE)?.value;
-  if (token) {
-    try {
-      const { payload: p } = await jwtVerify(token, getJwtSecretKey());
-      payload = p as { userId: string; role: string };
-    } catch {
-      // invalid legacy token
-    }
+  if (session?.user) {
+    sessionData = {
+      userId: session.user.id,
+      role: (session.user.role as string) ?? "USER",
+    };
+    console.log("[MIDDLEWARE] NextAuth session validated:", {
+      userId: sessionData.userId,
+      role: sessionData.role,
+    });
+  } else {
+    console.log("[MIDDLEWARE] No NextAuth session found");
   }
 
-
-
-
-  if (payload && AUTH_ROUTES.some((r) => pathname.startsWith(r))) {
+  // Redirect authenticated users away from auth pages
+  if (sessionData && AUTH_ROUTES.some((r) => pathname.startsWith(r))) {
+    console.log("[MIDDLEWARE] Redirecting authenticated user from auth route to home");
     return NextResponse.redirect(new URL("/", req.url));
   }
 
+  // Protect user routes
   if (PROTECTED_ROUTES.some((r) => pathname.startsWith(r))) {
-    if (!payload) {
+    if (!sessionData) {
+      console.log("[MIDDLEWARE] Protected route - no session, redirecting to login");
       const loginUrl = new URL("/login", req.url);
       loginUrl.searchParams.set("from", pathname);
       return NextResponse.redirect(loginUrl);
     }
   }
 
+  // Protect admin routes
   if (ADMIN_ROUTES.some((r) => pathname.startsWith(r))) {
-    if (!payload || (payload.role !== "ADMIN" && payload.role !== "SUPER_ADMIN")) {
-      return NextResponse.redirect(new URL("/", req.url));
+    if (!sessionData) {
+      console.log("[MIDDLEWARE] Admin route - no session, redirecting to login");
+      const loginUrl = new URL("/login", req.url);
+      loginUrl.searchParams.set("from", pathname);
+      return NextResponse.redirect(loginUrl);
     }
+    if (sessionData.role !== "ADMIN" && sessionData.role !== "SUPER_ADMIN") {
+      console.log("[MIDDLEWARE] Admin route - insufficient role, redirecting to home");
+      return NextResponse.redirect(new URL("/?error=unauthorized", req.url));
+    }
+    console.log("[MIDDLEWARE] Admin route - access granted");
   }
 
+  // API auth guards
   if (isApiRoute) {
     const isPublicAuth =
       PUBLIC_API_AUTH.some((p) => pathname === p || pathname.startsWith(`${p}/`)) ||
@@ -77,20 +107,24 @@ export async function middleware(req: NextRequest) {
       !isPublicAuth &&
       PROTECTED_API_PREFIXES.some((p) => pathname.startsWith(p));
 
-    if (needsAuth && !payload) {
+    if (needsAuth && !sessionData) {
+      console.log("[MIDDLEWARE] API route - needs auth but no session, returning 401");
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
-    if (pathname.startsWith("/api/admin") && payload) {
-      if (payload.role !== "ADMIN" && payload.role !== "SUPER_ADMIN") {
+    // Admin API guard
+    if (pathname.startsWith("/api/admin") && sessionData) {
+      if (sessionData.role !== "ADMIN" && sessionData.role !== "SUPER_ADMIN") {
+        console.log("[MIDDLEWARE] Admin API - insufficient role, returning 403");
         return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });
       }
     }
   }
 
-  if (payload) {
-    response.headers.set("x-user-id", payload.userId || "");
-    response.headers.set("x-user-role", payload.role || "");
+  // Add user metadata to headers for downstream use
+  if (sessionData) {
+    response.headers.set("x-user-id", sessionData.userId || "");
+    response.headers.set("x-user-role", sessionData.role || "");
   }
 
   return response;
@@ -119,5 +153,6 @@ export const config = {
     "/api/admin/:path*",
     "/api/vendor/:path*",
   ],
+  runtime: "nodejs",
 };
 

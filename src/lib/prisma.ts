@@ -6,17 +6,19 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
+// Use the correct database URL for Vercel production
+const databaseUrl = process.env.DATABASE_URL || process.env.NEXMART_STORAGE_DATABASE_URL;
+
 export const prisma =
   globalForPrisma.prisma ??
   new PrismaClient({
-    log: process.env.NODE_ENV === "development" ? ["query", "error", "warn"] : ["error"],
-    errorFormat: "minimal",
-    // Connection timeout settings for serverless
     datasources: {
       db: {
-        url: process.env.DATABASE_URL,
+        url: databaseUrl,
       },
     },
+    log: process.env.NODE_ENV === "development" ? ["query", "error", "warn"] : ["query", "error"],
+    errorFormat: "minimal",
   });
 
 // In development, attach to global to prevent hot-reload creating multiple instances

@@ -18,7 +18,7 @@
     --terracotta: 14 58% 48%;
     --cobalt: 214 82% 35%;
 
-    --background: 40 20% 97%;
+    --background: 0 0% 100%;
     --foreground: 222 47% 10%;
     --card: 0 0% 100%;
     --card-foreground: 222 47% 10%;
@@ -87,8 +87,8 @@
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
     background:
-      radial-gradient(circle at 0% 0%, rgba(15, 118, 110, 0.06) 0%, transparent 40%),
-      radial-gradient(circle at 100% 100%, rgba(212, 175, 55, 0.05) 0%, transparent 40%),
+      radial-gradient(circle at top left, hsl(var(--ai-purple) / 0.04) 0%, transparent 32%),
+      radial-gradient(circle at bottom right, hsl(var(--ai-blue) / 0.04) 0%, transparent 32%),
       hsl(var(--background));
   }
 
@@ -112,8 +112,14 @@
 }
 
 @layer components {
+  .homepage-shell {
+    @apply bg-white;
+  }
 
-  /* ─── Moroccan Geometric Pattern SVG ─── */
+  .luxury-section-divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(200, 155, 60, 0.25), transparent);
+  }
   .moroccan-pattern-bg {
     background-image: url("data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='%230F766E' stroke-width='0.5' opacity='0.12'%3E%3Cpath d='M40 0 L80 40 L40 80 L0 40 Z'/%3E%3Cpath d='M40 10 L70 40 L40 70 L10 40 Z'/%3E%3Cpath d='M40 20 L60 40 L40 60 L20 40 Z'/%3E%3Ccircle cx='40' cy='40' r='8'/%3E%3Cpath d='M0 0 L20 20 M60 0 L80 20 M0 60 L20 80 M60 60 L80 80'/%3E%3C/g%3E%3C/svg%3E");
     background-size: 80px 80px;
@@ -127,12 +133,12 @@
   /* ─── Card Styles ─── */
   .card-luxury {
     @apply rounded-2xl border border-white/70 bg-card/90 backdrop-blur-xl;
-    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 32px rgba(15, 23, 42, 0.07);
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03), 0 18px 50px rgba(15, 23, 42, 0.06);
     transition: box-shadow 0.35s ease, transform 0.35s ease, border-color 0.35s ease;
   }
   .card-luxury:hover {
     border-color: hsl(var(--gold) / 0.35);
-    box-shadow: 0 20px 60px rgba(15, 118, 110, 0.12), 0 4px 16px rgba(15, 23, 42, 0.08);
+    box-shadow: 0 28px 80px rgba(15, 118, 110, 0.11), 0 8px 24px rgba(15, 23, 42, 0.08);
   }
 
   .glass-card {
@@ -153,7 +159,7 @@
   }
   .product-card:hover {
     transform: translateY(-6px);
-    box-shadow: 0 28px 72px rgba(15, 118, 110, 0.16), 0 8px 20px rgba(15, 23, 42, 0.08);
+    box-shadow: 0 30px 82px rgba(15, 118, 110, 0.14), 0 10px 24px rgba(15, 23, 42, 0.08);
     border-color: hsl(var(--gold) / 0.3);
   }
 
@@ -263,8 +269,14 @@
   }
 
   /* ─── Layout ─── */
-  .section { @apply py-12 md:py-16 lg:py-20; }
-  .container-main { @apply mx-auto max-w-7xl px-4 sm:px-6 lg:px-8; }
+  .section { @apply py-16 md:py-20 lg:py-24; }
+  .container-main { @apply mx-auto max-w-[88rem] px-4 sm:px-6 lg:px-8 xl:px-10; }
+  .surface-luxury {
+    background:
+      linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(247,244,238,0.9) 100%);
+    border: 1px solid rgba(231, 226, 217, 0.9);
+    box-shadow: 0 20px 80px rgba(15, 23, 42, 0.06);
+  }
 
   /* ─── Input ─── */
   .input-luxury {
@@ -323,18 +335,18 @@
 
   /* ─── Navbar glass ─── */
   .navbar-glass {
-    background: rgba(245, 241, 232, 0.88);
+    background: rgba(255, 255, 255, 0.86);
     backdrop-filter: blur(24px);
     -webkit-backdrop-filter: blur(24px);
-    border-bottom: 1px solid rgba(212, 175, 55, 0.2);
-    box-shadow: 0 1px 0 rgba(255,255,255,0.8), 0 4px 24px rgba(15, 23, 42, 0.06);
+    border-bottom: 1px solid rgba(231, 226, 217, 0.92);
+    box-shadow: 0 1px 0 rgba(255,255,255,0.82), 0 12px 38px rgba(15, 23, 42, 0.06);
   }
   .dark .navbar-glass {
     background: rgba(15, 23, 42, 0.92);
     border-bottom-color: rgba(212, 175, 55, 0.12);
   }
   .navbar-transparent {
-    background: rgba(245, 241, 232, 0.4);
+    background: rgba(255, 255, 255, 0.6);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
   }

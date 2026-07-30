@@ -6,9 +6,10 @@ import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowRight, ChevronLeft, ChevronRight, ShieldCheck, Star, Truck, Sparkles } from "lucide-react";
 
-const SLIDES = [
+// Fallback slides if no banners exist in database
+const FALLBACK_SLIDES = [
   {
-    id: 1,
+    id: "fallback-1",
     eyebrow: "Collection Exclusive",
     title: "L'art du shopping",
     titleAccent: "marocain.",
@@ -24,7 +25,7 @@ const SLIDES = [
     accent: "#0F766E",
   },
   {
-    id: 2,
+    id: "fallback-2",
     eyebrow: "Technologie Premium",
     title: "Équipez-vous avec",
     titleAccent: "le meilleur.",
@@ -40,7 +41,7 @@ const SLIDES = [
     accent: "#1255A0",
   },
   {
-    id: 3,
+    id: "fallback-3",
     eyebrow: "Mode & Lifestyle",
     title: "La nouvelle saison,",
     titleAccent: "sublimée.",
@@ -89,16 +90,122 @@ function MoroccanStar({ className = "" }: { className?: string }) {
 export function HeroSection() {
   const [current, setCurrent] = useState(0);
   const [paused, setPaused] = useState(false);
-  const slide = SLIDES[current];
+  const [banners, setBanners] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  
+  // Use API banners if available, otherwise fallback
+  const slides = banners.length > 0 ? banners : FALLBACK_SLIDES;
+  const slide = slides[current];
+  const isUsingFallback = banners.length === 0;
+
+  useEffect(() => {
+    async function fetchBanners() {
+      try {
+        console.log("[HeroSection] Fetching banners from API...");
+        const response = await fetch("/api/hero");
+        const data = await response.json();
+        console.log("[HeroSection] API response:", data);
+        if (data.success && data.banners && data.banners.length > 0) {
+          console.log("[HeroSection] Loaded", data.banners.length, "banners from DB");
+          setBanners(data.banners);
+        } else {
+          console.log("[HeroSection] No banners in DB, using fallback slides");
+        }
+      } catch (error) {
+        console.error("[HeroSection] Failed to fetch hero banners:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchBanners();
+  }, []);
 
   useEffect(() => {
     if (paused) return;
-    const t = setInterval(() => setCurrent((p) => (p + 1) % SLIDES.length), 5500);
+    const t = setInterval(() => setCurrent((p) => (p + 1) % slides.length), 5500);
     return () => clearInterval(t);
-  }, [paused]);
+  }, [paused, slides.length]);
 
-  const prev = () => setCurrent((c) => (c - 1 + SLIDES.length) % SLIDES.length);
-  const next = () => setCurrent((c) => (c + 1) % SLIDES.length);
+  // Track impression when slide changes
+  useEffect(() => {
+    if (!isUsingFallback && slides[current]?.id) {
+      const bannerId = slides[current].id;
+      const sessionId = sessionStorage.getItem("sessionId") || crypto.randomUUID();
+      sessionStorage.setItem("sessionId", sessionId);
+      const deviceType = window.innerWidth < 768 ? "mobile" : "desktop";
+      
+      const payload = {
+        type: "impression",
+        deviceType,
+        sessionId,
+        landingPage: window.location.pathname,
+        referrer: document.referrer,
+      };
+      
+      const analyticsUrl = `/api/hero/${bannerId}/analytics`;
+      
+      console.log("[HeroSection Analytics] Banner ID:", bannerId);
+      console.log("[HeroSection Analytics] Analytics URL:", analyticsUrl);
+      console.log("[HeroSection Analytics] Payload:", payload);
+      console.log("[HeroSection Analytics] Tracking impression:", {
+        bannerId,
+        payload,
+        url: analyticsUrl,
+      });
+      
+      fetch(`/api/hero/${bannerId}/analytics`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      })
+      .then((res) => {
+        console.log("[HeroSection Analytics] Response status:", res.status);
+        return res.json();
+      })
+      .then((data) => console.log("[HeroSection Analytics] Response data:", data))
+      .catch((error) => console.error("[HeroSection Analytics] Error:", error));
+    }
+  }, [current, slides, isUsingFallback]);
+
+  const trackClick = (type: "primaryClick" | "secondaryClick") => {
+    if (!isUsingFallback && slides[current]?.id) {
+      const bannerId = slides[current].id;
+      const sessionId = sessionStorage.getItem("sessionId") || crypto.randomUUID();
+      const deviceType = window.innerWidth < 768 ? "mobile" : "desktop";
+      
+      const payload = {
+        type,
+        deviceType,
+        sessionId,
+        landingPage: window.location.pathname,
+        referrer: document.referrer,
+      };
+      
+      console.log("[HeroSection Analytics] Tracking click:", {
+        bannerId,
+        clickType: type,
+        payload,
+        url: `/api/hero/${bannerId}/analytics`,
+      });
+      
+      fetch(`/api/hero/${bannerId}/analytics`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      })
+      .then((res) => {
+        console.log("[HeroSection Analytics] Click response status:", res.status);
+        return res.json();
+      })
+      .then((data) => console.log("[HeroSection Analytics] Click response data:", data))
+      .catch((error) => console.error("[HeroSection Analytics] Click error:", error));
+    } else {
+      console.log("[HeroSection Analytics] Skipping click tracking - using fallback or no banner ID");
+    }
+  };
+
+  const prev = () => setCurrent((c) => (c - 1 + slides.length) % slides.length);
+  const next = () => setCurrent((c) => (c + 1) % slides.length);
 
   return (
     <div
@@ -199,11 +306,11 @@ export function HeroSection() {
 
             {/* CTAs */}
             <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
-              <Link href={slide.href} className="btn btn-primary btn-lg group font-display text-[1rem] tracking-wide">
+              <Link href={slide.href} onClick={() => trackClick("primaryClick")} className="btn btn-primary btn-lg group font-display text-[1rem] tracking-wide">
                 {slide.cta}
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1.5" />
               </Link>
-              <Link href={slide.hrefSecondary} className="btn h-[52px] px-6 border border-white/20 bg-white/8 text-white/90 rounded-2xl backdrop-blur hover:bg-white/15 hover:border-white/30 transition-all font-medium">
+              <Link href={slide.hrefSecondary} onClick={() => trackClick("secondaryClick")} className="btn h-[52px] px-6 border border-white/20 bg-white/8 text-white/90 rounded-2xl backdrop-blur hover:bg-white/15 hover:border-white/30 transition-all font-medium">
                 {slide.ctaSecondary}
               </Link>
             </div>
@@ -318,7 +425,7 @@ export function HeroSection() {
 
       {/* Dots */}
       <div className="absolute bottom-5 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2">
-        {SLIDES.map((_, i) => (
+        {slides.map((_, i) => (
           <button
             key={i}
             onClick={() => setCurrent(i)}

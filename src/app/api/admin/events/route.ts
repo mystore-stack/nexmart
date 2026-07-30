@@ -1,22 +1,11 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuthFromRequest } from "@/lib/auth";
-import { getOrganizationIdForUser } from "@/lib/tenant";
+import { requireAdmin } from "@/lib/auth-api";
 
 // Server-Sent Events endpoint for real-time admin updates
 export async function GET(req: NextRequest) {
-  const authUser = await requireAuthFromRequest(req);
-  const organizationId = await getOrganizationIdForUser(authUser);
-
-  // Check if user is admin or super admin
-  const user = await prisma.user.findUnique({
-    where: { id: authUser.userId },
-    select: { role: true },
-  });
-
-  if (!user || (user.role !== "ADMIN" && user.role !== "SUPER_ADMIN")) {
-    return new Response("Unauthorized", { status: 401 });
-  }
+  const session = await requireAdmin();
+  const organizationId = session.organizationId;
 
   const encoder = new TextEncoder();
 

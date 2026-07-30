@@ -2,6 +2,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getDefaultOrganizationId } from "@/lib/tenant";
+import { getOrganizationIdForUser } from "@/lib/tenant";
+import { getSession } from "@/lib/auth-api";
 import { CACHE_TTL, getCache, setCache } from "@/lib/redis";
 import { z } from "zod";
 
@@ -11,6 +13,7 @@ const productQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(48).default(24),
   category: z.string().trim().optional(),
+  tag: z.string().trim().optional(),
   sort: z
     .enum(["relevance", "popular", "price_asc", "price_desc", "newest", "rating", "discount"])
     .default("popular"),
@@ -32,6 +35,7 @@ export async function GET(req: NextRequest) {
       page,
       limit,
       category,
+      tag,
       sort,
       minPrice,
       maxPrice,
@@ -49,13 +53,22 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: true, ...cached, cached: true });
     }
 
-    const organizationId = await getDefaultOrganizationId();
+    const session = await getSession();
+    let organizationId;
+    if (session) {
+      organizationId = await getOrganizationIdForUser({ userId: session.userId });
+    } else {
+      organizationId = await getDefaultOrganizationId();
+    }
+
+    console.log("[PRODUCTS API] session:", session?.userId, "organizationId:", organizationId);
 
     const where: any = {
       organizationId,
       published: true,
       price: { gte: minPrice, lte: maxPrice },
       ...(category && { category: { organizationId, slug: category } }),
+      ...(tag && { tags: { has: tag } }),
       ...(featured && { featured: true }),
       ...(sale && { comparePrice: { not: null } }),
       ...(brand && { tags: { has: brand } }),
@@ -69,6 +82,8 @@ export async function GET(req: NextRequest) {
         ],
       }),
     };
+
+    console.log("[PRODUCTS API] where clause:", JSON.stringify(where, null, 2));
 
     const orderBy: any =
       sort === "price_asc"  ? { price: "asc" }      :
@@ -92,6 +107,8 @@ export async function GET(req: NextRequest) {
       }),
       prisma.product.count({ where }),
     ]);
+
+    console.log("[PRODUCTS API] Products found:", products.length, "Total:", total);
 
     const payload = {
       products,

@@ -36,6 +36,9 @@ export function ProductsClient({ categories, maxPrice, searchParams: initialSear
   const [selectedCategorySlug, setSelectedCategorySlug] = useState(
     (initialSearchParams?.category as string) || searchParamsHook.get("category") || ""
   );
+  const [selectedTag, setSelectedTag] = useState(
+    (initialSearchParams?.tag as string) || searchParamsHook.get("tag") || ""
+  );
   const [priceRange, setPriceRange] = useState<[number, number]>([0, maxPrice]);
   const [selectedRating, setSelectedRating] = useState(0);
   const [inStockOnly, setInStockOnly] = useState(false);
@@ -45,6 +48,8 @@ export function ProductsClient({ categories, maxPrice, searchParams: initialSear
     const params = new URLSearchParams();
     const cat = selectedCategorySlug || searchParamsHook.get("category");
     if (cat) params.set("category", cat);
+    const tag = selectedTag || searchParamsHook.get("tag");
+    if (tag) params.set("tag", tag);
     if (priceRange[0] > 0) params.set("minPrice", String(priceRange[0]));
     if (priceRange[1] < maxPrice) params.set("maxPrice", String(priceRange[1]));
     if (sort && sort !== "relevance") params.set("sort", sort);
@@ -58,7 +63,7 @@ export function ProductsClient({ categories, maxPrice, searchParams: initialSear
     if (initialSearchParams?.sale === "true" && !searchParamsHook.get("sale")) params.set("sale", "true");
     if (initialSearchParams?.brand && !brand) params.set("brand", String(initialSearchParams.brand));
     return params;
-  }, [selectedCategorySlug, priceRange, sort, maxPrice, selectedRating, inStockOnly, searchParamsHook, initialSearchParams]);
+  }, [selectedCategorySlug, selectedTag, priceRange, sort, maxPrice, selectedRating, inStockOnly, searchParamsHook, initialSearchParams]);
 
   const fetchProducts = useCallback(async (reset = false) => {
     setLoading(true);
@@ -80,7 +85,7 @@ export function ProductsClient({ categories, maxPrice, searchParams: initialSear
     finally { setLoading(false); }
   }, [buildQuery]);
 
-  useEffect(() => { fetchProducts(true); }, [selectedCategorySlug, priceRange, selectedRating, inStockOnly, sort, searchParamsHook, fetchProducts]);
+  useEffect(() => { fetchProducts(true); }, [selectedCategorySlug, selectedTag, priceRange, selectedRating, inStockOnly, sort, searchParamsHook, fetchProducts]);
 
   useEffect(() => {
     const observer = new IntersectionObserver((entries) => {
