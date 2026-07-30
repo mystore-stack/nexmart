@@ -7,6 +7,7 @@ import React, { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Send, Bot, Loader2, Sparkles, ChevronDown } from "lucide-react";
 import { usePathname } from "next/navigation";
+import { safeFetchJSON } from "@/lib/fetch-utils";
 
 interface Message {
   id: string;
@@ -48,10 +49,9 @@ export function AIChatWidget() {
     const stored = window.localStorage.getItem("nexmart_ai_conversation_id");
     if (!stored) return;
     setConversationId(stored);
-    fetch(`/api/ai/chat?conversationId=${stored}`)
-      .then((r) => r.json())
+    safeFetchJSON(`/api/ai/chat?conversationId=${stored}`)
       .then((data) => {
-        if (!data.success || !Array.isArray(data.messages) || data.messages.length === 0) return;
+        if (!data || !data.success || !Array.isArray(data.messages) || data.messages.length === 0) return;
         setMessages((prev) => [
           prev[0],
           ...data.messages.map((m: any) => ({ id: m.id, role: m.role, content: m.content, timestamp: new Date(m.createdAt) })),
