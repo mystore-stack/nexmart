@@ -4,6 +4,7 @@ import { persist, createJSONStorage } from "zustand/middleware";
 import { immer } from "zustand/middleware/immer";
 import type { CartStore, CartItem, Product, ProductVariant, Coupon } from "@/types";
 import toast from "react-hot-toast";
+import { safeFetchJSON } from "@/lib/fetch-utils";
 
 export const useCartStore = create<CartStore>()(
   persist(
@@ -129,28 +130,18 @@ export const useCartStore = create<CartStore>()(
             userId,
             itemCount: items.length,
           });
-          const res = await fetch("/api/cart/sync", {
+          const data = await safeFetchJSON("/api/cart/sync", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ items }),
           });
           
-          if (!res.ok) {
-            console.error("[CART STORE] Sync failed with status:", res.status);
-            return;
+          if (data) {
+            console.log("[CART STORE] Sync response:", {
+              success: data.success,
+              returnedItemCount: data.items?.length || 0,
+            });
           }
-          
-          const contentType = res.headers.get("content-type");
-          if (!contentType?.includes("application/json")) {
-            console.error("[CART STORE] Sync response is not JSON:", contentType);
-            return;
-          }
-          
-          const data = await res.json();
-          console.log("[CART STORE] Sync response:", {
-            success: data.success,
-            returnedItemCount: data.items?.length || 0,
-          });
         } catch (error) {
           console.error("[CART STORE] Sync error:", error);
         }

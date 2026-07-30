@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowRight, ChevronLeft, ChevronRight, ShieldCheck, Star, Truck, Sparkles } from "lucide-react";
+import { safeFetchJSON } from "@/lib/fetch-utils";
 
 // Fallback slides if no banners exist in database
 const FALLBACK_SLIDES = [
@@ -102,26 +103,16 @@ export function HeroSection() {
     async function fetchBanners() {
       try {
         console.log("[HeroSection] Fetching banners from API...");
-        const response = await fetch("/api/hero");
+        const data = await safeFetchJSON("/api/hero");
         
-        if (!response.ok) {
-          console.error("[HeroSection] API request failed with status:", response.status);
-          return;
-        }
-        
-        const contentType = response.headers.get("content-type");
-        if (!contentType?.includes("application/json")) {
-          console.error("[HeroSection] API response is not JSON:", contentType);
-          return;
-        }
-        
-        const data = await response.json();
-        console.log("[HeroSection] API response:", data);
-        if (data.success && data.banners && data.banners.length > 0) {
-          console.log("[HeroSection] Loaded", data.banners.length, "banners from DB");
-          setBanners(data.banners);
-        } else {
-          console.log("[HeroSection] No banners in DB, using fallback slides");
+        if (data) {
+          console.log("[HeroSection] API response:", data);
+          if (data.success && data.banners && data.banners.length > 0) {
+            console.log("[HeroSection] Loaded", data.banners.length, "banners from DB");
+            setBanners(data.banners);
+          } else {
+            console.log("[HeroSection] No banners in DB, using fallback slides");
+          }
         }
       } catch (error) {
         console.error("[HeroSection] Failed to fetch hero banners:", error);
@@ -165,28 +156,13 @@ export function HeroSection() {
         url: analyticsUrl,
       });
       
-      fetch(`/api/hero/${bannerId}/analytics`, {
+      safeFetchJSON(`/api/hero/${bannerId}/analytics`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
-      })
-      .then((res) => {
-        console.log("[HeroSection Analytics] Response status:", res.status);
-        if (!res.ok) {
-          console.error("[HeroSection Analytics] Request failed with status:", res.status);
-          return null;
-        }
-        const contentType = res.headers.get("content-type");
-        if (!contentType?.includes("application/json")) {
-          console.error("[HeroSection Analytics] Response is not JSON:", contentType);
-          return null;
-        }
-        return res.json();
-      })
-      .then((data) => {
+      }).then((data) => {
         if (data) console.log("[HeroSection Analytics] Response data:", data);
-      })
-      .catch((error) => console.error("[HeroSection Analytics] Error:", error));
+      }).catch((error) => console.error("[HeroSection Analytics] Error:", error));
     }
   }, [current, slides, isUsingFallback]);
 
@@ -211,28 +187,13 @@ export function HeroSection() {
         url: `/api/hero/${bannerId}/analytics`,
       });
       
-      fetch(`/api/hero/${bannerId}/analytics`, {
+      safeFetchJSON(`/api/hero/${bannerId}/analytics`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
-      })
-      .then((res) => {
-        console.log("[HeroSection Analytics] Click response status:", res.status);
-        if (!res.ok) {
-          console.error("[HeroSection Analytics] Click request failed with status:", res.status);
-          return null;
-        }
-        const contentType = res.headers.get("content-type");
-        if (!contentType?.includes("application/json")) {
-          console.error("[HeroSection Analytics] Click response is not JSON:", contentType);
-          return null;
-        }
-        return res.json();
-      })
-      .then((data) => {
+      }).then((data) => {
         if (data) console.log("[HeroSection Analytics] Click response data:", data);
-      })
-      .catch((error) => console.error("[HeroSection Analytics] Click error:", error));
+      }).catch((error) => console.error("[HeroSection Analytics] Click error:", error));
     } else {
       console.log("[HeroSection Analytics] Skipping click tracking - using fallback or no banner ID");
     }

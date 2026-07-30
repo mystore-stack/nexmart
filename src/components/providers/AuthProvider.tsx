@@ -5,6 +5,7 @@ import { SessionProvider, useSession } from "next-auth/react";
 import { useAuthStore } from "@/store/index";
 import { useCartStore } from "@/store/cart";
 import type { User } from "@/types";
+import { safeFetchJSON } from "@/lib/fetch-utils";
 
 function SessionSync() {
   const { data: session, status } = useSession();
@@ -54,48 +55,37 @@ function SessionSync() {
       const syncCart = async () => {
         try {
           console.log("[AUTH PROVIDER] Syncing cart from database for user:", user.id);
-          const cartRes = await fetch("/api/cart");
+          const cartData = await safeFetchJSON("/api/cart");
           
-          if (!cartRes.ok) {
-            console.error("[AUTH PROVIDER] Cart sync failed with status:", cartRes.status);
-            return;
-          }
-          
-          const contentType = cartRes.headers.get("content-type");
-          if (!contentType?.includes("application/json")) {
-            console.error("[AUTH PROVIDER] Cart response is not JSON:", contentType);
-            return;
-          }
-          
-          const cartData = await cartRes.json();
-          
-          console.log("[AUTH PROVIDER] Database cart response:", {
-            success: cartData.success,
-            itemsCount: cartData.items?.length || 0,
-          });
-          
-          if (cartData.success && cartData.items && cartData.items.length > 0) {
-            const localCart = useCartStore.getState().items;
+          if (cartData) {
+            console.log("[AUTH PROVIDER] Database cart response:", {
+              success: cartData.success,
+              itemsCount: cartData.items?.length || 0,
+            });
             
-            // Only sync if local cart is empty
-            if (localCart.length === 0) {
-              console.log("[AUTH PROVIDER] Local cart empty, syncing from database");
-              useCartStore.getState().clearCart();
+            if (cartData.success && cartData.items && cartData.items.length > 0) {
+              const localCart = useCartStore.getState().items;
               
-              cartData.items.forEach((dbItem: any) => {
-                useCartStore.getState().addItem(
-                  dbItem.product,
-                  dbItem.quantity,
-                  dbItem.variant || undefined
-                );
-              });
-              
-              console.log("[AUTH PROVIDER] Cart synced from database, new item count:", cartData.items.length);
+              // Only sync if local cart is empty
+              if (localCart.length === 0) {
+                console.log("[AUTH PROVIDER] Local cart empty, syncing from database");
+                useCartStore.getState().clearCart();
+                
+                cartData.items.forEach((dbItem: any) => {
+                  useCartStore.getState().addItem(
+                    dbItem.product,
+                    dbItem.quantity,
+                    dbItem.variant || undefined
+                  );
+                });
+                
+                console.log("[AUTH PROVIDER] Cart synced from database, new item count:", cartData.items.length);
+              } else {
+                console.log("[AUTH PROVIDER] Local cart has items, skipping sync");
+              }
             } else {
-              console.log("[AUTH PROVIDER] Local cart has items, skipping sync");
+              console.log("[AUTH PROVIDER] No items in database cart");
             }
-          } else {
-            console.log("[AUTH PROVIDER] No items in database cart");
           }
         } catch (error) {
           console.error("[AUTH PROVIDER] Cart sync error:", error);
