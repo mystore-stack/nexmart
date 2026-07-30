@@ -55,6 +55,18 @@ function SessionSync() {
         try {
           console.log("[AUTH PROVIDER] Syncing cart from database for user:", user.id);
           const cartRes = await fetch("/api/cart");
+          
+          if (!cartRes.ok) {
+            console.error("[AUTH PROVIDER] Cart sync failed with status:", cartRes.status);
+            return;
+          }
+          
+          const contentType = cartRes.headers.get("content-type");
+          if (!contentType?.includes("application/json")) {
+            console.error("[AUTH PROVIDER] Cart response is not JSON:", contentType);
+            return;
+          }
+          
           const cartData = await cartRes.json();
           
           console.log("[AUTH PROVIDER] Database cart response:", {

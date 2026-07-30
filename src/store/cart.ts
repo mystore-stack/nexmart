@@ -134,6 +134,18 @@ export const useCartStore = create<CartStore>()(
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ items }),
           });
+          
+          if (!res.ok) {
+            console.error("[CART STORE] Sync failed with status:", res.status);
+            return;
+          }
+          
+          const contentType = res.headers.get("content-type");
+          if (!contentType?.includes("application/json")) {
+            console.error("[CART STORE] Sync response is not JSON:", contentType);
+            return;
+          }
+          
           const data = await res.json();
           console.log("[CART STORE] Sync response:", {
             success: data.success,
