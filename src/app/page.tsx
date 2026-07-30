@@ -163,8 +163,10 @@ export default async function HomePage() {
     "newsletter",
   ];
 
-  // Use default order only - disable dynamic sections for now
-  const sectionsToRender = defaultOrder;
+  // Use dynamic sections from CMS if available, otherwise use default order
+  const sectionsToRender = cms.homeSections && cms.homeSections.length > 0
+    ? cms.homeSections.map((section: any) => section.sectionKey)
+    : defaultOrder;
 
   return (
     <div className="page-enter space-y-4">
