@@ -149,7 +149,6 @@ export default async function HomePage() {
     "flashDeals",
     "flashSale",
     "serviceBanners",
-    "showcaseGrid",
     "bundleBuilder",
     "recommended",
     "brandCarousel",
