@@ -144,6 +144,23 @@ export default async function HomePage() {
 
   const defaultOrder = [
     "hero",
+    "categories",
+    "promotionalCards",
+    "flashDeals",
+    "flashSale",
+    "serviceBanners",
+    "showcaseGrid",
+    "bundleBuilder",
+    "recommended",
+    "brandCarousel",
+    "featuredProducts",
+    "promoBanner",
+    "trendingProducts",
+    "recentlyViewed",
+    "whyNexMart",
+    "featuresBar",
+    "mobileAppBanner",
+    "newsletter",
   ];
 
   // Use default order only - disable dynamic sections for now
