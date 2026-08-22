@@ -1,0 +1,35 @@
+// src/app/api/admin/automation/stats/route.ts — Automation Statistics API
+import { NextRequest, NextResponse } from 'next/server';
+import { requireAdmin } from '@/lib/auth-api';
+import { prisma } from '@/lib/prisma';
+import { getEmailStatistics } from '@/lib/email';
+import { getStockAlertStats } from '@/lib/automation/stock-alerts';
+import { getCartRecoveryStats } from '@/lib/automation/cart-abandonment';
+import { getDailyReportStats } from '@/lib/automation/daily-reports';
+
+export const dynamic = 'force-dynamic';
+
+export async function GET(req: NextRequest) {
+  try {
+    await requireAdmin();
+
+    const organizationId = req.nextUrl.searchParams.get('organizationId') || undefined;
+
+    const [emailStats, stockAlertStats, cartRecoveryStats, dailyReportStats] = await Promise.all([
+      getEmailStatistics(organizationId),
+      getStockAlertStats(organizationId),
+      getCartRecoveryStats(organizationId),
+      getDailyReportStats(organizationId),
+    ]);
+
+    return NextResponse.json({
+      email: emailStats,
+      stockAlerts: stockAlertStats,
+      cartRecovery: cartRecoveryStats,
+      dailyReports: dailyReportStats,
+    });
+  } catch (error) {
+    console.error('[Automation Stats Error]:', error);
+    return NextResponse.json({ error: 'Failed to fetch automation stats' }, { status: 500 });
+  }
+}

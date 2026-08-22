@@ -1,0 +1,52 @@
+// src/app/api/admin/coupons/route.ts
+import { NextRequest } from "next/server";
+import { z } from "zod";
+import { prisma } from "@/lib/prisma";
+import { requireAdmin } from "@/lib/auth-api";
+import { ok, created, forbidden, handleApiError } from "@/lib/api";
+
+const couponSchema = z.object({
+  code: z.string().min(2).max(30).toUpperCase(),
+  description: z.string().optional(),
+  type: z.enum(["PERCENTAGE", "FIXED"]),
+  value: z.number().positive(),
+  minOrder: z.number().positive().optional(),
+  maxDiscount: z.number().positive().optional(),
+  usageLimit: z.number().int().positive().optional(),
+  userLimit: z.number().int().positive().default(1),
+  endDate: z.string().optional(),
+  active: z.boolean().default(true),
+});
+
+export async function GET(req: NextRequest) {
+  try {
+    const { organizationId } = await requireAdmin();
+    const coupons = await prisma.coupon.findMany({
+      where: { organizationId },
+      orderBy: { createdAt: "desc" },
+    });
+    return ok(coupons);
+  } catch (err) {
+    return handleApiError(err);
+  }
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const { organizationId } = await requireAdmin();
+    const body = await req.json();
+    const data = couponSchema.parse(body);
+
+    const coupon = await prisma.coupon.create({
+      data: {
+        ...data,
+        organizationId,
+        endDate: data.endDate ? new Date(data.endDate) : undefined,
+      },
+    });
+    return created(coupon);
+  } catch (err: any) {
+    if (err?.code === "P2002") return handleApiError(new Error("Coupon code already exists."));
+    return handleApiError(err);
+  }
+}

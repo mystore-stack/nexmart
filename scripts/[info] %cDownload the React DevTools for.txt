@@ -1,0 +1,101 @@
+[info] %cDownload the React DevTools for a better development experience: https://reactjs.org/link/react-devtools font-weight:bold
+[error] Warning: Text content did not match. Server: "%s" Client: "%s"%s 5 432 5,432 
+    at span
+    at div
+    at div
+    at div
+    at MotionComponent (webpack-internal:///(app-pages-browser)/./node_modules/framer-motion/dist/es/motion/index.mjs:54:65)
+    at ProductCard (webpack-internal:///(app-pages-browser)/./src/components/product/ProductCard.tsx:35:11)
+    at div
+    at ProductGrid (webpack-internal:///(app-pages-browser)/./src/components/product/ProductCard.tsx:386:11)
+    at div
+    at FeaturedProducts (Server)
+    at Suspense
+    at div
+    at section
+    at div
+    at HomePage (Server)
+    at InnerLayoutRouter (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:243:11)
+    at RedirectErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/redirect-boundary.js:74:9)
+    at RedirectBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/redirect-boundary.js:82:11)
+    at NotFoundErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/not-found-boundary.js:76:9)
+    at NotFoundBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/not-found-boundary.js:84:11)
+    at Suspense
+    at LoadingBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:349:11)
+    at ErrorBoundaryHandler (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/error-boundary.js:113:9)
+    at ErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/error-boundary.js:160:11)
+    at InnerScrollAndFocusHandler (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:153:9)
+    at ScrollAndFocusHandler (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:228:11)
+    at RenderFromTemplateContext (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/render-from-template-context.js:16:44)
+    at OuterLayoutRouter (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/layout-router.js:370:11)
+    at main
+    at div
+    at SessionProvider (webpack-internal:///(app-pages-browser)/./node_modules/next-auth/react/index.js:365:24)
+    at AuthProvider (webpack-internal:///(app-pages-browser)/./src/components/providers/AuthProvider.tsx:60:11)
+    at QueryClientProvider (webpack-internal:///(app-pages-browser)/./node_modules/@tanstack/react-query/build/modern/QueryClientProvider.js:27:11)
+    at QueryProvider (webpack-internal:///(app-pages-browser)/./src/components/providers/QueryProvider.tsx:15:11)
+    at O (webpack-internal:///(app-pages-browser)/./node_modules/next-themes/dist/index.mjs:28:24)
+    at z (webpack-internal:///(app-pages-browser)/./node_modules/next-themes/dist/index.mjs:21:47)
+    at body
+    at html
+    at RootLayout (Server)
+    at RedirectErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/redirect-boundary.js:74:9)
+    at RedirectBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/redirect-boundary.js:82:11)
+    at NotFoundErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/not-found-boundary.js:76:9)
+    at NotFoundBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/not-found-boundary.js:84:11)
+    at DevRootNotFoundBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/dev-root-not-found-boundary.js:33:11)
+    at ReactDevOverlay (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/react-dev-overlay/app/ReactDevOverlay.js:87:9)
+    at HotReload (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/react-dev-overlay/app/hot-reloader-client.js:321:11)
+    at Router (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/app-router.js:207:11)
+    at ErrorBoundaryHandler (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/error-boundary.js:113:9)
+    at ErrorBoundary (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/error-boundary.js:160:11)
+    at AppRouter (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/components/app-router.js:585:13)
+    at ServerRoot (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/app-index.js:112:27)
+    at Root (webpack-internal:///(app-pages-browser)/./node_modules/next/dist/client/app-index.js:117:11)
+[warning] Image with src "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=800&q=80" has "fill" but is missing "sizes" prop. Please add it to improve page performance. Read more: https://nextjs.org/docs/api-reference/next/image#sizes
+[warning] Image with src "https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?w=200&q=80" has either width or height modified, but not the other. If you use CSS to change the size of your image, also include the styles 'width: "auto"' or 'height: "auto"' to maintain the aspect ratio.
+[warning] Image with src "https://images.unsplash.com/photo-1495446815901-a7297e633e8d?w=200&q=80" has either width or height modified, but not the other. If you use CSS to change the size of your image, also include the styles 'width: "auto"' or 'height: "auto"' to maintain the aspect ratio.
+[warning] Image with src "https://images.unsplash.com/photo-1498049794561-7780e7231661?w=200&q=80" has either width or height modified, but not the other. If you use CSS to change the size of your image, also include the styles 'width: "auto"' or 'height: "auto"' to maintain the aspect ratio.
+[warning] Image with src "https://images.unsplash.com/photo-1483985988355-763728e1935b?w=200&q=80" has either width or height modified, but not the other. If you use CSS to change the size of your image, also include the styles 'width: "auto"' or 'height: "auto"' to maintain the aspect ratio.
+[warning] Image with src "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=200&q=80" has either width or height modified, but not the other. If you use CSS to change the size of your image, also include the styles 'width: "auto"' or 'height: "auto"' to maintain the aspect ratio.
+[warning] Image with src "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=200&q=80" has either width or height modified, but not the other. If you use CSS to change the size of your image, also include the styles 'width: "auto"' or 'height: "auto"' to maintain the aspect ratio.
+[warning] Image with src "https://images.unsplash.com/photo-1558060370-d644479cb6f7?w=200&q=80" has either width or height modified, but not the other. If you use CSS to change the size of your image, also include the styles 'width: "auto"' or 'height: "auto"' to maintain the aspect ratio.
+[error] Uncaught Error: Text content does not match server-rendered HTML.
+[error] Uncaught Error: There was an error while hydrating this Suspense boundary. Switched to client rendering.
+[error] Uncaught Error: Text content does not match server-rendered HTML.
+[error] Uncaught Error: There was an error while hydrating this Suspense boundary. Switched to client rendering.
+[warning] Image with src "https://images.unsplash.com/photo-1600294037681-c80b4cb5b434?w=600&q=80" has "fill" and parent element with invalid "position". Provided "static" should be one of absolute,fixed,relative.
+[warning] Image with src "https://images.unsplash.com/photo-1608231387042-66d1773070a5?w=600&q=80" has "fill" and parent element with invalid "position". Provided "static" should be one of absolute,fixed,relative.
+[warning] Image with src "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600&q=80" has "fill" and parent element with invalid "position". Provided "static" should be one of absolute,fixed,relative.
+[warning] Image with src "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=600&q=80" has "fill" and parent element with invalid "position". Provided "static" should be one of absolute,fixed,relative.
+[warning] Image with src "https://images.unsplash.com/photo-1498049794561-7780e7231661?w=800&q=80" has "fill" but is missing "sizes" prop. Please add it to improve page performance. Read more: https://nextjs.org/docs/api-reference/next/image#sizes
+[warning] Image with src "https://images.unsplash.com/photo-1578681994506-b8f463449011?w=600&q=80" has "fill" and parent element with invalid "position". Provided "static" should be one of absolute,fixed,relative.
+[warning] Image with src "https://images.unsplash.com/photo-1593784991095-a205069470b6?w=600&q=80" has "fill" and parent element with invalid "position". Provided "static" should be one of absolute,fixed,relative.
+[warning] Image with src "https://images.unsplash.com/photo-1483985988355-763728e1935b?w=800&q=80" has "fill" but is missing "sizes" prop. Please add it to improve page performance. Read more: https://nextjs.org/docs/api-reference/next/image#sizes
+[info] [Fast Refresh] rebuilding
+[info] [Fast Refresh] done in 878ms
+[warning] Image with src "https://images.unsplash.com/photo-1592496431122-2349e0fbc666?w=600&q=80" has "fill" and parent element with invalid "position". Provided "static" should be one of absolute,fixed,relative.
+[warning] Image with src "https://images.unsplash.com/photo-1586201375761-83865001e31c?w=600&q=80" has "fill" and parent element with invalid "position". Provided "static" should be one of absolute,fixed,relative.
+[warning] Image with src "https://images.unsplash.com/photo-1541099649105-f69ad21f3246?w=600&q=80" has "fill" and parent element with invalid "position". Provided "static" should be one of absolute,fixed,relative.
+[warning] Image with src "https://images.unsplash.com/photo-1519558260268-cde7e03a0152?w=600&q=80" has "fill" and parent element with invalid "position". Provided "static" should be one of absolute,fixed,relative.
+[warning] Image with src "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&q=80" has "fill" and parent element with invalid "position". Provided "static" should be one of absolute,fixed,relative.
+[warning] Image with src "https://images.unsplash.com/photo-1570222094114-d054a817e56b?w=600&q=80" has "fill" and parent element with invalid "position". Provided "static" should be one of absolute,fixed,relative.
+[info] [Fast Refresh] rebuilding
+[info] [Fast Refresh] done in 1337ms
+[warning] You may test your Stripe.js integration over HTTP. However, live Stripe.js integrations must use HTTPS.
+[info] [Fast Refresh] rebuilding
+[info] [Fast Refresh] done in 462ms
+[info] [Fast Refresh] rebuilding
+[info] [Fast Refresh] done in 725ms
+[info] [Fast Refresh] rebuilding
+[info] [Fast Refresh] done in 288ms
+[info] [Fast Refresh] rebuilding
+[info] [Fast Refresh] done in 564ms
+[info] [Fast Refresh] rebuilding
+[info] [Fast Refresh] done in 459ms
+[info] [Fast Refresh] rebuilding
+[info] [Fast Refresh] done in 449ms
+[info] [Fast Refresh] rebuilding
+[info] [Fast Refresh] done in 253ms
+[info] [Fast Refresh] rebuilding
+[info] [Fast Refresh] done in 1340ms

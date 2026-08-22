@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+  <defs>
+	<linearGradient id="g" x1="0" x2="1">
+	  <stop offset="0%" stop-color="#0D7A5E" stop-opacity="0.08"/>
+	  <stop offset="100%" stop-color="#C89B3C" stop-opacity="0.04"/>
+	</linearGradient>
+  </defs>
+  <rect width="1200" height="800" fill="#fff"/>
+  <rect x="0" y="0" width="1200" height="800" fill="url(#g)"/>
+  <g transform="translate(80,120)" fill="#0D7A5E" opacity="0.14">
+	<circle cx="60" cy="60" r="60"/>
+	<rect x="140" y="20" width="320" height="320" rx="18"/>
+  </g>
+  <text x="120" y="220" font-family="Playfair Display, serif" font-size="46" fill="#0b0b0b">NexMart — Luxury Moroccan Selection</text>
+  <text x="120" y="270" font-family="Inter, sans-serif" font-size="20" fill="#6b6b6b">Artisan pieces, curated collections, delivered with care across Morocco.</text>
+</svg>
