@@ -53,7 +53,7 @@ export function PremiumFooter() {
 			  fontSize: 15,
 			  lineHeight: 1.6
 			 }}>
-			  Sélection de pièces de luxe et artisanales du Maroc, livrées avec soin. Propulsé par l'intelligence artificielle pour une expérience d'achat personnalisée.
+			  Sélection de pièces de luxe et artisanales du Maroc, livrées avec soin. Propulsé par l&apos;intelligence artificielle pour une expérience d&apos;achat personnalisée.
 			</p>
 			
 			{/* AI Badge */}

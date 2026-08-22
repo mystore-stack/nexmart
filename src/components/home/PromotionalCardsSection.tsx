@@ -40,7 +40,7 @@ export function PromotionalCardsSection({ cards = [] }: { cards?: any[] }) {
                 <div className="relative z-10 w-3/4 sm:w-2/3">
                   <h2 className="text-lg md:text-xl lg:text-2xl font-black mb-1.5 md:mb-2 leading-tight text-purple-900 uppercase">MYSTERY BOXES</h2>
                   <p className="text-[13px] md:text-sm font-bold text-purple-800 mb-1.5 md:mb-2">
-                    Surprises à l'intérieur 🎁
+                    Surprises à l&apos;intérieur 🎁
                   </p>
                   <p className="text-[11px] md:text-xs text-purple-700 mb-4 md:mb-5 max-w-[160px] md:max-w-[180px] leading-relaxed">
                     Des produits premium à prix imbattables !
@@ -61,7 +61,7 @@ export function PromotionalCardsSection({ cards = [] }: { cards?: any[] }) {
             <Link href="/editors-choice" className="group block h-full">
               <div className="relative overflow-hidden section-glow-editors rounded-3xl h-full min-h-[200px] md:min-h-[220px] flex flex-col justify-center p-5 md:p-6 lg:p-8 border border-amber-100 bg-gradient-to-br from-amber-50/80 to-amber-100/80 transition-transform duration-300 hover:-translate-y-1">
                 <div className="relative z-10 w-3/4 sm:w-2/3">
-                  <h2 className="text-lg md:text-xl lg:text-2xl font-black mb-1.5 md:mb-2 leading-tight text-slate-900 uppercase">ÉDITEUR'S CHOICE</h2>
+                  <h2 className="text-lg md:text-xl lg:text-2xl font-black mb-1.5 md:mb-2 leading-tight text-slate-900 uppercase">ÉDITEUR&apos;S CHOICE</h2>
                   <p className="text-[13px] md:text-sm font-bold text-slate-800 mb-1.5 md:mb-2">
                     Sélectionnés par notre équipe
                   </p>

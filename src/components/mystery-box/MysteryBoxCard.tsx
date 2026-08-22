@@ -200,7 +200,7 @@ export function MysteryBoxCard({ box, onOpen }: MysteryBoxCardProps) {
         {box.maxProfitPercent && (
           <div className="flex items-center gap-2 text-xs text-amber-600 bg-amber-50 px-3 py-2 rounded-xl border border-amber-200">
             <TrendingUp className="h-4 w-4" />
-            <span>Jusqu'à +{box.maxProfitPercent}% de profit</span>
+            <span>Jusqu&apos;à +{box.maxProfitPercent}% de profit</span>
           </div>
         )}
 

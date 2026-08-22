@@ -63,7 +63,7 @@ export function ProductCardPremium({ product }: { product: Product }) {
 			<h2 style={{ marginTop: 0 }}>{product.title}</h2>
 			<div style={{ fontSize: 20, fontWeight: 800 }}>{product.price} MAD</div>
 			{product.oldPrice ? <div style={{ color: "var(--color-muted)", textDecoration: "line-through" }}>{product.oldPrice} MAD</div> : null}
-			<p style={{ color: "var(--color-muted)", marginTop: 12 }}>Une description concise et luxueuse du produit pour convaincre l'acheteur.</p>
+			<p style={{ color: "var(--color-muted)", marginTop: 12 }}>Une description concise et luxueuse du produit pour convaincre l&apos;acheteur.</p>
 			<div style={{ marginTop: 20 }}>
 			  <button style={{ marginRight: 12 }} className="btn-premium">Ajouter au panier</button>
 			  <button className="btn-ghost">Voir la page produit</button>

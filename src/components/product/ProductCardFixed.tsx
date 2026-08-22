@@ -42,13 +42,7 @@ export function ProductCard({ product, priority = false, index = 0 }: ProductCar
     setMounted(true);
   }, []);
 
-  // Data validation - ensure product has required fields
-  if (!product || !product.id || !product.name) {
-    console.warn('Invalid product data provided to ProductCard:', product);
-    return null;
-  }
-
-  // Image validation and normalization
+  // Image validation and normalization - must be before early return
   const images = React.useMemo(() => {
     if (!product.images || product.images.length === 0) {
       return ['/placeholder.svg'];
@@ -62,12 +56,9 @@ export function ProductCard({ product, priority = false, index = 0 }: ProductCar
     return validImages.length > 0 ? validImages : ['/placeholder.svg'];
   }, [product.images]);
 
-  const inWishlist = mounted ? hasItem(product.id) : false;
-  const discount = product.comparePrice ? discountPercentage(product.price, product.comparePrice) : 0;
-  const isLowStock = product.stock > 0 && product.stock <= (product.lowStockAt || 5);
-  const isOutOfStock = product.stock === 0;
-
+  // Track view callback - must be before early return
   const trackView = useCallback(() => {
+    if (!product.id) return;
     trackAiEvent({ 
       type: "VIEW", 
       productId: product.id, 
@@ -75,14 +66,27 @@ export function ProductCard({ product, priority = false, index = 0 }: ProductCar
     });
   }, [product.id]);
 
+  // Image error handler - must be before early return
   const handleImageError = useCallback(() => {
     setImageError(true);
     setIsLoading(false);
   }, []);
 
+  // Image load handler - must be before early return
   const handleImageLoad = useCallback(() => {
     setIsLoading(false);
   }, []);
+
+  // Data validation - ensure product has required fields
+  if (!product || !product.id || !product.name) {
+    console.warn('Invalid product data provided to ProductCard:', product);
+    return null;
+  }
+
+  const inWishlist = mounted ? hasItem(product.id) : false;
+  const discount = product.comparePrice ? discountPercentage(product.price, product.comparePrice) : 0;
+  const isLowStock = product.stock > 0 && product.stock <= (product.lowStockAt || 5);
+  const isOutOfStock = product.stock === 0;
 
   return (
     <motion.div
