@@ -9,20 +9,26 @@ const globalForPrisma = globalThis as unknown as {
 // Use the correct database URL for Vercel production
 const databaseUrl = process.env.DATABASE_URL || process.env.NEXMART_STORAGE_DATABASE_URL;
 
-export const prisma =
-  globalForPrisma.prisma ??
-  new PrismaClient({
-    datasources: {
-      db: {
-        url: databaseUrl,
+// Only initialize Prisma if DATABASE_URL is available (skip during build)
+if (!databaseUrl) {
+  console.warn('DATABASE_URL not available - skipping Prisma initialization');
+}
+
+export const prisma = databaseUrl
+  ? (globalForPrisma.prisma ??
+    new PrismaClient({
+      datasources: {
+        db: {
+          url: databaseUrl,
+        },
       },
-    },
-    log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
-    errorFormat: "minimal",
-  });
+      log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
+      errorFormat: "minimal",
+    }))
+  : null;
 
 // In development, attach to global to prevent hot-reload creating multiple instances
-if (process.env.NODE_ENV !== "production") {
+if (process.env.NODE_ENV !== "production" && prisma) {
   globalForPrisma.prisma = prisma;
 }
 
