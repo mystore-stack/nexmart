@@ -131,10 +131,26 @@ export default function AdminDashboard() {
     let retryCount = 0;
     const maxRetries = 3;
 
-    const connectSSE = () => {
+    const connectSSE = async () => {
       try {
         console.log("[SSE] Attempting to connect...");
-        const newEventSource = new EventSource("/api/admin/events");
+        
+        // Get temporary SSE token from API
+        let sseUrl = "/api/admin/events";
+        try {
+          const tokenResponse = await fetch('/api/admin/sse-token');
+          if (tokenResponse.ok) {
+            const { token } = await tokenResponse.json();
+            if (token) {
+              sseUrl = `/api/admin/events?token=${token}`;
+              console.log("[SSE] Got SSE token");
+            }
+          }
+        } catch (tokenError) {
+          console.warn("[SSE] Failed to get SSE token, trying without token:", tokenError);
+        }
+        
+        const newEventSource = new EventSource(sseUrl);
         eventSourceRef.current = newEventSource;
 
         newEventSource.onopen = () => {

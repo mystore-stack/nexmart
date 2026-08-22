@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth-api";
+import { verify } from "jsonwebtoken";
 
 // Server-Sent Events endpoint for real-time admin updates
 export async function GET(req: NextRequest) {
@@ -12,12 +13,49 @@ export async function GET(req: NextRequest) {
   
   let session;
   try {
+    // First try to get session from cookies
     session = await getSession();
-    console.log("[SSE] Session check result:", { 
+    console.log("[SSE] Session check result from cookies:", { 
       hasSession: !!session, 
       userId: session?.userId,
       role: session?.role 
     });
+    
+    // If no session from cookies, try query parameter token (for EventSource compatibility)
+    if (!session) {
+      const token = req.nextUrl.searchParams.get('token');
+      if (token) {
+        try {
+          const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret';
+          const decoded = verify(token, JWT_SECRET) as any;
+          console.log("[SSE] Token decoded:", { userId: decoded.userId, role: decoded.role, type: decoded.type });
+          
+          // Verify this is an SSE token
+          if (decoded.type !== 'sse') {
+            console.error("[SSE] Invalid token type:", decoded.type);
+            throw new Error("Invalid token type");
+          }
+          
+          // Verify user exists in database
+          const user = await prisma.user.findUnique({
+            where: { id: decoded.userId },
+            select: { id: true, email: true, role: true, organizationId: true }
+          });
+          
+          if (user) {
+            session = {
+              userId: user.id,
+              email: user.email,
+              role: user.role,
+              organizationId: user.organizationId
+            };
+            console.log("[SSE] Session from token validated");
+          }
+        } catch (tokenError) {
+          console.error("[SSE] Token validation failed:", tokenError);
+        }
+      }
+    }
   } catch (error) {
     console.error("[SSE] Error getting session:", error);
     session = null;
