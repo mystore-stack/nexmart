@@ -1,23 +1,32 @@
 // src/lib/stripe.ts
 import Stripe from "stripe";
 
-const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+// Lazy initialization to avoid build-time errors
+let stripeInstance: Stripe | null = null;
 
-if (!stripeSecretKey) {
-  throw new Error("STRIPE_SECRET_KEY environment variable is not set");
+export function getStripe(): Stripe {
+  if (!stripeInstance) {
+    const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+    
+    if (!stripeSecretKey) {
+      throw new Error("STRIPE_SECRET_KEY environment variable is not set");
+    }
+    
+    stripeInstance = new Stripe(stripeSecretKey, {
+      apiVersion: "2024-06-20",
+      typescript: true,
+    });
+  }
+  
+  return stripeInstance;
 }
-
-export const stripe = new Stripe(stripeSecretKey, {
-  apiVersion: "2024-06-20",
-  typescript: true,
-});
 
 export async function createPaymentIntent(
   amount: number,
   currency: string = "usd",
   metadata: Record<string, string> = {}
 ) {
-  return stripe.paymentIntents.create({
+  return getStripe().paymentIntents.create({
     amount: Math.round(amount * 100), // Stripe uses cents
     currency,
     automatic_payment_methods: { enabled: true },
@@ -34,6 +43,7 @@ export async function createCheckoutSession(params: {
   discount?: number;
   shipping?: number;
 }) {
+  const stripe = getStripe();
   const lineItems = params.items.map((item) => ({
     price_data: {
       currency: "usd",
@@ -80,7 +90,7 @@ export async function createCheckoutSession(params: {
 }
 
 export async function constructWebhookEvent(body: string, signature: string) {
-  return stripe.webhooks.constructEvent(
+  return getStripe().webhooks.constructEvent(
     body,
     signature,
     process.env.STRIPE_WEBHOOK_SECRET!
@@ -88,7 +98,7 @@ export async function constructWebhookEvent(body: string, signature: string) {
 }
 
 export async function refundPayment(paymentIntentId: string, amount?: number) {
-  return stripe.refunds.create({
+  return getStripe().refunds.create({
     payment_intent: paymentIntentId,
     amount: amount ? Math.round(amount * 100) : undefined,
   });

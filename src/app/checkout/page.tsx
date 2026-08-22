@@ -16,7 +16,9 @@ import type { Address, Order } from "@/types";
 import { audit } from "@/lib/audit/client";
 import { generateIdempotencyKey } from "@/lib/idempotency";
 
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
+const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY 
+  ? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY) 
+  : null;
 
 const STEPS = ["Shipping", "Delivery", "Payment", "Review"] as const;
 type Step = typeof STEPS[number];
@@ -1254,7 +1256,7 @@ function PaymentStep({ method, onMethodChange, clientSecret, paymentIntentId, gr
                     </div>
                     <p className="font-bold text-green-700 dark:text-green-400">Payment successful!</p>
                   </div>
-                ) : clientSecret ? (
+                ) : clientSecret && stripePromise ? (
                   <div className="bg-white dark:bg-zinc-900 p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
                     <Elements stripe={stripePromise} options={{ clientSecret }}>
                       <StripePaymentForm 

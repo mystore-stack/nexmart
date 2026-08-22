@@ -1,9 +1,5 @@
 // src/lib/saas/stripe-service.ts
-import Stripe from 'stripe';
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-  apiVersion: '2024-06-20',
-});
+import { getStripe } from '@/lib/stripe';
 
 export class StripeService {
   static async createCheckoutSession(params: {
@@ -14,6 +10,7 @@ export class StripeService {
     cancelUrl: string;
   }) {
     const { prisma } = require('@/lib/prisma');
+    const stripe = getStripe();
     
     const organization = await prisma.organization.findUnique({
       where: { id: params.organizationId },
@@ -36,7 +33,7 @@ export class StripeService {
       throw new Error('Price ID not configured for this plan');
     }
     
-    const session = await stripe.checkout.sessions.create({
+    const session = await getStripe().checkout.sessions.create({
       customer: organization?.stripeCustomerId || undefined,
       mode: 'subscription',
       payment_method_types: ['card'],
@@ -61,7 +58,7 @@ export class StripeService {
     email: string;
     name: string;
   }) {
-    const customer = await stripe.customers.create({
+    const customer = await getStripe().customers.create({
       email: params.email,
       name: params.name,
     });
@@ -70,12 +67,12 @@ export class StripeService {
   }
   
   static async cancelSubscription(subscriptionId: string) {
-    const subscription = await stripe.subscriptions.cancel(subscriptionId);
+    const subscription = await getStripe().subscriptions.cancel(subscriptionId);
     return subscription;
   }
   
   static async getSubscription(stripeSubscriptionId: string) {
-    const subscription = await stripe.subscriptions.retrieve(stripeSubscriptionId);
+    const subscription = await getStripe().subscriptions.retrieve(stripeSubscriptionId);
     return subscription;
   }
 }

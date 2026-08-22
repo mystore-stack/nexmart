@@ -1,6 +1,6 @@
 // src/app/api/payments/create-intent/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { stripe } from "@/lib/stripe";
+import { getStripe } from "@/lib/stripe";
 import { requireAuth } from "@/lib/auth-api";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: "Montant invalide" }, { status: 400 });
     }
 
-    const paymentIntent = await stripe.paymentIntents.create({
+    const paymentIntent = await getStripe().paymentIntents.create({
       amount: amountCents,
       currency,
       metadata: { orderId, organizationId },
