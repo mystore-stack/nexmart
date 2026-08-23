@@ -134,32 +134,17 @@ export default function CheckoutPage() {
   }, []);
 
   useEffect(() => {
-    console.log("[CHECKOUT] Page mounted - Cart state:", {
-      itemsCount: items.length,
-      userId: user?.id,
-      userEmail: user?.email,
-      isMounted: mounted.current,
-      isProcessingOrder: isProcessingOrderRef.current,
-    });
-
     if (!user) { if (mounted.current) router.push("/login?from=/checkout"); return; }
     
     // Sync cart from database when user is authenticated
     const syncCartFromDatabase = async () => {
       try {
-        console.log("[CHECKOUT] Syncing cart from database for user:", user.id);
         const cartRes = await fetch("/api/cart");
         const cartData = await cartRes.json();
-        
-        console.log("[CHECKOUT] Database cart response:", {
-          success: cartData.success,
-          itemsCount: cartData.items?.length || 0,
-        });
         
         if (cartData.success && cartData.items && cartData.items.length > 0) {
           // Only sync if local cart is empty or has fewer items
           if (items.length === 0) {
-            console.log("[CHECKOUT] Local cart empty, syncing from database");
             useCartStore.getState().clearCart();
             
             cartData.items.forEach((dbItem: any) => {
@@ -169,13 +154,7 @@ export default function CheckoutPage() {
                 dbItem.variant || undefined
               );
             });
-            
-            console.log("[CHECKOUT] Cart synced from database, new item count:", cartData.items.length);
-          } else {
-            console.log("[CHECKOUT] Local cart has items, skipping sync");
           }
-        } else {
-          console.log("[CHECKOUT] No items in database cart");
         }
       } catch (error) {
         console.error("[CHECKOUT] Cart sync error:", error);
@@ -190,15 +169,7 @@ export default function CheckoutPage() {
     // - Order was NOT just placed (check sessionStorage)
     const orderJustPlaced = typeof window !== "undefined" && sessionStorage.getItem("orderJustPlaced") === "true";
     
-    console.log("[CHECKOUT] Cart validation:", {
-      itemsLength: items.length,
-      isProcessingOrder: isProcessingOrderRef.current,
-      orderJustPlaced,
-      mounted: mounted.current,
-    });
-    
     if (items.length === 0 && !isProcessingOrderRef.current && !orderJustPlaced && mounted.current) {
-      console.log("[CART_REDIRECT_TRIGGERED] items.length === 0, redirecting to /cart");
       router.push("/cart");
       return;
     }
@@ -401,7 +372,6 @@ export default function CheckoutPage() {
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     const invalidItems = items.filter(item => !uuidRegex.test(item.productId));
     if (invalidItems.length > 0) {
-      console.error("[CHECKOUT] Invalid product IDs in cart:", invalidItems.map(i => i.productId));
       toast.error("Invalid product data in cart. Please refresh and try again.");
       // Clear local cart and redirect to cart page
       useCartStore.getState().clearCart();
@@ -412,7 +382,6 @@ export default function CheckoutPage() {
     // Force clear idempotency key if switching from STRIPE to CASH_ON_DELIVERY
     // This prevents lock conflicts when payment method changes
     if (paymentMethod === "CASH_ON_DELIVERY" && paymentIntentId) {
-      console.log("[CHECKOUT] Clearing Stripe payment intent and idempotency key due to payment method switch");
       setPaymentIntentId("");
       setClientSecret("");
       setPaymentIntentAmount(null);
@@ -421,7 +390,6 @@ export default function CheckoutPage() {
 
     // Strict submission lock - prevent duplicate submissions
     if (isSubmittingRef.current) {
-      console.log("[PLACE_ORDER] Already submitting, blocking duplicate submission");
       toast.error("Commande en cours de traitement. Veuillez patienter.");
       return;
     }
@@ -432,7 +400,6 @@ export default function CheckoutPage() {
       idempotencyKey = generateIdempotencyKey();
       localStorage.setItem("checkout_idempotency_key", idempotencyKey);
     }
-    console.log("[PLACE_ORDER] Using idempotency key:", idempotencyKey);
 
     isSubmittingRef.current = true;
     setIsPlacingOrder(true);
@@ -440,11 +407,6 @@ export default function CheckoutPage() {
     setOrderLoading(true);
 
     try {
-      console.log("Placing order with:", {
-        paymentMethod,
-        paymentIntentId,
-        itemCount: items.length,
-        total: grandTotal,
         idempotencyKey,
       });
 
@@ -469,7 +431,6 @@ export default function CheckoutPage() {
       });
       
       const data = await res.json();
-      console.log("Order API response:", data);
       
       if (!data.success) {
         // Handle lock error (duplicate order in progress)
@@ -508,7 +469,6 @@ export default function CheckoutPage() {
               method: "DELETE",
             });
             const cleanupData = await cleanupRes.json();
-            console.log("Cart cleanup response:", cleanupData);
 
             if (cleanupData.success && cleanupData.removedCount > 0) {
               // Refresh cart from database
@@ -553,7 +513,6 @@ export default function CheckoutPage() {
       const orderNumber = order.orderNumber;
       
       if (!orderNumber) {
-        console.error("Missing order number after order creation");
         toast.error("Order created but order number is missing. Please contact support.");
         setOrderLoading(false);
         setIsPlacingOrder(false);
@@ -565,18 +524,12 @@ export default function CheckoutPage() {
       
       setPendingOrderNumber(orderNumber);
 
-      console.log("[CHECKOUT_REDIRECT] Order created successfully, orderNumber:", orderNumber);
-
       // Audit: Order created successfully
       await audit.checkout.complete(orderNumber, grandTotal);
 
       // Set flags BEFORE any other operations to prevent cart redirect useEffect from triggering
       sessionStorage.setItem("orderJustPlaced", "true");
       orderJustPlacedRef.current = true;
-      console.log("[CHECKOUT_REDIRECT] Set orderJustPlacedRef.current to true");
-
-      // Redirect to order tracking page immediately
-      console.log("[CHECKOUT_REDIRECT] Redirecting to /track-order/", orderNumber);
       if (mounted.current && orderNumber && !hasRedirectedRef.current) {
         hasRedirectedRef.current = true;
 
@@ -586,16 +539,10 @@ export default function CheckoutPage() {
         // Perform redirect WITHOUT clearing cart here
         // Cart will be cleared on the track-order page instead
         router.push(`/track-order/${orderNumber}`);
-        console.log("[CHECKOUT_REDIRECT] Redirect initiated");
 
         // Keep isProcessingOrderRef true to prevent any cart redirect during transition
         // It will be reset when component unmounts
       } else {
-        console.error("[CHECKOUT_REDIRECT] Cannot redirect:", {
-          mounted: mounted.current,
-          orderNumber,
-          hasRedirected: hasRedirectedRef.current,
-        });
         isProcessingOrderRef.current = false; // Reset flag if redirect cannot happen
       }
     }
@@ -616,26 +563,21 @@ export default function CheckoutPage() {
   const handleAddAddress = async (newAddress: any) => {
     setIsAddingAddress(true);
     try {
-      console.log("[ADD ADDRESS] Sending address:", newAddress);
       const res = await fetch("/api/auth/addresses", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(newAddress),
       });
       const data = await res.json();
-      console.log("[ADD ADDRESS] Response:", data);
-      console.log("[ADD ADDRESS] Response status:", res.status);
       if (data.success && data.address) {
         setAddresses((prev) => [...prev, data.address]);
         setSelectedAddress(data.address.id);
         setShowNewAddressForm(false);
         import('react-hot-toast').then(toast => toast.default.success("Adresse ajoutée avec succès"));
       } else {
-        console.error("[ADD ADDRESS] Full response data:", JSON.stringify(data, null, 2));
         import('react-hot-toast').then(toast => toast.default.error(data.error || "Erreur lors de l'ajout de l'adresse"));
       }
     } catch (error) {
-      console.error("[ADD ADDRESS] Exception:", error);
       import('react-hot-toast').then(toast => toast.default.error("Erreur lors de l'ajout de l'adresse"));
     } finally {
       setIsAddingAddress(false);
