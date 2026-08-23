@@ -407,9 +407,6 @@ export default function CheckoutPage() {
     setOrderLoading(true);
 
     try {
-        idempotencyKey,
-      });
-
       const res = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
