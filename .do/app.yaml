@@ -11,6 +11,72 @@ services:
     value: production
   - key: PORT
     value: "3000"
+  - key: DATABASE_URL
+    scope: RUN_TIME
+  - key: NEXTAUTH_SECRET
+    scope: RUN_TIME
+  - key: NEXTAUTH_URL
+    scope: RUN_TIME
+  - key: JWT_SECRET
+    scope: RUN_TIME
+  - key: JWT_REFRESH_SECRET
+    scope: RUN_TIME
+  - key: CRON_SECRET
+    scope: RUN_TIME
+  - key: CLOUDINARY_CLOUD_NAME
+    scope: RUN_TIME
+  - key: CLOUDINARY_API_KEY
+    scope: RUN_TIME
+  - key: CLOUDINARY_API_SECRET
+    scope: RUN_TIME
+  - key: NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
+    scope: RUN_TIME
+  - key: GOOGLE_CLIENT_ID
+    scope: RUN_TIME
+  - key: GOOGLE_CLIENT_SECRET
+    scope: RUN_TIME
+  - key: STRIPE_SECRET_KEY
+    scope: RUN_TIME
+  - key: STRIPE_WEBHOOK_SECRET
+    scope: RUN_TIME
+  - key: NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+    scope: RUN_TIME
+  - key: SMTP_HOST
+    scope: RUN_TIME
+  - key: SMTP_PORT
+    scope: RUN_TIME
+  - key: SMTP_USER
+    scope: RUN_TIME
+  - key: SMTP_PASS
+    scope: RUN_TIME
+  - key: EMAIL_FROM
+    scope: RUN_TIME
+  - key: RESEND_API_KEY
+    scope: RUN_TIME
+  - key: RESEND_FROM_EMAIL
+    scope: RUN_TIME
+  - key: NEXT_PUBLIC_APP_URL
+    scope: RUN_TIME
+  - key: NEXT_PUBLIC_APP_NAME
+    scope: RUN_TIME
+  - key: DEFAULT_ORGANIZATION_SLUG
+    scope: RUN_TIME
+  - key: ADMIN_EMAIL
+    scope: RUN_TIME
+  - key: DISABLE_REDIS
+    scope: RUN_TIME
+  - key: NEXT_PUBLIC_ENABLE_ANALYTICS
+    scope: RUN_TIME
+  - key: NEXT_PUBLIC_MAINTENANCE_MODE
+    scope: RUN_TIME
+  - key: NEXT_PUBLIC_ENABLE_AI_CHAT
+    scope: RUN_TIME
+  - key: NEXT_PUBLIC_ENABLE_AI_SEARCH
+    scope: RUN_TIME
+  - key: JWT_EXPIRES_IN
+    scope: RUN_TIME
+  - key: JWT_REFRESH_EXPIRES_IN
+    scope: RUN_TIME
   http_port: 3000
   instance_count: 1
   instance_size_slug: basic-xxs
