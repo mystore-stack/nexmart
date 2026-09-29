@@ -1,13 +1,80 @@
+# Dependencies
 node_modules
+npm-debug.log
+yarn-error.log
+
+# Next.js
 .next
 out
-.git
-.gitignore
-*.md
+build
+
+# Environment variables
 .env
 .env.local
-.env.*
-docker-compose*.yml
-.vscode
+.env.development.local
+.env.test.local
+.env.production.local
+.env.staging
+
+# Testing
 coverage
-*.log
+.nyc_output
+
+# Misc
+.DS_Store
+*.pem
+
+# Debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Local files
+.backups
+*.sql
+test-*.mjs
+test-*.ts
+check-*.mjs
+check-*.ts
+
+# Documentation (not needed in container)
+*.md
+!README.md
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# Git
+.git
+.gitignore
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# DigitalOcean config
+.do
+
+# Deployment scripts
+deploy-staging.sh
+deploy-staging.ps1
+deploy.sh
+deploy.bat
+
+# Scripts (not needed in runtime)
+scripts
+
+# Mobile app
+mobile
+
+# Test files
+test-results
+playwright-report
+
+# Temporary files
+*.tmp
+temp_*
