@@ -1,0 +1,55 @@
+{
+  "cli": {
+    "version": ">= 12.0.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://nexmart-ma1-main.vercel.app/api",
+        "EXPO_PUBLIC_APP_SCHEME": "nexmart",
+        "EXPO_PUBLIC_DEEP_LINK_DOMAIN": "nexmart.ma",
+        "EXPO_PUBLIC_PUSH_PROJECT_ID": "nexmart-moroccan-luxury-prod",
+        "EXPO_PUBLIC_APP_ENV": "development"
+      }
+    },
+    "staging": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://nexmart-staging.ondigitalocean.app/api",
+        "EXPO_PUBLIC_APP_SCHEME": "nexmart",
+        "EXPO_PUBLIC_DEEP_LINK_DOMAIN": "nexmart.ma",
+        "EXPO_PUBLIC_PUSH_PROJECT_ID": "nexmart-moroccan-luxury-prod",
+        "EXPO_PUBLIC_APP_ENV": "staging"
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://nexmart-ma1-main.vercel.app/api",
+        "EXPO_PUBLIC_APP_SCHEME": "nexmart",
+        "EXPO_PUBLIC_DEEP_LINK_DOMAIN": "nexmart.ma",
+        "EXPO_PUBLIC_PUSH_PROJECT_ID": "nexmart-moroccan-luxury-prod",
+        "EXPO_PUBLIC_APP_ENV": "preview"
+      }
+    },
+    "production": {
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://nexmart-ma1-main.vercel.app/api",
+        "EXPO_PUBLIC_APP_SCHEME": "nexmart",
+        "EXPO_PUBLIC_DEEP_LINK_DOMAIN": "nexmart.ma",
+        "EXPO_PUBLIC_PUSH_PROJECT_ID": "nexmart-moroccan-luxury-prod",
+        "EXPO_PUBLIC_APP_ENV": "production"
+      }
+    }
+  }
+}
