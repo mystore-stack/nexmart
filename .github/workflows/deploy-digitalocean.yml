@@ -1,0 +1,94 @@
+name: Deploy to DigitalOcean
+
+on:
+  push:
+    branches:
+      - staging-digitalocean
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install doctl
+        uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+
+      - name: Deploy to DigitalOcean App Platform
+        run: |
+          doctl apps create --spec .do/app.yaml --region ams3 --wait
+        env:
+          DIGITALOCEAN_ACCESS_TOKEN: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+
+      - name: Get deployment URL
+        id: deployment
+        run: |
+          APP_ID=$(doctl apps list --format json | jq -r '.[0].id')
+          APP_URL=$(doctl apps get $APP_ID --format json | jq -r '.live_url')
+          echo "app_url=$APP_URL" >> $GITHUB_OUTPUT
+          echo "app_id=$APP_ID" >> $GITHUB_OUTPUT
+        env:
+          DIGITALOCEAN_ACCESS_TOKEN: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+
+      - name: Update environment variables
+        run: |
+          APP_ID=${{ steps.deployment.outputs.app_id }}
+          
+          doctl apps update $APP_ID --env DATABASE_URL="${{ secrets.DATABASE_URL }}"
+          doctl apps update $APP_ID --env NEXTAUTH_SECRET="${{ secrets.NEXTAUTH_SECRET }}"
+          doctl apps update $APP_ID --env NEXTAUTH_URL="${{ steps.deployment.outputs.app_url }}"
+          doctl apps update $APP_ID --env JWT_SECRET="${{ secrets.JWT_SECRET }}"
+          doctl apps update $APP_ID --env JWT_REFRESH_SECRET="${{ secrets.JWT_REFRESH_SECRET }}"
+          doctl apps update $APP_ID --env CRON_SECRET="${{ secrets.CRON_SECRET }}"
+          doctl apps update $APP_ID --env CLOUDINARY_CLOUD_NAME="${{ secrets.CLOUDINARY_CLOUD_NAME }}"
+          doctl apps update $APP_ID --env CLOUDINARY_API_KEY="${{ secrets.CLOUDINARY_API_KEY }}"
+          doctl apps update $APP_ID --env CLOUDINARY_API_SECRET="${{ secrets.CLOUDINARY_API_SECRET }}"
+          doctl apps update $APP_ID --env NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME="${{ secrets.CLOUDINARY_CLOUD_NAME }}"
+          doctl apps update $APP_ID --env GOOGLE_CLIENT_ID="${{ secrets.GOOGLE_CLIENT_ID }}"
+          doctl apps update $APP_ID --env GOOGLE_CLIENT_SECRET="${{ secrets.GOOGLE_CLIENT_SECRET }}"
+          doctl apps update $APP_ID --env STRIPE_SECRET_KEY="${{ secrets.STRIPE_SECRET_KEY }}"
+          doctl apps update $APP_ID --env STRIPE_WEBHOOK_SECRET="${{ secrets.STRIPE_WEBHOOK_SECRET }}"
+          doctl apps update $APP_ID --env NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY="${{ secrets.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY }}"
+          doctl apps update $APP_ID --env SMTP_HOST="${{ secrets.SMTP_HOST }}"
+          doctl apps update $APP_ID --env SMTP_PORT="${{ secrets.SMTP_PORT }}"
+          doctl apps update $APP_ID --env SMTP_USER="${{ secrets.SMTP_USER }}"
+          doctl apps update $APP_ID --env SMTP_PASS="${{ secrets.SMTP_PASS }}"
+          doctl apps update $APP_ID --env EMAIL_FROM="${{ secrets.EMAIL_FROM }}"
+          doctl apps update $APP_ID --env RESEND_API_KEY="${{ secrets.RESEND_API_KEY }}"
+          doctl apps update $APP_ID --env RESEND_FROM_EMAIL="${{ secrets.RESEND_FROM_EMAIL }}"
+          doctl apps update $APP_ID --env NEXT_PUBLIC_APP_URL="${{ steps.deployment.outputs.app_url }}"
+          doctl apps update $APP_ID --env NEXT_PUBLIC_APP_NAME="NexMart Staging"
+          doctl apps update $APP_ID --env DEFAULT_ORGANIZATION_SLUG="nexmart"
+          doctl apps update $APP_ID --env ADMIN_EMAIL="${{ secrets.ADMIN_EMAIL }}"
+          doctl apps update $APP_ID --env DISABLE_REDIS="true"
+          doctl apps update $APP_ID --env NEXT_PUBLIC_ENABLE_ANALYTICS="true"
+          doctl apps update $APP_ID --env NEXT_PUBLIC_MAINTENANCE_MODE="false"
+          doctl apps update $APP_ID --env NEXT_PUBLIC_ENABLE_AI_CHAT="true"
+          doctl apps update $APP_ID --env NEXT_PUBLIC_ENABLE_AI_SEARCH="true"
+          doctl apps update $APP_ID --env JWT_EXPIRES_IN="15m"
+          doctl apps update $APP_ID --env JWT_REFRESH_EXPIRES_IN="7d"
+        env:
+          DIGITALOCEAN_ACCESS_TOKEN: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+
+      - name: Wait for deployment
+        run: |
+          APP_ID=${{ steps.deployment.outputs.app_id }}
+          doctl apps deployment-watch $APP_ID
+        env:
+          DIGITALOCEAN_ACCESS_TOKEN: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+
+      - name: Health check
+        run: |
+          APP_URL=${{ steps.deployment.outputs.app_url }}
+          echo "Testing health check at $APP_URL/api/health"
+          sleep 30
+          curl -f $APP_URL/api/health || exit 1
+
+      - name: Output deployment URL
+        run: |
+          echo "Deployment successful!"
+          echo "Staging URL: ${{ steps.deployment.outputs.app_url }}"
