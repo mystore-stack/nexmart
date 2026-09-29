@@ -1,6 +1,4 @@
-# docker-compose.yml
-version: "3.9"
-
+# docker-compose.yml - Staging Deployment (Neon PostgreSQL + Cloudinary)
 services:
   # ── Application ───────────────────────────────────────────
   app:
@@ -10,54 +8,42 @@ services:
       target: runner
     ports:
       - "3000:3000"
-    env_file: .env.local
-    depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+    env_file: .env.staging
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/api/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
     networks:
       - nexmart
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
 
-  # ── Queue Worker ─────────────────────────────────────────
+  # ── Queue Worker (Optional - requires Redis) ─────────────
   worker:
     build:
       context: .
       dockerfile: Dockerfile
       target: runner
     command: ["node", "-r", "tsx/register", "src/workers/index.ts"]
-    env_file: .env.local
-    depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+    env_file: .env.staging
     restart: unless-stopped
     networks:
       - nexmart
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    profiles:
+      - with-worker
 
-  # ── PostgreSQL ───────────────────────────────────────────
-  db:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_DB: nexmart_db
-      POSTGRES_USER: nexmart
-      POSTGRES_PASSWORD: password
-    ports:
-      - "5432:5432"
-    volumes:
-      - pg_data:/var/lib/postgresql/data
-      - ./scripts/init.sql:/docker-entrypoint-initdb.d/init.sql
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U nexmart -d nexmart_db"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-    networks:
-      - nexmart
-
-  # ── Redis ────────────────────────────────────────────────
+  # ── Redis (Optional - currently disabled) ────────────────────
   redis:
     image: redis:7-alpine
     ports:
@@ -70,40 +56,12 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
-    networks:
-      - nexmart
-
-  # ── Redis Commander (dev only) ────────────────────────────
-  redis-ui:
-    image: rediscommander/redis-commander:latest
-    environment:
-      REDIS_HOSTS: local:redis:6379
-    ports:
-      - "8081:8081"
-    depends_on:
-      - redis
     profiles:
-      - dev
-    networks:
-      - nexmart
-
-  # ── pgAdmin (dev only) ────────────────────────────────────
-  pgadmin:
-    image: dpage/pgadmin4:latest
-    environment:
-      PGADMIN_DEFAULT_EMAIL: admin@nexmart.com
-      PGADMIN_DEFAULT_PASSWORD: admin
-    ports:
-      - "5050:80"
-    depends_on:
-      - db
-    profiles:
-      - dev
+      - with-redis
     networks:
       - nexmart
 
 volumes:
-  pg_data:
   redis_data:
 
 networks:

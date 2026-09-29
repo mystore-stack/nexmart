@@ -4,6 +4,7 @@ const nextConfig = {
   
   experimental: {
     optimizePackageImports: ["lucide-react", "framer-motion"],
+    scrollRestoration: false,
   },
 
   typescript: {
@@ -14,6 +15,9 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
 
+  // Enable standalone output for Docker deployment
+  output: 'standalone',
+
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "res.cloudinary.com" },
@@ -23,6 +27,7 @@ const nextConfig = {
       { protocol: "https", hostname: "*.mm.bing.net" },
       { protocol: "https", hostname: "coresg-normal.trae.ai" },
       { protocol: "https", hostname: "cdn.dummyjson.com" },
+      { protocol: "https", hostname: "pngimg.com" },
     ],
     formats: ["image/avif", "image/webp"],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048],
@@ -44,7 +49,7 @@ const nextConfig = {
             "worker-src 'self' blob:",
             "frame-src https://js.stripe.com",
             "connect-src 'self' https://api.stripe.com https://*.sentry.io https://*.ingest.sentry.io",
-            "img-src 'self' data: blob: https://res.cloudinary.com https://images.unsplash.com https://coresg-normal.trae.ai https://cdn.dummyjson.com",
+            "img-src 'self' data: blob: https://res.cloudinary.com https://images.unsplash.com https://coresg-normal.trae.ai https://cdn.dummyjson.com https://pngimg.com",
             "style-src 'self' 'unsafe-inline'",
           ].join("; "),
         },

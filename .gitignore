@@ -14,8 +14,10 @@ build/
 .env.development.local
 .env.test.local
 .env.production.local
+.env.staging
 # But allow .env.example for documentation
 !.env.example
+!.env.staging.example
 
 # Prisma
 prisma/prisma/
