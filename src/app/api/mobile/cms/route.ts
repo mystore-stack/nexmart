@@ -2,9 +2,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { DEFAULT_MOBILE_SECTIONS } from "@/app/api/admin/cms/mobile-app/route";
+import { getOptionalDefaultOrganizationId } from "@/lib/tenant";
 
 export async function GET() {
   try {
+    const organizationId = await getOptionalDefaultOrganizationId();
+    
     let dbSections = await prisma.mobileAppSection.findMany({
       where: { active: true },
       orderBy: { order: "asc" },
@@ -13,8 +16,10 @@ export async function GET() {
     if (dbSections.length === 0) {
       // Seed if empty
       for (const sec of DEFAULT_MOBILE_SECTIONS) {
-        await prisma.mobileAppSection.create({
-          data: {
+        await prisma.mobileAppSection.upsert({
+          where: { sectionKey: sec.sectionKey },
+          update: {},
+          create: {
             sectionKey: sec.sectionKey,
             titleFr: sec.titleFr,
             titleAr: sec.titleAr,
@@ -37,7 +42,7 @@ export async function GET() {
     // Fetch fallback products, categories, and brands to populate sections if specific IDs aren't pinned
     const [allProducts, categories, brands] = await Promise.all([
       prisma.product.findMany({
-        where: { published: true },
+        where: organizationId ? { organizationId, published: true } : { published: true },
         orderBy: { soldCount: "desc" },
         take: 30,
         include: {
@@ -46,13 +51,16 @@ export async function GET() {
         },
       }),
       prisma.category.findMany({
+        where: organizationId ? { organizationId } : {},
         orderBy: { order: "asc" },
         take: 12,
+        select: { id: true, name: true, slug: true, image: true },
       }),
       prisma.brand.findMany({
-        where: { active: true },
-        orderBy: { order: "asc" },
+        where: { isActive: true },
+        orderBy: { name: "asc" },
         take: 12,
+        select: { id: true, name: true, slug: true, logo: true },
       }),
     ]);
 
@@ -62,7 +70,9 @@ export async function GET() {
 
         if (sec.productIds && sec.productIds.length > 0) {
           const customProds = await prisma.product.findMany({
-            where: { id: { in: sec.productIds }, published: true },
+            where: organizationId 
+              ? { id: { in: sec.productIds }, organizationId, published: true }
+              : { id: { in: sec.productIds }, published: true },
             include: {
               category: { select: { id: true, name: true, slug: true } },
               brand: { select: { id: true, name: true, logo: true } },
@@ -132,7 +142,7 @@ export async function GET() {
           id: b.id,
           name: b.name,
           slug: b.slug,
-          logo: b.logo || b.image,
+          logo: b.logo,
         })),
       },
     });
