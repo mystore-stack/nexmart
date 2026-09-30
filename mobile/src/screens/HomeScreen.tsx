@@ -28,6 +28,7 @@ interface HomeScreenProps {
   onCartPress: () => void;
   onNotificationPress?: () => void;
   onSeeAllProducts: () => void;
+  onLoginPress: () => void;
 }
 
 export const HomeScreen: React.FC<HomeScreenProps> = ({
@@ -36,6 +37,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   onCartPress,
   onNotificationPress,
   onSeeAllProducts,
+  onLoginPress,
 }) => {
   const [sections, setSections] = useState<MobileCMSSectionData[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -129,7 +131,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalScroll}>
           {sectionProducts.map((prod) => (
             <View key={prod.id} style={styles.horizontalCardWrapper}>
-              <ProductCard product={prod} onPress={() => onProductPress(prod)} width={160} />
+              <ProductCard product={prod} onPress={() => onProductPress(prod)} width={160} onLoginPress={onLoginPress} />
             </View>
           ))}
         </ScrollView>
@@ -173,7 +175,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
         />
         <View style={styles.productGrid}>
           {sectionProducts.map((prod) => (
-            <ProductCard key={prod.id} product={prod} onPress={() => onProductPress(prod)} />
+            <ProductCard key={prod.id} product={prod} onPress={() => onProductPress(prod)} onLoginPress={onLoginPress} />
           ))}
         </View>
       </View>

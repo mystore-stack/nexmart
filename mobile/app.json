@@ -1,0 +1,63 @@
+{
+  "expo": {
+    "name": "NexMart",
+    "slug": "nexmart-moroccan-luxury",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0B192C"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "ma.nexmart.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "NexMart a besoin d'accéder à l'appareil photo pour scanner des produits.",
+        "NSPhotoLibraryUsageDescription": "NexMart a besoin d'accéder à vos photos pour enregistrer les justificatifs."
+      },
+      "associatedDomains": [
+        "applinks:nexmart.ma"
+      ]
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0B192C"
+      },
+      "package": "ma.nexmart.app",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "nexmart.ma",
+              "pathPrefix": "/product"
+            },
+            {
+              "scheme": "nexmart"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
+      ]
+    },
+    "web": {
+      "favicon": "./assets/icon.png"
+    },
+    "scheme": "nexmart",
+    "extra": {
+      "eas": {
+        "projectId": "0febb004-b61b-4522-93dd-1a33d189f9fa"
+      }
+    },
+    "owner": "mystore-stack"
+  }
+}
