@@ -16,7 +16,8 @@
       "bundleIdentifier": "ma.nexmart.app",
       "infoPlist": {
         "NSCameraUsageDescription": "NexMart a besoin d'accéder à l'appareil photo pour scanner des produits.",
-        "NSPhotoLibraryUsageDescription": "NexMart a besoin d'accéder à vos photos pour enregistrer les justificatifs."
+        "NSPhotoLibraryUsageDescription": "NexMart a besoin d'accéder à vos photos pour enregistrer les justificatifs.",
+        "UIBackgroundModes": ["remote-notification"]
       },
       "associatedDomains": [
         "applinks:nexmart.ma"
@@ -28,6 +29,10 @@
         "backgroundColor": "#0B192C"
       },
       "package": "ma.nexmart.app",
+      "permissions": [
+        "RECEIVE_BOOT_COMPLETED",
+        "VIBRATE"
+      ],
       "intentFilters": [
         {
           "action": "VIEW",
@@ -46,8 +51,7 @@
             "BROWSABLE",
             "DEFAULT"
           ]
-        }
-      ]
+        ]
     },
     "web": {
       "favicon": "./assets/icon.png"
