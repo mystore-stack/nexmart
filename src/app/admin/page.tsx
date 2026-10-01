@@ -219,6 +219,11 @@ export default function AdminDashboard() {
 
         newEventSource.addEventListener("error", (event) => {
           try {
+            if (!event.data) {
+              console.error("[SSE] Error event with no data");
+              startPolling();
+              return;
+            }
             const data = JSON.parse(event.data);
             console.error("[SSE] Server error:", data);
             setIsConnected(false);
@@ -238,6 +243,10 @@ export default function AdminDashboard() {
         });
 
         newEventSource.addEventListener("orders", (event) => {
+          if (!event.data) {
+            console.warn("[SSE] Orders event with no data");
+            return;
+          }
           const data = JSON.parse(event.data);
           if (data.type === "new_orders") {
             data.orders.forEach((order: any) => {
@@ -254,6 +263,10 @@ export default function AdminDashboard() {
         });
 
         newEventSource.addEventListener("inventory", (event) => {
+          if (!event.data) {
+            console.warn("[SSE] Inventory event with no data");
+            return;
+          }
           const data = JSON.parse(event.data);
           if (data.type === "inventory_alert") {
             data.products.forEach((product: any) => {
