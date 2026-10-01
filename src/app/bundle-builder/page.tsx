@@ -3,7 +3,6 @@ import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { BundleBuilderSection } from "@/components/home/BundleBuilderSection";
-import { MobileBundleBuilder } from "@/components/mobile/MobileBundleBuilder";
 import { ArrowRight, Layers, Sparkles } from "lucide-react";
 import Link from "next/link";
 
@@ -37,15 +36,8 @@ export default async function BundleBuilderPage() {
         ]}
       />
 
-      {/* Mobile Bundle Builder - shows on small screens */}
-      <div className="lg:hidden">
-        <MobileBundleBuilder 
-          config={bundleConfig || undefined}
-        />
-      </div>
-
-      {/* Desktop Bundle Builder - shows on large screens */}
-      <div className="hidden lg:block">
+      {/* Bundle Builder */}
+      <div>
         <section className="container-main">
           <div className="grid gap-6 lg:grid-cols-[1.6fr_0.9fr]">
             <div className="rounded-3xl bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 p-8 text-white shadow-luxury border border-white/10">

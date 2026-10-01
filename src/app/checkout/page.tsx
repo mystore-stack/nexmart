@@ -15,7 +15,6 @@ import toast from "react-hot-toast";
 import type { Address, Order } from "@/types";
 import { audit } from "@/lib/audit/client";
 import { generateIdempotencyKey } from "@/lib/idempotency";
-import { MobileCheckoutView } from "@/components/mobile/MobileCheckoutView";
 
 const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY 
   ? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY) 
@@ -598,11 +597,7 @@ export default function CheckoutPage() {
 
   return (
     <>
-      <div className="sm:hidden">
-        <MobileCheckoutView />
-      </div>
-
-      <div className="hidden sm:block min-h-screen bg-zinc-50 dark:bg-zinc-950 page-enter pb-24">
+      <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 page-enter pb-24">
       {/* Header */}
       <div className="border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 sticky top-0 z-50">
         <div className="container-main py-4">

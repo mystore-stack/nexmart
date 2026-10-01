@@ -12,7 +12,6 @@ import { useSession } from "next-auth/react";
 import type { Session } from "next-auth";
 import { formatDate } from "@/utils/format";
 import toast from "react-hot-toast";
-import { MobileAccountView } from "@/components/mobile/MobileAccountView";
 
 type Tab = "profile" | "security" | "addresses" | "notifications";
 
@@ -104,11 +103,7 @@ export default function AccountPage() {
 
   return (
     <>
-      <div className="sm:hidden">
-        <MobileAccountView />
-      </div>
-
-      <div className="hidden sm:block page-enter min-h-screen bg-background">
+      <div className="page-enter min-h-screen bg-background">
       <div className="relative border-b border-gold-200/40 dark:border-gold-800/20 bg-surface/80">
         <div className="container-main py-6">
           <h1 className="font-display text-3xl font-semibold">Mon Compte</h1>
