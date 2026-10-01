@@ -7,9 +7,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard, Package, ShoppingCart, Users, BarChart2,
   Tag, FolderOpen, Menu, X, LogOut, ChevronRight,
-  Home, Store, Truck, FileText, Upload, Bell, Settings
+  Home, Store, Truck, FileText, Upload, Bell, Settings, Sparkles
 } from "lucide-react";
-import { useAuthStore } from "@/store/index";
+import { useSession, signOut } from "next-auth/react";
 
 const NAV = [
   { icon: LayoutDashboard, label: "Tableau de bord", href: "/admin" },
@@ -19,15 +19,25 @@ const NAV = [
   { icon: BarChart2, label: "Analytiques", href: "/admin/analytics" },
   { icon: Tag, label: "Coupons", href: "/admin/coupons" },
   { icon: FolderOpen, label: "Catégories", href: "/admin/categories" },
+  { icon: Store, label: "Marques", href: "/admin/brands" },
   { icon: Store, label: "Vendeurs", href: "/admin/vendors" },
   { icon: Truck, label: "Livraison", href: "/admin/delivery" },
-  { icon: FileText, label: "CMS", href: "/admin/cms/homepage" },
+  { icon: FileText, label: "CMS Homepage", href: "/admin/cms/homepage" },
+  { icon: Sparkles, label: "Offres de moments", href: "/admin/cms/offres-de-moments" },
 ];
+
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { user, logout } = useAuthStore();
+  const { data: session } = useSession();
+  const user = session?.user as { id?: string; name?: string | null; email?: string | null; role?: string } | null;
+
+  const handleLogout = async () => {
+    console.log("[LOGOUT CLIENT] Admin logout clicked");
+    console.log("[LOGOUT CLIENT] Calling NextAuth signOut with redirect to /login");
+    await signOut({ callbackUrl: "/login" });
+  };
 
   const Sidebar = ({ mobile = false }: { mobile?: boolean }) => (
     <aside
@@ -100,14 +110,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         {user && (
           <div className="flex items-center gap-3 px-3 py-2 rounded-xl hover:bg-white/10 transition-colors group">
             <div className="w-8 h-8 rounded-xl bg-white flex items-center justify-center text-violet-700 text-xs font-black flex-shrink-0">
-              {user.name[0]}
+              {user.name?.[0] || "U"}
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-bold truncate text-white">{user.name}</p>
               <p className="text-xs text-white/45 truncate">{user.role}</p>
             </div>
             <button
-              onClick={logout}
+              onClick={handleLogout}
               className="opacity-0 group-hover:opacity-100 text-white/50 hover:text-rose-300 transition-all"
               title="Sign out"
             >
@@ -187,7 +197,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
         {/* Page content */}
         <main className="flex-1 overflow-y-auto">
-          <div className="p-6 max-w-7xl mx-auto">
+          <div className="p-6 max-w-7xl mx-auto" suppressHydrationWarning>
             {children}
           </div>
         </main>
