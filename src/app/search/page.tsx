@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { SearchResultsClient } from "@/components/product/SearchResultsClient";
-import { MobileSearchView } from "@/components/mobile/MobileSearchView";
 import { prisma } from "@/lib/prisma";
 import { getDefaultOrganizationId } from "@/lib/tenant";
 import type { Product } from "@/types";
@@ -44,14 +43,7 @@ export default async function SearchPage({ searchParams }: Props) {
   }
 
   return (
-    <>
-      {/* Mobile View */}
-      <div className="sm:hidden">
-        <MobileSearchView initialQuery={query} products={products as unknown as Product[]} />
-      </div>
-
-      {/* Desktop View */}
-      <div className="hidden sm:block page-enter">
+    <div className="page-enter">
         <div className="border-b border-border bg-surface">
           <div className="container-main py-6">
             {query ? (
@@ -83,6 +75,5 @@ export default async function SearchPage({ searchParams }: Props) {
           </Suspense>
         </div>
       </div>
-    </>
   );
 }

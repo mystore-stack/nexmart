@@ -8,7 +8,6 @@ import { ProductGallery } from "@/components/product/ProductGallery";
 import { ProductInfo } from "@/components/product/ProductInfo";
 import { ProductReviews } from "@/components/product/ProductReviews";
 import { RelatedProducts } from "@/components/product/RelatedProducts";
-import { MobileProductDetail } from "@/components/mobile/MobileProductDetail";
 import type { Product } from "@/types";
 
 interface Props {
@@ -118,16 +117,7 @@ export default async function ProductPage({ params }: Props) {
       />
 
       <div className="page-enter">
-        {/* Mobile View */}
-        <div className="md:hidden">
-          <MobileProductDetail
-            product={product}
-            relatedProducts={related as unknown as Product[]}
-          />
-        </div>
-
-        {/* Desktop View */}
-        <div className="hidden md:block">
+        <div>
           <div className="border-b border-border">
             <div className="container-main py-3">
               <nav className="flex items-center gap-2 text-sm text-muted-foreground">
