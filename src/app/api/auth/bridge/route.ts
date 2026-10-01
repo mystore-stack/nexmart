@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/next-auth.config";
-import { generateAuthRequestId, authDebug, logSession } from "@/lib/auth-debug";
+import { generateAuthRequestId, authDebug, logSession, logCookiePresence } from "@/lib/auth-debug";
+import { cookies } from "next/headers";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +20,10 @@ export const dynamic = "force-dynamic";
 export async function POST(req: NextRequest) {
   const requestId = generateAuthRequestId();
   const { pathname } = new URL(req.url);
+
+  // Log cookie presence for diagnostics
+  const cookieStore = await cookies();
+  console.log("[BRIDGE] Cookie presence:", logCookiePresence(cookieStore));
 
   authDebug("BRIDGE_START", {
     requestId,
@@ -81,6 +86,10 @@ export async function POST(req: NextRequest) {
 export async function GET(req: NextRequest) {
   const requestId = generateAuthRequestId();
   const { pathname } = new URL(req.url);
+
+  // Log cookie presence for diagnostics
+  const cookieStore = await cookies();
+  console.log("[BRIDGE GET] Cookie presence:", logCookiePresence(cookieStore));
 
   authDebug("BRIDGE_START", {
     requestId,
