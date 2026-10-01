@@ -64,11 +64,6 @@ export const HOMEPAGE_SECTIONS: HomepageSection[] = [
     component: null as any,
   },
   {
-    key: "MOBILE_APP",
-    title: "Mobile App",
-    component: null as any,
-  },
-  {
     key: "NEWSLETTER",
     title: "Newsletter",
     component: null as any,

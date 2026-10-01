@@ -32,7 +32,6 @@ export const HOMEPAGE_SECTION_META: Record<
   BRANDS: { label: "Partner Brands", description: "Brand logo carousel", icon: "Award" },
   WHY_NEXMART: { label: "Why NexMart", description: "Brand value and trust section", icon: "Sparkles" },
   TESTIMONIALS: { label: "Testimonials", description: "Customer reviews", icon: "Quote" },
-  MOBILE_APP: { label: "Mobile App", description: "Mobile app promotion banner", icon: "Smartphone" },
   NEWSLETTER: { label: "Newsletter", description: "Email signup CTA", icon: "Mail" },
   FOOTER: { label: "Footer", description: "Site footer content and links", icon: "PanelBottom" },
 };
@@ -49,7 +48,6 @@ export const DEFAULT_HOMEPAGE_SECTIONS: string[] = [
   "BRANDS",
   "WHY_NEXMART",
   "TESTIMONIALS",
-  "MOBILE_APP",
   "NEWSLETTER",
   "FOOTER",
 ];

@@ -46,7 +46,6 @@ const DEFAULT_SECTIONS = [
   { sectionKey: "brandCarousel", title: "Marques Partenaires", description: "Carousel des partenaires et marques premium", destinationUrl: "/brands" },
   { sectionKey: "testimonials", title: "Testimonials", description: "Avis clients et preuve sociale", destinationUrl: "/testimonials" },
   { sectionKey: "seasonalCollection", title: "Seasonal Collection", description: "Sélection saisonnière de produits premium", destinationUrl: "/collections/seasonal" },
-  { sectionKey: "mobileAppBanner", title: "Promotion Mobile", description: "Encourager le téléchargement de l'app mobile", destinationUrl: "/app" },
   { sectionKey: "newsletter", title: "Newsletter", description: "Inscription à la newsletter premium", destinationUrl: "/newsletter" },
   { sectionKey: "footer", title: "Footer", description: "Contenu de pied de page", destinationUrl: "/" },
 ];

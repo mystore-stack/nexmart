@@ -11,7 +11,6 @@ import { FlashSaleEditor } from "./components/FlashSaleEditor";
 import { BrandCarouselEditor } from "./components/BrandCarouselEditor";
 import { PromoCardsEditor } from "./components/PromoCardsEditor";
 import { ServiceBannersEditor } from "./components/ServiceBannersEditor";
-import { MobileAppBannerEditor } from "./components/MobileAppBannerEditor";
 import { BundleBuilderEditor } from "./components/BundleBuilderEditor";
 import { SingleFlashOfferEditor } from "./components/SingleFlashOfferEditor";
 import { ShowcaseGridEditor } from "./components/ShowcaseGridEditor";
@@ -64,8 +63,6 @@ export function EditorForm({ section, parsedConfig }: { section: any; parsedConf
         return <PromoCarouselEditor section={section} parsedConfig={parsedConfig} />;
       case "SERVICE_BANNERS":
         return <ServiceBannersEditor section={section} parsedConfig={parsedConfig} />;
-      case "MOBILE_APP": // Mobile App Banner
-        return <MobileAppBannerEditor section={section} parsedConfig={parsedConfig} />;
       case "BUNDLE_DEALS": // Bundle Builder
         return <BundleBuilderEditor section={section} parsedConfig={parsedConfig} />;
       case "SHOWCASE_GRID":

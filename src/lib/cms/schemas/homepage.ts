@@ -15,7 +15,6 @@ export const homepageSectionTypeSchema = z.enum([
   "WHY_NEXMART",
   "TESTIMONIALS",
   "SEASONAL_COLLECTION",
-  "MOBILE_APP",
   "NEWSLETTER",
   "FOOTER",
   "RECENTLY_VIEWED",
@@ -31,7 +30,6 @@ export const homepageSectionTypeSchema = z.enum([
   "SEASONAL",
   "RECOMMENDED",
   "BRAND_CAROUSEL",
-  "MOBILE_APP_BANNER",
 ]);
 
 export const homepageSectionSchema = z.object({

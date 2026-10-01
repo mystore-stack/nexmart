@@ -101,7 +101,6 @@ export type SectionType =
   | 'PREMIUM_FOOTER'
   | 'FOOTER'
   | 'WHY_NEXMART'
-  | 'MOBILE_APP'
   | 'SEASONAL_COLLECTION'
   | 'CUSTOM_HTML'
   | 'FAQ'
