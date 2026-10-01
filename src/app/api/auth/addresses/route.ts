@@ -1,8 +1,8 @@
 // src/app/api/auth/addresses/route.ts
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/auth-api";
+import { requireAuth, AuthError } from "@/lib/auth-api";
 import { ok, created, unauthorized, handleApiError } from "@/lib/api";
 
 const addressSchema = z.object({
@@ -27,6 +27,12 @@ export async function GET(req: NextRequest) {
     });
     return ok(addresses);
   } catch (err) {
+    if (err instanceof AuthError) {
+      return Response.json(
+        { success: false, error: err.message, code: err.code },
+        { status: err.statusCode }
+      );
+    }
     return handleApiError(err);
   }
 }
@@ -59,8 +65,22 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     console.log("[ADDRESS POST] Request body:", body);
 
-    const data = addressSchema.parse(body);
-    console.log("[ADDRESS POST] Parsed Zod data:", data);
+    let data;
+    try {
+      data = addressSchema.parse(body);
+      console.log("[ADDRESS POST] Parsed Zod data:", data);
+    } catch (zodError) {
+      console.error("[ADDRESS POST] Zod validation error:", zodError);
+      return Response.json(
+        {
+          success: false,
+          error: "Validation error: " + (zodError instanceof Error ? zodError.message : String(zodError)),
+          code: "VALIDATION_ERROR",
+          details: zodError,
+        },
+        { status: 400 }
+      );
+    }
 
     // Verify user exists in database before creating address
     console.log("[ADDRESS POST] Verifying user exists in database:", session.userId);
@@ -101,9 +121,20 @@ export async function POST(req: NextRequest) {
     });
     console.log("[ADDRESS POST] Address created successfully:", address.id);
 
-    return created(address);
+    return Response.json(
+      { success: true, address },
+      { status: 201 }
+    );
   } catch (err) {
     console.error("[ADDRESS POST ERROR]", err);
+
+    // Handle AuthError specifically
+    if (err instanceof AuthError) {
+      return Response.json(
+        { success: false, error: err.message, code: err.code },
+        { status: err.statusCode }
+      );
+    }
 
     // Check for specific Prisma errors
     if (err && typeof err === 'object') {

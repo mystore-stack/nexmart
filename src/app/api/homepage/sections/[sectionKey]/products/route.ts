@@ -33,7 +33,7 @@ export async function GET(
       where: { sectionKey },
     });
 
-    if (!section || !section.active) {
+    if (!section || !section.enabled) {
       return NextResponse.json({ data: [], section: null });
     }
 
@@ -96,7 +96,7 @@ export async function GET(
         bannerImage: section.bannerImage,
         viewAllButton: section.viewAllButton,
         destinationUrl: section.destinationUrl,
-        active: section.active,
+        enabled: section.enabled,
         maxProducts: section.maxProducts,
         hideIfEmpty: section.hideIfEmpty,
       },

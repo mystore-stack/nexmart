@@ -1,4 +1,9 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
-  <rect width="64" height="64" rx="12" fill="#0D7A5E"/>
-  <path d="M18 42 L32 18 L46 42 Z" fill="#fff" opacity="0.98" />
+<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="200" height="200" rx="40" fill="#000000"/>
+  {/* Outer Diamond Layer */}
+  <path fill-rule="evenodd" clip-rule="evenodd" d="M 100 12 L 188 100 L 100 188 L 12 100 Z M 100 36 L 164 100 L 100 164 L 36 100 Z" fill="#00B48A"/>
+  {/* Middle Diamond Ring */}
+  <path fill-rule="evenodd" clip-rule="evenodd" d="M 100 52 L 148 100 L 100 148 L 52 100 Z M 100 64 L 136 100 L 100 136 L 64 100 Z" fill="#00B48A"/>
+  {/* Inner Solid Diamond Center */}
+  <polygon points="100,76 124,100 100,124 76,100" fill="#00B48A"/>
 </svg>

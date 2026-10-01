@@ -116,8 +116,9 @@ export function FlashDealsSection() {
     return null;
   }
 
-  // Hide section if not active
-  if (!loading && section && !section.active) {
+  // Normalize enabled to boolean and hide if not enabled
+  const isEnabled = section?.enabled === true || section?.enabled === "true" || section?.enabled === 1;
+  if (!loading && section && !isEnabled) {
     return null;
   }
 

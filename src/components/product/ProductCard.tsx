@@ -39,13 +39,13 @@ export function ProductCard({ product, priority = false, index = 0, compact = fa
 
   const cardContent = (
     <>
-      <div className={`relative ${compact ? "h-32 w-full mb-4 bg-[#f8f9fa] rounded-2xl overflow-hidden" : "overflow-hidden aspect-[3/3.3] bg-slate-100 rounded-[16px]"}`}>
+      <div className={`relative ${compact ? "h-32 w-full mb-4 bg-white/80 rounded-2xl overflow-hidden" : "overflow-hidden aspect-square bg-white/60 rounded-[16px]"}`}>
         {compact ? (
           <Image
             src={imageError ? "/placeholder.svg" : images[imageIdx] || "/placeholder.svg"}
             alt={product.name}
             fill
-            className="object-cover transition-transform duration-500 group-hover:scale-110"
+            className="object-contain transition-transform duration-500 group-hover:scale-105 p-2"
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
             priority={priority}
             onError={() => setImageError(true)}
@@ -57,7 +57,7 @@ export function ProductCard({ product, priority = false, index = 0, compact = fa
                 src={imageError ? "/placeholder.svg" : images[imageIdx] || "/placeholder.svg"}
                 alt={product.name}
                 fill
-                className="object-contain transition duration-500 group-hover:scale-105"
+                className="object-contain transition duration-500 group-hover:scale-105 p-3"
                 sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
                 priority={priority}
                 onError={() => setImageError(true)}
@@ -182,7 +182,7 @@ export function ProductCard({ product, priority = false, index = 0, compact = fa
       initial={{ opacity: 0, y: 18 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, delay: index * 0.04, ease: "easeOut" }}
-      className="group relative overflow-hidden border border-slate-200 bg-white rounded-[16px] transition hover:border-slate-300 hover:shadow-[0_8px_18px_rgba(15,23,42,0.05)]"
+      className="group relative overflow-hidden border border-slate-200 bg-white rounded-[16px] transition hover:border-slate-300 hover:shadow-[0_8px_18px_rgba(15,23,42,0.05)] min-w-0"
       onMouseEnter={() => { setIsHovered(true); if (images.length > 1) setImageIdx(1); }}
       onMouseLeave={() => { setIsHovered(false); setImageIdx(0); }}
     >

@@ -2,17 +2,29 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 export function middleware(request: NextRequest) {
-  // Apply timeout for API routes to prevent long-running requests
+  // Add CORS headers to all API routes
+  const response = NextResponse.next();
+
+  // Only apply to API routes
   if (request.nextUrl.pathname.startsWith('/api')) {
-    const response = NextResponse.next();
-    
-    // Set a timeout warning (actual timeout handled by Node.js/server)
-    response.headers.set('X-Timeout-Warning', 'Requests exceeding 30s may be terminated');
-    
-    return response;
+    response.headers.set('Access-Control-Allow-Origin', '*');
+    response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
   }
 
-  return NextResponse.next();
+  // Handle preflight requests
+  if (request.method === 'OPTIONS') {
+    return new NextResponse(null, {
+      status: 200,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
+      },
+    });
+  }
+
+  return response;
 }
 
 export const config = {

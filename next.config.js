@@ -15,9 +15,6 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
 
-  // Enable standalone output for Docker deployment
-  output: 'standalone',
-
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "res.cloudinary.com" },
@@ -53,14 +50,6 @@ const nextConfig = {
             "style-src 'self' 'unsafe-inline'",
           ].join("; "),
         },
-      ],
-    },
-    {
-      source: "/api/(.*)",
-      headers: [
-        { key: "Access-Control-Allow-Origin", value: "*" },
-        { key: "Access-Control-Allow-Methods", value: "GET,POST,PUT,DELETE,OPTIONS" },
-        { key: "Access-Control-Allow-Headers", value: "Content-Type, Authorization" },
       ],
     },
   ],

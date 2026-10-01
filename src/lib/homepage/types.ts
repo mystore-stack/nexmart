@@ -66,6 +66,11 @@ export interface HomepageSectionData {
 }
 
 export type SectionType =
+  | 'CAMPAIGN_HERO'
+  | 'PROMO_CAROUSEL'
+  | 'CATEGORY_CIRCLE_CAROUSEL'
+  | 'OFFERS_GRID'
+  | 'FEATURED_BRANDS_PROMO'
   | 'ANNOUNCEMENT_BAR'
   | 'PROFESSIONAL_HERO'
   | 'HERO'

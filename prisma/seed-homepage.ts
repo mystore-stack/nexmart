@@ -1,3 +1,7 @@
+// DISABLED FOR CLEAN SLATE: Homepage seed file - disabled for clean slate
+// Original file content preserved below
+// ============================================================
+/*
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
@@ -193,3 +197,9 @@ seedHomepage()
   .finally(async () => {
     await prisma.$disconnect();
   });
+
+*/
+// ============================================================
+// End of disabled content
+
+export const DISABLED = true;

@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth-api";
 import { ok, noContent, forbidden, notFound, handleApiError } from "@/lib/api";
 import { deleteCache, CACHE_KEYS } from "@/lib/redis";
+import { revalidatePath, revalidateTag } from "next/cache";
 
 function toSlug(name: string) {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
@@ -35,6 +36,13 @@ export async function PATCH(
     });
 
     await deleteCache(CACHE_KEYS.categories());
+    
+    // Revalidate homepage and category page to reflect image changes
+    revalidatePath('/');
+    revalidatePath(`/category/${category.slug}`);
+    revalidateTag('categories');
+    revalidateTag('homepage');
+    
     return ok(category);
   } catch (err: any) {
     if ((err as Error).message === "Forbidden") return forbidden();
@@ -50,8 +58,18 @@ export async function DELETE(
   try {
     const { organizationId } = await requireAdmin();
     const { id } = await params;
+    const category = await prisma.category.findUnique({ where: { id, organizationId } });
     await prisma.category.delete({ where: { id, organizationId } });
     await deleteCache(CACHE_KEYS.categories());
+    
+    // Revalidate homepage if category was deleted
+    if (category) {
+      revalidatePath('/');
+      revalidatePath(`/category/${category.slug}`);
+      revalidateTag('categories');
+      revalidateTag('homepage');
+    }
+    
     return noContent();
   } catch (err: any) {
     if ((err as Error).message === "Forbidden") return forbidden();

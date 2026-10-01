@@ -538,7 +538,7 @@ function PreviewPanel({ generation, images }: { generation: AIProductGenerationR
         <div>
           <p className="text-xs font-semibold uppercase text-muted-foreground">{generation.output.brand} / {generation.output.category}</p>
           <h3 className="mt-1 text-xl font-black">{generation.output.title}</h3>
-          <p className="mt-2 text-sm text-muted-foreground">{generation.output.shortDescription}</p>
+          <p className="mt-2 text-sm text-muted-foreground">{generation.output.description}</p>
         </div>
         <div className="flex flex-wrap gap-2">
           {generation.output.tags.slice(0, 6).map((tag) => (

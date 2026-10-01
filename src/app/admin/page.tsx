@@ -4,6 +4,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { motion } from "framer-motion";
+import { useSession } from "next-auth/react";
 import {
   Area,
   AreaChart,
@@ -102,6 +103,7 @@ function StatCard({
 }
 
 export default function AdminDashboard() {
+  const { status } = useSession();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [range, setRange] = useState(30);
@@ -110,17 +112,30 @@ export default function AdminDashboard() {
   const eventSourceRef = useRef<EventSource | null>(null);
 
   const fetchAnalytics = useCallback(() => {
+    // Stop fetching if user is not authenticated
+    if (status !== "authenticated") {
+      console.log("[SSE] Skipping analytics fetch - user not authenticated");
+      return;
+    }
+    
     setLoading(true);
     fetch(`/api/admin/analytics?range=${range}`, {
       credentials: "include",
     })
-      .then((r) => r.json())
+      .then((r) => {
+        if (r.status === 401) {
+          console.log("[SSE] Analytics fetch returned 401 - user unauthenticated");
+          setLoading(false);
+          return;
+        }
+        return r.json();
+      })
       .then((d) => {
-        setData(d.data);
+        if (d) setData(d.data);
         setLoading(false);
       })
       .catch(() => setLoading(false));
-  }, [range]);
+  }, [range, status]);
 
   useEffect(() => {
     fetchAnalytics();
@@ -128,6 +143,12 @@ export default function AdminDashboard() {
 
   // SSE connection for real-time updates
   useEffect(() => {
+    // Stop SSE and polling if user is not authenticated
+    if (status !== "authenticated") {
+      console.log("[SSE] Skipping SSE connection - user not authenticated");
+      return;
+    }
+    
     let retryCount = 0;
     const maxRetries = 3;
 
@@ -145,6 +166,9 @@ export default function AdminDashboard() {
               sseUrl = `/api/admin/events?token=${token}`;
               console.log("[SSE] Got SSE token");
             }
+          } else if (tokenResponse.status === 401) {
+            console.log("[SSE] SSE token request returned 401 - user unauthenticated");
+            return;
           }
         } catch (tokenError) {
           console.warn("[SSE] Failed to get SSE token, trying without token:", tokenError);
@@ -280,7 +304,7 @@ export default function AdminDashboard() {
         clearInterval(pollingInterval);
       }
     };
-  }, [fetchAnalytics]);
+  }, [fetchAnalytics, status]);
 
   const metrics = data?.summary;
   const ordersByStatus = Object.entries(data?.ordersByStatus || {}).map(([name, value]) => ({ name, value }));
@@ -337,13 +361,24 @@ export default function AdminDashboard() {
           </div>
           <button
             onClick={() => {
+              if (status !== "authenticated") {
+                console.log("[SSE] Skipping manual refresh - user not authenticated");
+                return;
+              }
               setLoading(true);
               fetch(`/api/admin/analytics?range=${range}`, {
                 credentials: "include",
               })
-                .then((r) => r.json())
+                .then((r) => {
+                  if (r.status === 401) {
+                    console.log("[SSE] Manual refresh returned 401 - user unauthenticated");
+                    setLoading(false);
+                    return;
+                  }
+                  return r.json();
+                })
                 .then((d) => {
-                  setData(d.data);
+                  if (d) setData(d.data);
                   setLoading(false);
                 })
                 .catch(() => setLoading(false));

@@ -19,20 +19,9 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { userId, organizationId, userAgent, ipAddress, referrer, metadata } = body;
 
-    if (!organizationId) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Organization ID required",
-          code: "MISSING_ORGANIZATION_ID",
-        },
-        { status: 400 }
-      );
-    }
-
     const auditSession = await audit.session.create({
       userId,
-      organizationId,
+      organizationId: organizationId || undefined,
       userAgent,
       ipAddress,
       referrer,

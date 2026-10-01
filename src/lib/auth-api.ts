@@ -66,7 +66,7 @@ export async function getSession(): Promise<ServerAuthSession | null> {
     const { prisma } = await import("@/lib/prisma");
     console.log("[AUTH] Verifying user exists in database:", userId);
 
-    const user = await prisma.user.findUnique({
+    const user = await (prisma as any).user.findUnique({
       where: { id: userId },
       select: { id: true, email: true, role: true },
     });
@@ -147,8 +147,8 @@ export async function requireAuthInternal(): Promise<ServerAuthSession> {
   // This prevents sessions with invalid userIds from passing through
   const { prisma } = await import("@/lib/prisma");
   console.log("[AUTH] Verifying user exists in database:", session.userId);
-  
-  const user = await prisma.user.findUnique({
+
+  const user = await (prisma as any).user.findUnique({
     where: { id: session.userId },
     select: { id: true, email: true, role: true },
   });

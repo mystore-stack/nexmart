@@ -1,254 +1,363 @@
 "use client";
+
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowRight, Star, Heart, ShoppingCart, Clock, Tag, Shield, Truck, Gift, Lock } from "lucide-react";
-import { deduplicateProducts } from "@/lib/product-deduplication";
+import { 
+  Zap, 
+  Heart, 
+  ShoppingCart, 
+  Star, 
+  ChevronRight,
+  ChevronLeft,
+  Tag, 
+  Shield, 
+  Truck, 
+  Package, 
+  Flame, 
+  Hourglass,
+} from "lucide-react";
 import { useCartStore } from "@/store/cart";
+import { deduplicateProducts } from "@/lib/product-deduplication";
+import toast from "react-hot-toast";
 
-export function FlashSaleSection({ products = [], config = {} }: { products?: any[], config?: any }) {
-  const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
-  const [activeTab, setActiveTab] = useState("Tout");
+// 100% Exact reference data matching the user's uploaded image
+const DEFAULT_FLASH_PRODUCTS = [
+  {
+    id: "flash-1",
+    name: "Xiaomi Redmi Note 13 8GB + 256GB",
+    discount: 23,
+    stockLeft: 12,
+    rating: 4.6,
+    reviewsCount: 128,
+    price: 2199,
+    oldPrice: 2899,
+    percentSold: 82,
+    image: "https://images.unsplash.com/photo-1598327105666-5b89351aff97?w=600&auto=format&fit=crop&q=80",
+    slug: "xiaomi-redmi-note-13",
+  },
+  {
+    id: "flash-2",
+    name: "JBL Tune 510BT Casque Sans Fil",
+    discount: 18,
+    stockLeft: 7,
+    rating: 4.5,
+    reviewsCount: 96,
+    price: 399,
+    oldPrice: 490,
+    percentSold: 67,
+    image: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=600&auto=format&fit=crop&q=80",
+    slug: "jbl-tune-510bt-casque",
+  },
+  {
+    id: "flash-3",
+    name: "Casio G-Shock GA-2100-1A1ER",
+    discount: 31,
+    stockLeft: 5,
+    rating: 4.7,
+    reviewsCount: 72,
+    price: 1299,
+    oldPrice: 1899,
+    percentSold: 54,
+    image: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600&auto=format&fit=crop&q=80",
+    slug: "casio-gshock-ga2100",
+  },
+];
+
+interface FlashSaleSectionProps {
+  products?: any[];
+  config?: any;
+}
+
+export function FlashSaleSection({ products = [], config = {} }: FlashSaleSectionProps) {
+  const [timeLeft, setTimeLeft] = useState({ hours: 5, minutes: 59, seconds: 41 });
+  const [wishlist, setWishlist] = useState<Record<string, boolean>>({});
+  const scrollRef = React.useRef<HTMLDivElement>(null);
   const addItem = useCartStore((state) => state.addItem);
 
-  useEffect(() => {
-    const targetDate = config.endDate ? new Date(config.endDate).getTime() : new Date().getTime() + 5 * 60 * 60 * 1000 + 58 * 60 * 1000;
-    
-    const updateTimer = () => {
-      const now = new Date().getTime();
-      const distance = targetDate - now;
-
-      if (distance < 0) {
-        setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
-        return;
-      }
-
-      setTimeLeft({
-        days: Math.floor(distance / (1000 * 60 * 60 * 24)),
-        hours: Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
-        minutes: Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60)),
-        seconds: Math.floor((distance % (1000 * 60)) / 1000)
-      });
-    };
-
-    updateTimer();
-    const timer = setInterval(updateTimer, 1000);
-    return () => clearInterval(timer);
-  }, [config.endDate]);
-
-  const formatTime = (v: number) => v.toString().padStart(2, "0");
-
-  const dedupedProducts = deduplicateProducts(products).slice(0, 6);
-  const displayProducts = dedupedProducts.length ? dedupedProducts : [
-    { id: "f-1", name: "Apple AirPods Pro 2", category: "Audio", price: 18900, oldPrice: 24900, rating: 4.8, discount: 24, images: ["https://images.unsplash.com/photo-1600294037681-c80b4cb5b434?w=500&q=80"] },
-    { id: "f-2", name: "Nike Air Max 270", category: "Accessoires", price: 119900, oldPrice: 159900, rating: 4.7, discount: 25, images: ["https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=500&q=80"] },
-    { id: "f-3", name: "Fossil Gen 6 Smartwatch", category: "Électronique", price: 129900, oldPrice: 169900, rating: 4.6, discount: 23, images: ["https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500&q=80"] },
-    { id: "f-4", name: "Sony WH-1000XM5", category: "Audio", price: 279900, oldPrice: 399900, rating: 4.9, discount: 30, images: ["https://images.unsplash.com/photo-1618366712010-f4ae9c647dcb?w=500&q=80"] },
-    { id: "f-5", name: "Philips Blender HR2291", category: "Électronique", price: 54900, oldPrice: 69900, rating: 4.5, discount: 21, images: ["https://images.unsplash.com/photo-1585515320310-259814833e62?w=500&q=80"] },
-    { id: "f-6", name: "MacBook Air M2", category: "Informatique", price: 1249900, oldPrice: 1529900, rating: 4.9, discount: 18, images: ["https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=500&q=80"] },
-  ];
-
-  const categories = ["Tout", "Électronique", "Accessoires", "Audio", "Informatique"];
-  const filteredProducts = activeTab === "Tout" ? displayProducts : displayProducts.filter(p => p.category === activeTab);
-
-  // Bottom bar calc mockup
-  const totalPriceRaw = displayProducts.reduce((sum, current) => sum + (current.oldPrice ?? current.price ?? 0), 0);
-  const finalPrice = displayProducts.reduce((sum, current) => sum + (current.price ?? 0), 0);
-  const discountRate = 0.3; 
-
-  const features = config.features || [
-    { icon: "Tag", title: "Prix exclusifs", desc: "Jusqu'à -30% sur vos produits préférés" },
-    { icon: "Shield", title: "Garantie 1 an", desc: "Tous nos produits sont garantis" },
-    { icon: "Truck", title: "Livraison rapide", desc: "Disponible partout au Maroc" },
-  ];
-
-  const renderIcon = (name: string) => {
-    switch (name) {
-      case "Tag": return <Tag className="w-5 h-5" />;
-      case "Shield": return <Shield className="w-5 h-5" />;
-      case "Truck": return <Truck className="w-5 h-5" />;
-      default: return <Star className="w-5 h-5" />;
-    }
+  const scrollProducts = (direction: "left" | "right") => {
+    const container = scrollRef.current;
+    if (!container) return;
+    const screenWidth = window.innerWidth;
+    const amount = direction === "left" ? -(screenWidth < 640 ? screenWidth * 0.5 : 320) : (screenWidth < 640 ? screenWidth * 0.5 : 320);
+    container.scrollBy({ left: amount, behavior: "smooth" });
   };
 
-  return (
-    <section className="my-8 md:my-16 container-main max-w-[1400px]">
-      
-      <div className="flex flex-col lg:flex-row gap-6">
-        
-        {/* Left Sidebar */}
-        <div className="w-full lg:w-[320px] shrink-0 bg-white rounded-3xl p-6 sm:p-8 border border-slate-100 shadow-sm flex flex-col relative overflow-hidden">
-          <div className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#5f48e6] bg-[#f2effd] px-3 py-1.5 rounded-full w-fit mb-6">
-            <Clock className="w-3.5 h-3.5" />
-            OFFRES LIMITÉES
-          </div>
-          
-          <h2 className="text-3xl font-black text-slate-900 mb-2 leading-tight">
-            Les meilleures <br/>
-            Offres, rien que <br/>
-            <span className="text-[#5f48e6]">pour vous</span>
-          </h2>
-          <p className="text-sm text-slate-500 mb-8">
-            Des prix incroyables sur une sélection de produits incontournables.
-          </p>
+  // Countdown timer logic
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev.seconds > 0) return { ...prev, seconds: prev.seconds - 1 };
+        if (prev.minutes > 0) return { ...prev, minutes: 59, seconds: 59 };
+        if (prev.hours > 0) return { hours: prev.hours - 1, minutes: 59, seconds: 59 };
+        return { hours: 5, minutes: 59, seconds: 41 };
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
 
-          <div className="mb-8">
-            <p className="text-xs font-bold text-slate-700 mb-3">Se termine dans</p>
-            <div className="flex items-start gap-2">
-              <div className="flex flex-col items-center">
-                <div className="bg-[#f2effd] text-[#5f48e6] w-12 h-12 rounded-xl flex items-center justify-center text-xl font-bold">
-                  {formatTime(timeLeft.hours + (timeLeft.days * 24))}
-                </div>
-                <span className="text-[10px] text-slate-400 font-medium mt-1">HRS</span>
+  const formatTwoDigits = (v: number) => String(v).padStart(2, "0");
+
+  const toggleWishlist = (id: string, name: string) => {
+    setWishlist((prev) => {
+      const nextState = !prev[id];
+      if (nextState) {
+        toast.success(`Ajouté aux favoris: ${name}`);
+      } else {
+        toast.error(`Retiré des favoris`);
+      }
+      return { ...prev, [id]: nextState };
+    });
+  };
+
+  const handleAddToCart = (item: any) => {
+    const fullProduct: any = {
+      id: item.id || `product-${Math.random()}`,
+      name: item.name,
+      slug: item.slug || "flash-sale-product",
+      price: item.price * 100, // standard price handling if needed
+      comparePrice: item.oldPrice ? item.oldPrice * 100 : undefined,
+      images: [item.image || item.images?.[0] || "https://images.unsplash.com/photo-1598327105666-5b89351aff97?w=600"],
+      stock: item.stockLeft || 10,
+      rating: item.rating || 4.5,
+    };
+    addItem(fullProduct, 1);
+    toast.success(`${item.name} ajouté au panier!`);
+  };
+
+  // Prepare products to render (merge dynamic DB products or fallback to exact reference 3 products)
+  const dynamicProducts = deduplicateProducts(products);
+  const maxProducts = config.maxProducts || 8;
+  const displayProducts = dynamicProducts.length > 0 
+    ? dynamicProducts.slice(0, maxProducts).map((p: any, idx: number) => ({
+        id: p.id || `p-${idx}`,
+        name: p.name,
+        discount: p.discount || Math.round((((p.oldPrice || p.comparePrice || p.price * 1.3) - p.price) / (p.oldPrice || p.comparePrice || p.price * 1.3)) * 100) || 20,
+        stockLeft: p.stock || Math.floor(Math.random() * 10) + 3,
+        rating: p.rating || 4.6,
+        reviewsCount: p.reviewCount || p.reviewsCount || 85,
+        price: p.price > 10000 ? Math.round(p.price / 100) : p.price,
+        oldPrice: (p.oldPrice || p.comparePrice) ? ((p.oldPrice || p.comparePrice) > 10000 ? Math.round((p.oldPrice || p.comparePrice) / 100) : (p.oldPrice || p.comparePrice)) : Math.round(p.price * 1.3),
+        percentSold: Math.min(88, Math.max(45, Math.round(((p.soldCount || 15) / ((p.soldCount || 15) + (p.stock || 5))) * 100))),
+        image: (p.images && p.images[0]) || DEFAULT_FLASH_PRODUCTS[idx % 3].image,
+        slug: p.slug || DEFAULT_FLASH_PRODUCTS[idx % 3].slug,
+      }))
+    : DEFAULT_FLASH_PRODUCTS;
+
+  return (
+    <section className="w-full bg-[#0B0E14] text-white py-6 px-3 sm:px-6 md:py-10 rounded-3xl border border-[#1E293B] shadow-2xl my-6 overflow-hidden">
+      <div className="max-w-7xl mx-auto space-y-6">
+
+        {/* 1. Header: FLASH SALE & Timer */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#1E293B] pb-5">
+          {/* Left Title */}
+          <div>
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-500 to-yellow-400 flex items-center justify-center shadow-lg shadow-amber-500/20 animate-pulse">
+                <Zap className="w-5 h-5 text-slate-950 fill-slate-950" />
               </div>
-              <span className="text-slate-300 text-xl font-bold mt-2">:</span>
+              <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-white uppercase">
+                FLASH SALE
+              </h2>
+            </div>
+            <p className="text-xs sm:text-sm text-slate-400 mt-1 font-medium">
+              Offres limitées, ne les manquez pas !
+            </p>
+          </div>
+
+          {/* Right Timer */}
+          <div className="flex items-center gap-3 self-start sm:self-auto">
+            <span className="text-xs text-slate-400 font-medium">Se termine dans</span>
+            <div className="flex items-center gap-1.5">
+              {/* Hours */}
               <div className="flex flex-col items-center">
-                <div className="bg-[#f2effd] text-[#5f48e6] w-12 h-12 rounded-xl flex items-center justify-center text-xl font-bold">
-                  {formatTime(timeLeft.minutes)}
+                <div className="bg-[#E53E3E] text-white font-bold text-base sm:text-lg w-9 sm:w-10 h-9 sm:h-10 rounded-xl flex items-center justify-center shadow-md">
+                  {formatTwoDigits(timeLeft.hours)}
                 </div>
-                <span className="text-[10px] text-slate-400 font-medium mt-1">MIN</span>
+                <span className="text-[9px] text-slate-400 font-bold mt-1 uppercase">H</span>
               </div>
-              <span className="text-slate-300 text-xl font-bold mt-2">:</span>
+              <span className="text-[#E53E3E] font-bold text-lg mb-4">:</span>
+              {/* Minutes */}
               <div className="flex flex-col items-center">
-                <div className="bg-[#f2effd] text-[#5f48e6] w-12 h-12 rounded-xl flex items-center justify-center text-xl font-bold">
-                  {formatTime(timeLeft.seconds)}
+                <div className="bg-[#E53E3E] text-white font-bold text-base sm:text-lg w-9 sm:w-10 h-9 sm:h-10 rounded-xl flex items-center justify-center shadow-md">
+                  {formatTwoDigits(timeLeft.minutes)}
                 </div>
-                <span className="text-[10px] text-slate-400 font-medium mt-1">SEC</span>
+                <span className="text-[9px] text-slate-400 font-bold mt-1 uppercase">MIN</span>
+              </div>
+              <span className="text-[#E53E3E] font-bold text-lg mb-4">:</span>
+              {/* Seconds */}
+              <div className="flex flex-col items-center">
+                <div className="bg-[#E53E3E] text-white font-bold text-base sm:text-lg w-9 sm:w-10 h-9 sm:h-10 rounded-xl flex items-center justify-center shadow-md">
+                  {formatTwoDigits(timeLeft.seconds)}
+                </div>
+                <span className="text-[9px] text-slate-400 font-bold mt-1 uppercase">SEC</span>
               </div>
             </div>
-          </div>
-
-          <div className="space-y-4 mb-8">
-            {features.map((feat: any, idx: number) => (
-              <div key={idx} className="flex gap-4">
-                <div className="w-10 h-10 rounded-full bg-[#f8f9fa] border border-slate-100 flex items-center justify-center text-[#2cb174] shrink-0">
-                  {renderIcon(feat.icon)}
-                </div>
-                <div>
-                  <h4 className="font-bold text-slate-900 text-sm">{feat.title}</h4>
-                  <p className="text-xs text-slate-500 leading-tight mt-0.5">{feat.desc}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-auto pt-8 relative h-40 overflow-hidden rounded-2xl bg-gradient-to-tr from-[#5f48e6]/10 to-transparent">
-             <div className="absolute -bottom-8 -right-8 w-40 h-40 opacity-80 mix-blend-multiply">
-               <Image src="https://images.unsplash.com/photo-1607083206968-13611e3d76db?w=300&q=80" alt="Shopping Bag" fill className="object-cover rounded-full" />
-             </div>
-             <div className="absolute bottom-4 left-4 text-[#5f48e6] font-black text-2xl">%</div>
-             <div className="absolute top-4 right-8 text-[#5f48e6]/50">✨</div>
           </div>
         </div>
 
-        {/* Right Section */}
-        <div className="flex-1 flex flex-col min-w-0">
-          
-          {/* Tabs */}
-          <div className="flex overflow-x-auto hide-scrollbar gap-2 mb-6 pb-2">
-            {categories.map((cat) => (
-              <button 
-                key={cat} 
-                onClick={() => setActiveTab(cat)}
-                className={`px-6 py-2.5 rounded-full text-sm font-semibold whitespace-nowrap transition-colors border ${
-                  activeTab === cat 
-                    ? "bg-[#5f48e6] text-white border-[#5f48e6]" 
-                    : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
-                }`}
-              >
-                {cat}
-              </button>
-            ))}
+        {/* 2. Sub-header Filter Pills & "Voir tout >" */}
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 overflow-x-auto hide-scrollbar">
+            <button className="bg-[#182232] border border-[#273549] text-white text-xs font-semibold px-3.5 py-2 rounded-xl flex items-center gap-2 hover:border-amber-500/50 transition-colors whitespace-nowrap">
+              <Package className="w-4 h-4 text-amber-400" />
+              Stock limité
+            </button>
+            <button className="bg-[#182232] border border-[#273549] text-white text-xs font-semibold px-3.5 py-2 rounded-xl flex items-center gap-2 hover:border-amber-500/50 transition-colors whitespace-nowrap">
+              <Flame className="w-4 h-4 text-red-500" />
+              Meilleures offres
+            </button>
           </div>
 
-          {/* Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 xl:gap-6 mb-6">
-            {filteredProducts.map((product) => (
-              <div key={product.id} className="bg-white rounded-3xl p-4 border border-slate-100 shadow-sm relative group hover:shadow-md transition-shadow">
-                {product.discount && (
-                  <div className="absolute top-4 left-4 z-10 bg-[#ff4d4f] text-white text-[10px] font-bold px-2 py-1 rounded-full">
-                    -{product.discount}%
-                  </div>
-                )}
-                <button className="absolute top-4 right-4 z-10 w-8 h-8 bg-white border border-slate-100 rounded-full flex items-center justify-center text-slate-400 hover:text-[#ff4d4f] hover:border-[#ff4d4f] transition-colors shadow-sm">
-                  <Heart className="w-4 h-4" />
+          <Link 
+            href="/deals" 
+            className="text-[#10B981] hover:text-[#059669] font-bold text-xs sm:text-sm flex items-center gap-1 shrink-0 transition-colors"
+          >
+            Voir tout
+            <ChevronRight className="w-4 h-4" />
+          </Link>
+        </div>
+
+        {/* 3. Product Cards — horizontal scroll */}
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => scrollProducts("left")}
+            className="absolute left-0 top-1/2 z-10 hidden -translate-y-1/2 -translate-x-1 rounded-full border border-[#334461] bg-[#151D2A]/95 p-2 text-white shadow-lg transition-colors hover:border-amber-500/50 md:flex"
+            aria-label="Produits précédents"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => scrollProducts("right")}
+            className="absolute right-0 top-1/2 z-10 hidden -translate-y-1/2 translate-x-1 rounded-full border border-[#334461] bg-[#151D2A]/95 p-2 text-white shadow-lg transition-colors hover:border-amber-500/50 md:flex"
+            aria-label="Produits suivants"
+          >
+            <ChevronRight className="h-5 w-5" />
+          </button>
+
+          <div
+            ref={scrollRef}
+            className="flex gap-3 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden snap-x snap-mandatory -mx-1 px-1"
+          >
+          {displayProducts.map((item) => (
+            <div
+              key={item.id}
+              className="w-[48vw] sm:w-[260px] shrink-0 snap-start bg-[#151D2A] border border-[#222E42] rounded-3xl p-3 sm:p-5 flex flex-col justify-between relative shadow-xl hover:border-[#334461] transition-all group sm:w-[280px]"
+            >
+              {/* Top Row: Discount & Heart Icon */}
+              <div className="flex items-center justify-between z-10">
+                <span className="bg-[#FF4D4D] text-white text-xs font-black px-2.5 py-1 rounded-lg tracking-wide shadow-md">
+                  -{item.discount}%
+                </span>
+                <button 
+                  onClick={() => toggleWishlist(item.id, item.name)}
+                  className="w-8 h-8 rounded-full bg-[#1C2638] border border-[#2A3952] flex items-center justify-center text-slate-300 hover:text-[#FF4D4D] hover:border-[#FF4D4D] transition-colors"
+                  aria-label="Ajouter aux favoris"
+                >
+                  <Heart className={`w-4 h-4 ${wishlist[item.id] ? "fill-[#FF4D4D] text-[#FF4D4D]" : ""}`} />
                 </button>
-                
-                <div className="relative w-full aspect-square mb-4 bg-slate-50 rounded-2xl overflow-hidden">
-                  <Image src={product.images[0]} alt={product.name} fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
-                </div>
-                
-                <h3 className="font-bold text-slate-900 text-[15px] mb-1 line-clamp-1">{product.name}</h3>
-                
-                <div className="flex items-center gap-2 mb-4">
-                  <span className="font-black text-slate-900 text-lg">{(product.price / 100).toLocaleString("fr-MA")} DH</span>
-                  {product.oldPrice && (
-                    <span className="text-xs text-slate-400 line-through">{(product.oldPrice / 100).toLocaleString("fr-MA")} DH</span>
-                  )}
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1 text-xs font-semibold text-yellow-500">
-                    <Star className="w-3.5 h-3.5 fill-current" />
-                    <span>{product.rating}</span>
-                    <span className="text-slate-400 font-normal">(18k)</span>
-                  </div>
-                  
-                  <button onClick={() => addItem({ ...product, quantity: 1 } as any)} className="w-8 h-8 rounded-full border border-[#2cb174] flex items-center justify-center text-[#2cb174] hover:bg-[#2cb174] hover:text-white transition-colors">
-                    <ShoppingCart className="w-4 h-4" />
-                  </button>
-                </div>
               </div>
-            ))}
+
+              {/* Product Image Area */}
+              <div className="relative w-full h-36 sm:h-44 bg-[#0F1622] rounded-2xl flex items-center justify-center p-3 my-3 overflow-hidden group-hover:bg-[#111A29] transition-colors">
+                <Image
+                  src={item.image}
+                  alt={item.name}
+                  fill
+                  sizes="(max-width: 640px) 48vw, 280px"
+                  className="object-contain p-2 group-hover:scale-105 transition-transform duration-500"
+                  unoptimized
+                />
+              </div>
+
+              {/* Stock Remaining Pill */}
+              <div className="bg-[#1D293D] border border-[#2C3E5A] text-slate-200 text-xs font-semibold px-3 py-1 rounded-full flex items-center justify-center gap-1.5 w-fit mx-auto my-2">
+                <Hourglass className="w-3.5 h-3.5 text-amber-400" />
+                <span>Plus que {item.stockLeft}</span>
+              </div>
+
+              {/* Product Title */}
+              <h3 className="font-bold text-white text-xs sm:text-sm leading-snug line-clamp-2 text-center my-1 min-h-[2rem] sm:min-h-[2.5rem] flex items-center justify-center">
+                {item.name}
+              </h3>
+
+              {/* Rating */}
+              <div className="flex items-center justify-center gap-1 text-xs my-1">
+                <Star className="w-4 h-4 text-[#FFB800] fill-[#FFB800]" />
+                <span className="font-bold text-white">{item.rating}</span>
+                <span className="text-slate-400">({item.reviewsCount})</span>
+              </div>
+
+              {/* Pricing */}
+              <div className="flex items-baseline justify-center gap-2 my-2">
+                <span className="text-[#FF4D4D] font-black text-xl sm:text-2xl">
+                  {item.price.toLocaleString("fr-MA")} DH
+                </span>
+                <span className="text-slate-500 line-through text-xs sm:text-sm font-normal">
+                  {item.oldPrice.toLocaleString("fr-MA")} DH
+                </span>
+              </div>
+
+              {/* CTA Button: "Ajouter 🛒" */}
+              <button
+                onClick={() => handleAddToCart(item)}
+                className="w-full bg-gradient-to-r from-[#FF4D4D] to-[#E03838] hover:from-[#E03838] hover:to-[#C82323] text-white font-extrabold text-xs sm:text-sm py-2.5 sm:py-3 px-3 sm:px-4 rounded-2xl flex items-center justify-center gap-1.5 sm:gap-2 shadow-lg shadow-red-500/20 active:scale-95 transition-all cursor-pointer my-2"
+              >
+                <span className="text-xs sm:text-sm">Ajouter</span>
+                <ShoppingCart className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-white text-white" />
+              </button>
+
+              {/* Progress Bar & Sold percentage */}
+              <div className="mt-2 space-y-1.5">
+                <div className="w-full bg-[#1E293B] h-2 rounded-full overflow-hidden">
+                  <div 
+                    className="bg-gradient-to-r from-[#FF4D4D] to-[#FF7878] h-full rounded-full transition-all duration-500" 
+                    style={{ width: `${item.percentSold}%` }}
+                  />
+                </div>
+                <p className="text-[#FF4D4D] font-bold text-xs text-center">
+                  {item.percentSold}% déjà pris
+                </p>
+              </div>
+            </div>
+          ))}
+          </div>
+        </div>
+
+        {/* 4. Bottom Feature Badges (3 items) */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-4 border-t border-[#1E293B]">
+          {/* Badge 1: Prix imbattables */}
+          <div className="bg-[#131A26] border border-[#222E42] p-3.5 rounded-2xl flex items-center gap-3.5">
+            <div className="w-10 h-10 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-[#FF4D4D] shrink-0">
+              <Tag className="w-5 h-5" />
+            </div>
+            <div>
+              <h4 className="font-bold text-white text-sm">Prix imbattables</h4>
+              <p className="text-xs text-slate-400 font-medium">Jusqu'à -70%</p>
+            </div>
           </div>
 
-          {/* Bottom Sticky Bar */}
-          <div className="mt-auto bg-white border border-slate-200 rounded-3xl p-4 sm:p-6 shadow-lg flex flex-col xl:flex-row items-center gap-6 justify-between">
-            <div className="flex items-center gap-6 border-b xl:border-b-0 xl:border-r border-slate-200 pb-6 xl:pb-0 xl:pr-6 w-full xl:w-auto">
-              <div className="w-16 h-16 rounded-full bg-[#eefaf3] flex flex-col items-center justify-center text-[#1f8755]">
-                <span className="text-[9px] font-bold uppercase tracking-wider">ÉCONOMIE</span>
-                <span className="text-xl font-black">-{discountRate * 100}%</span>
-              </div>
-              <div>
-                <p className="text-xs font-bold text-slate-500 mb-0.5">Total estimé</p>
-                <div className="flex items-baseline gap-2">
-                  <span className="font-black text-slate-900 text-2xl">{(finalPrice / 100).toLocaleString("fr-MA")} DH</span>
-                </div>
-                <p className="text-[10px] text-slate-400">
-                  au lieu de <span className="line-through">{(totalPriceRaw / 100).toLocaleString("fr-MA")} DH</span>
-                </p>
-              </div>
+          {/* Badge 2: Produits officiels */}
+          <div className="bg-[#131A26] border border-[#222E42] p-3.5 rounded-2xl flex items-center gap-3.5">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-[#10B981] shrink-0">
+              <Shield className="w-5 h-5" />
             </div>
-
-            <div className="flex-1 flex items-center gap-4 bg-slate-50 p-3 rounded-2xl border border-slate-100 w-full">
-              <div className="w-12 h-12 bg-white rounded-xl shadow-sm border border-slate-200 flex items-center justify-center relative shrink-0">
-                <Gift className="w-6 h-6 text-yellow-500" />
-              </div>
-              <div>
-                <div className="flex items-center gap-1">
-                  <h4 className="font-bold text-[#1f8755] text-sm">Cadeau offert</h4>
-                  <span>🎁</span>
-                </div>
-                <p className="font-bold text-slate-900 text-xs">{config.giftTitle || "Kit de nettoyage 7-en-1"}</p>
-                <p className="text-[10px] text-slate-500 max-w-[200px] leading-tight mt-0.5">
-                  {config.giftDescription || "Pour garder tous vos appareils propres et comme neufs au quotidien."}
-                </p>
-              </div>
-              <div className="ml-auto w-12 h-12 relative rounded-lg border border-slate-200 overflow-hidden shrink-0 hidden sm:block">
-                <Image src={config.giftImage || "https://images.unsplash.com/photo-1584916201218-f4242ceb4809?q=80&w=100"} alt="Gift" fill className="object-cover" />
-              </div>
+            <div>
+              <h4 className="font-bold text-white text-sm">Produits officiels</h4>
+              <p className="text-xs text-slate-400 font-medium">Garantie 100%</p>
             </div>
+          </div>
 
-            <div className="w-full xl:w-auto flex flex-col items-center gap-2">
-              <button className="w-full xl:w-[220px] bg-[#5f48e6] hover:bg-[#4a35c2] text-white font-bold py-3.5 px-6 rounded-2xl flex items-center justify-center gap-2 transition-colors shadow-md shadow-[#5f48e6]/20">
-                <ShoppingCart className="w-4 h-4" />
-                Voir mon panier
-                <ArrowRight className="w-4 h-4" />
-              </button>
-              <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-medium">
-                <Lock className="w-3 h-3" />
-                Paiement 100% sécurisé
-              </div>
+          {/* Badge 3: Livraison rapide */}
+          <div className="bg-[#131A26] border border-[#222E42] p-3.5 rounded-2xl flex items-center gap-3.5">
+            <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400 shrink-0">
+              <Truck className="w-5 h-5" />
+            </div>
+            <div>
+              <h4 className="font-bold text-white text-sm">Livraison rapide</h4>
+              <p className="text-xs text-slate-400 font-medium">Partout au Maroc</p>
             </div>
           </div>
         </div>

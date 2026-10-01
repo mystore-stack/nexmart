@@ -9,7 +9,7 @@ import { CartDrawer } from "@/components/cart/CartDrawer";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { SearchModal } from "@/components/layout/SearchModal";
-import { MobileBottomNav } from "@/components/layout/MobileBottomNav";
+import { PwaProvider } from "@/components/pwa/PwaProvider";
 import { getSiteConfigBundle } from "@/lib/cms";
 import dynamicImport from "next/dynamic";
 import "./globals.css";
@@ -19,6 +19,7 @@ const AIChatWidget = dynamicImport(
 );
 
 export const metadata: Metadata = {
+  applicationName: "NexMart",
   title: {
     default: "NexMart Maroc — Marketplace Premium",
     template: "%s | NexMart Maroc",
@@ -30,6 +31,7 @@ export const metadata: Metadata = {
   creator: "NexMart",
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://nexmart.ma"),
   alternates: { canonical: "/" },
+  manifest: "/manifest.webmanifest",
   openGraph: {
     type: "website", locale: "fr_MA", url: "https://nexmart.ma", siteName: "NexMart Maroc",
     title: "NexMart Maroc — Marketplace Premium",
@@ -38,7 +40,24 @@ export const metadata: Metadata = {
   },
   twitter: { card: "summary_large_image", title: "NexMart Maroc", creator: "@nexmart_ma" },
   robots: { index: true, follow: true },
-  icons: { icon: "/favicon.ico", shortcut: "/favicon-16x16.png", apple: "/apple-touch-icon.png" },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "NexMart",
+  },
+  icons: {
+    icon: [
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    shortcut: "/favicon.ico",
+    apple: "/apple-touch-icon.png",
+  },
+  other: {
+    "mobile-web-app-capable": "yes",
+    "apple-mobile-web-app-capable": "yes",
+    "apple-mobile-web-app-status-bar-style": "black-translucent",
+  },
 };
 
 export const viewport: Viewport = {
@@ -49,6 +68,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 5,
+  viewportFit: "cover",
 };
 
 // Force dynamic rendering to avoid database access during build time
@@ -65,14 +85,14 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <AuthProvider>
               <SiteConfigProvider value={siteConfig}>
                 <div className="flex min-h-screen flex-col overflow-x-clip relative">
+                  <PwaProvider />
                   <Navbar />
-                  <main className="flex-1 page-enter w-full">{children}</main>
+                  <main className="flex-1 w-full pb-6">{children}</main>
                   <Footer />
                 </div>
                 <CartDrawer />
                 <SearchModal />
                 {process.env.NEXT_PUBLIC_ENABLE_AI_CHAT !== "false" && <AIChatWidget />}
-                <MobileBottomNav />
               </SiteConfigProvider>
             </AuthProvider>
             <Toaster

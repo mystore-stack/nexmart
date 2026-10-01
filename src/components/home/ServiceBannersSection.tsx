@@ -2,7 +2,8 @@
 import React from "react";
 import { Truck, RotateCcw, ShieldCheck, Headphones, Wallet } from "lucide-react";
 
-const services = [
+// Default service banners for trust indicators
+const defaultServices = [
   { icon: Truck, title: "Livraison rapide", description: "Partout au Maroc" },
   { icon: Wallet, title: "Paiement à la livraison", description: "Payez à la réception" },
   { icon: RotateCcw, title: "Retour facile", description: "Sous 7 jours" },
@@ -11,9 +12,9 @@ const services = [
 ];
 
 export function ServiceBannersSection({ banners = [] }: { banners?: any[] }) {
-  const displayServices = banners.length > 0 ? banners : services;
+  const displayServices = banners.length > 0 ? banners : defaultServices;
   return (
-    <section className="my-8 md:my-12">
+    <div className="my-8 md:my-12">
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-4">
         {displayServices.map(({ icon: Icon, title, description, iconName }: any) => {
           // In a real app we'd map string names to lucide icons.
@@ -35,7 +36,7 @@ export function ServiceBannersSection({ banners = [] }: { banners?: any[] }) {
           );
         })}
       </div>
-    </section>
+    </div>
   );
 }
 

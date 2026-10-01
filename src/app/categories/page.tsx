@@ -53,7 +53,7 @@ export default async function CategoriesPage() {
             {topCategories.map((category) => (
               <Link
                 key={category.id}
-                href={`/categories/${category.slug}`}
+                href={`/category/${category.slug}`}
                 className="group relative overflow-hidden rounded-3xl border border-border/80 bg-card p-6 shadow-sm hover:shadow-luxury transition-all duration-300 hover:-translate-y-1"
               >
                 <div className="flex items-center justify-between mb-4">
@@ -103,7 +103,7 @@ export default async function CategoriesPage() {
             {sortedCategories.map((category) => (
               <Link
                 key={category.id}
-                href={`/categories/${category.slug}`}
+                href={`/category/${category.slug}`}
                 className="bg-card border border-border rounded-2xl p-5 text-center hover:border-brand-300 hover:shadow-sm hover:-translate-y-0.5 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 group"
               >
                 <div className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-surface text-muted-foreground group-hover:bg-brand-100 group-hover:text-brand-700 transition-colors mb-3">

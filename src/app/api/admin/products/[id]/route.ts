@@ -26,9 +26,16 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   try {
     const { organizationId } = await requireAdmin();
     const { id } = await params;
+    
+    // Support both UUID and slug lookups
+    const lookup: Array<{ id?: string; slug?: string }> = [{ id }];
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+      lookup.unshift({ slug: id });
+    }
+    
     const product = await prisma.product.findFirst({
-      where: { id, organizationId },
-      include: { category: true, variants: true, reviews: { take: 10, include: { user: { select: { name: true } } } } },
+      where: { organizationId, OR: lookup },
+      include: { category: true, variants: true, reviews: { include: { user: { select: { id: true, name: true, avatar: true } } }, take: 10 } },
     });
     if (!product) return notFound("Product not found");
     return ok(product);
@@ -44,13 +51,26 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     const body = await req.json();
     const data = updateSchema.parse(body);
 
+    // Support both UUID and slug lookups - need to find product first
+    const lookup: Array<{ id?: string; slug?: string }> = [{ id }];
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+      lookup.unshift({ slug: id });
+    }
+    
+    const existingProduct = await prisma.product.findFirst({
+      where: { organizationId, OR: lookup },
+      select: { id: true },
+    });
+    
+    if (!existingProduct) return notFound("Product not found");
+
     const product = await prisma.product.update({
-      where: { id, organizationId },
+      where: { id: existingProduct.id },
       data,
       include: { category: true, variants: true },
     });
 
-    await invalidateProductCache(id);
+    await invalidateProductCache(existingProduct.id);
     return ok(product);
   } catch (err: any) {
     if ((err as Error).message === "Forbidden") return forbidden();
@@ -64,19 +84,32 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     const { organizationId } = await requireAdmin();
     const { id } = await params;
 
+    // Support both UUID and slug lookups
+    const lookup: Array<{ id?: string; slug?: string }> = [{ id }];
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+      lookup.unshift({ slug: id });
+    }
+    
+    const existingProduct = await prisma.product.findFirst({
+      where: { organizationId, OR: lookup },
+      select: { id: true },
+    });
+    
+    if (!existingProduct) return notFound("Product not found");
+
     // Soft delete by unpublishing, or hard delete
     const force = req.nextUrl.searchParams.get("force") === "true";
 
     if (force) {
-      await prisma.product.delete({ where: { id, organizationId } });
+      await prisma.product.delete({ where: { id: existingProduct.id } });
     } else {
       await prisma.product.update({
-        where: { id, organizationId },
+        where: { id: existingProduct.id },
         data: { published: false },
       });
     }
 
-    await invalidateProductCache(id);
+    await invalidateProductCache(existingProduct.id);
     return noContent();
   } catch (err: any) {
     if ((err as Error).message === "Forbidden") return forbidden();

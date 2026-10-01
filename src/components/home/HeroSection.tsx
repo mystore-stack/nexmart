@@ -5,21 +5,7 @@ import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 
-// Use the generated image for the fallback
-const SOFA_IMAGE = "/images/hero_sofa_banner_1786917399260.jpg"; 
-
-const FALLBACK_SLIDES = [
-  {
-    id: "fallback-1",
-    eyebrow: "TENDANCE",
-    title: "Le meilleur de la tech & du style",
-    titleAccent: "",
-    subtitle: "Les nouveautés et indispensables du moment, sélectionnés pour vous.",
-    cta: "Découvrir",
-    href: "/products",
-    image: SOFA_IMAGE,
-  }
-];
+// Removed fallback slides - CMS must be the single source of truth
 
 type HeroSectionProps = {
   slides?: Array<{
@@ -39,22 +25,45 @@ type HeroSectionProps = {
   }>;
 };
 
+type HeroConfig = {
+  desktopWidth?: string;
+  desktopHeight?: number;
+  desktopMaxWidth?: number;
+  desktopAspectRatio?: string;
+  tabletWidth?: string;
+  tabletHeight?: number;
+  tabletMaxWidth?: number;
+  tabletAspectRatio?: string;
+  mobileWidth?: string;
+  mobileHeight?: number;
+  mobileMaxWidth?: number;
+  mobileAspectRatio?: string;
+  widthMode?: string;
+  imageFit?: string;
+  imagePosition?: string;
+  imagePositionX?: string;
+  imagePositionY?: string;
+  borderRadius?: string;
+};
+
 export function HeroSection({ slides: propSlides }: HeroSectionProps) {
   const [current, setCurrent] = useState(0);
   const [paused, setPaused] = useState(false);
   const [banners, setBanners] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [heroConfig, setHeroConfig] = useState<HeroConfig>({});
 
-  // For the exact match, we prioritize our hardcoded fallback if it's the exact mockup requirement, 
-  // but we still allow CMS slides to override if they are valid.
-  const slides = propSlides && propSlides.length > 0 ? propSlides : banners.length > 0 ? banners : FALLBACK_SLIDES;
-  const slide = slides[current] ?? FALLBACK_SLIDES[0];
-  const isUsingFallback = banners.length === 0 && (!propSlides || propSlides.length === 0);
-  
+  // CMS must be the single source of truth - no fallback
+  const slides = propSlides && propSlides.length > 0 ? propSlides : banners;
+
+  if (!slides || slides.length === 0) return null;
+
+  const slide = slides[current];
+
   // Validate slide image
-  const slideImage = slide.image && typeof slide.image === "string" && slide.image.trim() 
-    ? slide.image 
-    : SOFA_IMAGE;
+  const slideImage = slide.image && typeof slide.image === "string" && slide.image.trim()
+    ? slide.image
+    : null;
 
   useEffect(() => {
     async function fetchBanners() {
@@ -74,6 +83,21 @@ export function HeroSection({ slides: propSlides }: HeroSectionProps) {
   }, []);
 
   useEffect(() => {
+    async function fetchHeroConfig() {
+      try {
+        const response = await fetch("/api/hero/config");
+        const data = await response.json();
+        if (data.success && data.data) {
+          setHeroConfig(data.data);
+        }
+      } catch (error) {
+        console.error("[HeroSection] Failed to fetch hero config:", error);
+      }
+    }
+    fetchHeroConfig();
+  }, []);
+
+  useEffect(() => {
     if (paused || slides.length <= 1) return;
     const t = setInterval(() => setCurrent((p) => (p + 1) % slides.length), 5500);
     return () => clearInterval(t);
@@ -84,12 +108,39 @@ export function HeroSection({ slides: propSlides }: HeroSectionProps) {
 
   if (loading && banners.length === 0) return null;
 
+  const imageFit = heroConfig.imageFit || 'cover';
+  const imagePosition = heroConfig.imagePosition === 'custom' 
+    ? `${heroConfig.imagePositionX || '50%'} ${heroConfig.imagePositionY || '50%'}`
+    : heroConfig.imagePosition || 'center';
+
   return (
     <div
-      className="relative min-h-[380px] sm:min-h-[460px] overflow-hidden rounded-3xl bg-[#0a1815] shadow-lg"
+      className="hero-responsive relative w-full overflow-hidden bg-[#0a1815] shadow-lg"
+      style={{
+        borderRadius: heroConfig.borderRadius || '0.5rem',
+        aspectRatio: heroConfig.mobileAspectRatio || '2.5/1',
+        minHeight: `${heroConfig.mobileHeight || 280}px`,
+        maxHeight: `${heroConfig.mobileMaxWidth || 640}px`,
+      }}
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
+      <style jsx global>{`
+        @media (min-width: 640px) {
+          .hero-responsive {
+            aspect-ratio: ${heroConfig.tabletAspectRatio || '2.5/1'} !important;
+            min-height: ${heroConfig.tabletHeight || 320}px !important;
+            max-height: ${heroConfig.tabletMaxWidth || 1024}px !important;
+          }
+        }
+        @media (min-width: 1024px) {
+          .hero-responsive {
+            aspect-ratio: ${heroConfig.desktopAspectRatio || '2.5/1'} !important;
+            min-height: ${heroConfig.desktopHeight || 420}px !important;
+            max-height: ${heroConfig.desktopMaxWidth || 1440}px !important;
+          }
+        }
+      `}</style>
       <AnimatePresence mode="wait">
         <motion.div
           key={slide.id}
@@ -99,12 +150,23 @@ export function HeroSection({ slides: propSlides }: HeroSectionProps) {
           transition={{ duration: 0.6 }}
           className="absolute inset-0"
         >
-          <Image src={slideImage} alt={slide.title || "Banner"} fill className="object-cover object-center opacity-70" priority sizes="100vw" />
+          <Image 
+            src={slideImage} 
+            alt={slide.title || "Banner"} 
+            fill 
+            className="opacity-70" 
+            style={{ 
+              objectFit: imageFit,
+              objectPosition: imagePosition
+            }}
+            priority 
+            sizes="100vw" 
+          />
           <div className="absolute inset-0 bg-gradient-to-r from-[#0d1f1c]/90 sm:from-[#0d1f1c] via-[#0d1f1c]/80 sm:via-[#0d1f1c]/90 to-transparent" />
         </motion.div>
       </AnimatePresence>
 
-      <div className="relative z-10 flex min-h-[380px] sm:min-h-[460px] flex-col justify-center px-4 py-8 sm:px-12 lg:px-16">
+      <div className="relative z-10 flex h-full flex-col justify-center px-4 py-6 sm:px-12 lg:px-16">
         <AnimatePresence mode="wait">
           <motion.div
             key={`copy-${slide.id}`}

@@ -11,8 +11,10 @@ import {
 import { useCartStore } from "@/store/cart";
 import { formatPrice } from "@/utils/format";
 import toast from "react-hot-toast";
+import { useSession } from "next-auth/react";
 
 export default function CartPage() {
+  const { status } = useSession();
   const {
     items, removeItem, updateQuantity, clearCart,
     coupon, applyCoupon, removeCoupon,
@@ -33,6 +35,12 @@ export default function CartPage() {
 
   // Automatic cart cleanup on page load
   useEffect(() => {
+    // Skip cart cleanup if user is not authenticated
+    if (status !== "authenticated") {
+      console.log("[CART PAGE] Skipping cart cleanup - user not authenticated");
+      return;
+    }
+    
     const cleanupCart = async () => {
       if (isCleaningUp) return;
       setIsCleaningUp(true);
@@ -75,7 +83,7 @@ export default function CartPage() {
     };
 
     cleanupCart();
-  }, []); // Run once on mount
+  }, [status]); // Run when authentication status changes
 
   const handleCoupon = async () => {
     if (!couponInput.trim()) return;

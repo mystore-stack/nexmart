@@ -16,7 +16,7 @@ export async function GET() {
     // Get all categories (both parent and child)
     const allCategories = await prisma.category.findMany({
       where: { organizationId },
-      orderBy: { name: "asc" },
+      orderBy: { order: "asc" },
     });
 
     // Separate parent and child categories
@@ -42,6 +42,7 @@ export async function GET() {
     const categories = parentCategories.map(parent => {
       const children = childCategories
         .filter(child => child.parentId === parent.id)
+        .sort((a, b) => a.order - b.order)
         .map(child => ({
           ...child,
           _count: {

@@ -11,27 +11,16 @@ import {
   Search, Settings, ShoppingCart, Sparkles, User, X,
 } from "lucide-react";
 import { useCartStore } from "@/store/cart";
-import { useAuthStore, useUIStore } from "@/store/index";
+import { useUIStore } from "@/store/index";
 import { useSiteConfig } from "@/components/providers/SiteConfigProvider";
+import { useSession, signOut } from "next-auth/react";
 import type { NavigationItemData } from "@/lib/cms/data";
 
-// Moroccan geometric SVG logo mark — colors from site settings
-function MoroccanLogo({ size = 40, primaryColor = "#0F766E", secondaryColor = "#0a5c55" }: { size?: number; primaryColor?: string; secondaryColor?: string }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect width="40" height="40" rx="10" fill="url(#logoGrad)" />
-      <path d="M20 6 L34 20 L20 34 L6 20 Z" stroke="rgba(212,175,55,0.8)" strokeWidth="1.5" fill="none" />
-      <path d="M20 11 L29 20 L20 29 L11 20 Z" stroke="rgba(212,175,55,0.5)" strokeWidth="1" fill="none" />
-      <circle cx="20" cy="20" r="4" fill="rgba(212,175,55,0.9)" />
-      <path d="M20 6 L20 11 M34 20 L29 20 M20 34 L20 29 M6 20 L11 20" stroke="rgba(212,175,55,0.5)" strokeWidth="1" />
-      <defs>
-        <linearGradient id="logoGrad" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor={primaryColor} />
-          <stop offset="100%" stopColor={secondaryColor} />
-        </linearGradient>
-      </defs>
-    </svg>
-  );
+import { NexmartEmblem } from "@/components/ui/NexmartLogo";
+
+// Moroccan geometric emerald logo emblem mark
+function MoroccanLogo({ size = 40, primaryColor = "#00B48A" }: { size?: number; primaryColor?: string; secondaryColor?: string }) {
+  return <NexmartEmblem size={size} color={primaryColor} />;
 }
 
 export function Navbar() {
@@ -42,6 +31,24 @@ export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+
+  // NEXTAUTH IS THE SINGLE SOURCE OF TRUTH
+  const { data: session, status } = useSession();
+  const user = session?.user as { id?: string; name?: string | null; email?: string | null; role?: string; avatar?: string | null } | null;
+
+  // DIAGNOSTIC LOGGING - PROVE NEXTAUTH STATE
+  useEffect(() => {
+    console.log("[AUTH FINAL]", {
+      status,
+      sessionUser: session?.user ?? null,
+      pathname: window.location.pathname,
+      hasUser: !!session?.user,
+      userId: session?.user?.id,
+      userEmail: session?.user?.email,
+      userRole: (session?.user as any)?.role,
+      isAdmin: user?.role === "ADMIN" || user?.role === "SUPER_ADMIN",
+    });
+  }, [session, status, user, pathname]);
 
   const navLinks: Array<{
     label: string;
@@ -58,7 +65,6 @@ export function Navbar() {
   }));
 
   const { items, openCart } = useCartStore();
-  const { user, logout } = useAuthStore();
   const { openSearch, mobileMenuOpen, toggleMobileMenu, closeMobileMenu } = useUIStore();
 
   const cartCount = items.reduce((sum, item) => sum + item.quantity, 0);
@@ -81,6 +87,12 @@ export function Navbar() {
     setSearchQuery("");
   };
 
+  const handleLogout = async () => {
+    console.log("[LOGOUT CLIENT] Logout clicked");
+    console.log("[LOGOUT CLIENT] Calling NextAuth signOut with redirect to /login");
+    await signOut({ callbackUrl: "/login" });
+  };
+
   return (
     <>
       <motion.header
@@ -93,15 +105,12 @@ export function Navbar() {
               ? "navbar-glass"
               : "navbar-transparent"
         }`}
-        initial={{ y: -100 }}
-        animate={{ y: 0 }}
-        transition={{ type: "spring", stiffness: 280, damping: 30 }}
       >
         <div className="container-main">
           <div
             className={`flex items-center sm:gap-4 ${
               isHomepage
-                ? `h-16 px-4 bg-white sm:mt-3 sm:h-[4.95rem] sm:rounded-[30px] sm:border sm:shadow-[0_20px_60px_rgba(15,23,42,0.08)] sm:backdrop-blur-2xl ${
+                ? `h-16 px-4 bg-white sm:h-[4.95rem] sm:rounded-[30px] sm:border sm:shadow-[0_20px_60px_rgba(15,23,42,0.08)] sm:backdrop-blur-2xl ${
                     scrolled
                       ? "sm:border-stone-200/90 sm:bg-white/90 shadow-sm"
                       : "sm:border-white/50 sm:bg-white/72"
@@ -248,7 +257,7 @@ export function Navbar() {
                 <Heart className="h-5 w-5" />
               </Link>
 
-              {user && (
+              {status === "authenticated" && user && (
                 <Link href="/account/notifications" className="btn-ghost relative hidden sm:flex" aria-label="Notifications">
                   <Bell className="h-5 w-5" />
                   <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-brand-600 ring-2 ring-background" />
@@ -272,7 +281,7 @@ export function Navbar() {
                 </AnimatePresence>
               </button>
 
-              {user ? (
+              {status === "authenticated" && user ? (
                 <div
                   className="relative hidden sm:block"
                   onMouseEnter={() => setActiveDropdown("user")}
@@ -285,7 +294,7 @@ export function Navbar() {
                         {user?.name?.charAt(0).toUpperCase() || "A"}
                       </AvatarFallback>
                     </Avatar>
-                    <span className="max-w-[80px] truncate text-foreground">{user.name.split(" ")[0]}</span>
+                    <span className="max-w-[80px] truncate text-foreground">{user.name?.split(" ")[0] || "User"}</span>
                     <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
                   </button>
 
@@ -314,7 +323,7 @@ export function Navbar() {
                           </Link>
                         ))}
                         <button
-                          onClick={logout}
+                          onClick={handleLogout}
                           className="mt-1 flex w-full items-center gap-2.5 rounded-xl border-t border-border/50 px-3 py-2.5 text-left text-sm text-destructive hover:bg-destructive/8 transition-colors"
                         >
                           <LogOut className="h-4 w-4" />
@@ -343,8 +352,6 @@ export function Navbar() {
           <div className="absolute bottom-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-gold-400/40 to-transparent" />
         )}
       </motion.header>
-
-      <div className={isHomepage ? "h-[4.5rem] sm:h-[6.15rem]" : "h-[3.5rem] sm:h-[4.25rem]"} />
 
       {/* Mobile Menu */}
       <AnimatePresence>
@@ -418,10 +425,10 @@ export function Navbar() {
                 </nav>
 
                 <div className="mt-6 grid grid-cols-2 gap-3 border-t border-gold-200/40 dark:border-gold-800/20 pt-5">
-                  {user ? (
+                  {status === "authenticated" && user ? (
                     <>
                       <Link href="/account" className="btn btn-outline h-11 w-full justify-center text-sm">Mon Compte</Link>
-                      <button onClick={logout} className="btn btn-outline h-11 w-full justify-center text-sm text-destructive">Déconnexion</button>
+                      <button onClick={handleLogout} className="btn btn-outline h-11 w-full justify-center text-sm text-destructive">Déconnexion</button>
                     </>
                   ) : (
                     <>

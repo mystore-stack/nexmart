@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/auth";
+import { requireAuth } from "@/lib/auth-api";
 import { revalidatePath, revalidateTag } from "next/cache";
 
 // GET - Fetch all products with featured status

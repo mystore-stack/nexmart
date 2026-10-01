@@ -8,16 +8,25 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
-import { useAuthStore } from "@/store/index";
+import { useSession } from "next-auth/react";
+import type { Session } from "next-auth";
 import { formatDate } from "@/utils/format";
 import toast from "react-hot-toast";
+import { MobileAccountView } from "@/components/mobile/MobileAccountView";
 
 type Tab = "profile" | "security" | "addresses" | "notifications";
 
 export default function AccountPage() {
-  const { user, setUser } = useAuthStore();
+  const { data: session, status } = useSession();
+  const update = useSession().update as (data?: any) => Promise<Session | null>;
+  const user = session?.user as { id?: string; name?: string | null; email?: string | null; phone?: string | null } | null;
   const [tab, setTab] = useState<Tab>("profile");
   const [saving, setSaving] = useState(false);
+
+  // Redirect if not authenticated
+  if (status === "unauthenticated") {
+    return null; // Or redirect via middleware
+  }
 
   const [profile, setProfile] = useState({
     name: user?.name || "",
@@ -25,10 +34,16 @@ export default function AccountPage() {
     phone: user?.phone || "",
   });
 
-  const [passwords, setPasswords] = useState({
-    current: "", newPw: "", confirm: ""
-  });
-  const [showPw, setShowPw] = useState(false);
+  // Sync profile state when session changes
+  useEffect(() => {
+    if (user) {
+      setProfile({
+        name: user.name || "",
+        email: user.email || "",
+        phone: user.phone || "",
+      });
+    }
+  }, [user]);
 
   const saveProfile = async () => {
     setSaving(true);
@@ -40,7 +55,8 @@ export default function AccountPage() {
       });
       const data = await res.json();
       if (data.success) {
-        setUser({ ...user!, ...data.data });
+        // Update NextAuth session
+        await update({ user: { ...user, ...data.data } });
         toast.success("Profil mis à jour !");
       } else {
         toast.error(data.error || "Échec de la mise à jour");
@@ -87,7 +103,12 @@ export default function AccountPage() {
   ];
 
   return (
-    <div className="page-enter min-h-screen bg-background">
+    <>
+      <div className="sm:hidden">
+        <MobileAccountView />
+      </div>
+
+      <div className="hidden sm:block page-enter min-h-screen bg-background">
       <div className="relative border-b border-gold-200/40 dark:border-gold-800/20 bg-surface/80">
         <div className="container-main py-6">
           <h1 className="font-display text-3xl font-semibold">Mon Compte</h1>
@@ -323,7 +344,8 @@ export default function AccountPage() {
         </div>
       </div>
     </div>
-  );
+  </>
+);
 }
 
 function AddressList() {

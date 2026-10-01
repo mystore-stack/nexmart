@@ -6,7 +6,7 @@ import {
 } from "@/lib/homepage/registry";
 import type { Metadata } from "next";
 
-export const revalidate = 300;
+export const revalidate = 0; // Disable ISR cache to show changes immediately
 
 // Force dynamic rendering to avoid database access during build time
 export const dynamic = 'force-dynamic';
@@ -22,33 +22,36 @@ export default async function HomePage() {
   const orderedSections = getOrderedHomepageSections(cms.homeSections ?? []);
 
   return (
-    <div className="page-enter space-y-4">
+    <>
       {orderedSections.length > 0 ? (
-        orderedSections.map((section) => (
-          <div key={section.id ?? section.sectionKey}>
-            {renderHomepageSection(
-              {
-                id: section.id,
-                sectionKey: section.sectionKey,
-                title: section.title,
-                subtitle: section.subtitle,
-                description: section.description,
-                config: section.config ?? {},
-                products: section.products, // Pass products from CMS data
-                hideIfEmpty: section.hideIfEmpty,
-              },
-              {
-                categories: categories as any,
-                cms,
-              }
-            )}
-          </div>
-        ))
+        orderedSections.map((section, index) => {
+          return (
+            <div key={section.id ?? section.sectionKey}>
+              {renderHomepageSection(
+                {
+                  id: section.id,
+                  sectionKey: section.sectionKey,
+                  title: section.title,
+                  subtitle: section.subtitle,
+                  description: section.description,
+                  config: section.config ?? {},
+                  products: section.products, // Pass products from CMS data
+                  hideIfEmpty: section.hideIfEmpty,
+                  enabled: section.enabled,
+                },
+                {
+                  categories: categories as any,
+                  cms,
+                }
+              )}
+            </div>
+          );
+        })
       ) : (
         <div className="container-main py-8 text-center">
           <p className="text-muted-foreground">No homepage sections configured. Please configure sections in the CMS.</p>
         </div>
       )}
-    </div>
+    </>
   );
 }

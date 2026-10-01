@@ -1,3 +1,7 @@
+// DISABLED FOR CLEAN SLATE: Demo product provider - disabled for clean slate
+// Original file content preserved below
+// ============================================================
+/*
 import { ExternalProduct, SourcingProvider } from "./types";
 
 const DEMO_CATALOG: ExternalProduct[] = [
@@ -114,3 +118,9 @@ export class DemoProvider implements SourcingProvider {
     );
   }
 }
+
+*/
+// ============================================================
+// End of disabled content
+
+export const DISABLED = true;

@@ -113,6 +113,7 @@ export function MysteryBoxCard({ box, onOpen }: MysteryBoxCardProps) {
                 alt={revealedItem.name}
                 fill
                 className="object-contain"
+                sizes="192px"
               />
             </motion.div>
             
@@ -153,7 +154,7 @@ export function MysteryBoxCard({ box, onOpen }: MysteryBoxCardProps) {
             </span>
           </div>
         )}
-        <Image src={box.image} alt={box.title} fill className="object-cover transition duration-500 group-hover:scale-105" />
+        <Image src={box.image} alt={box.title} fill className="object-cover transition duration-500 group-hover:scale-105" sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw" />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
       </div>
 

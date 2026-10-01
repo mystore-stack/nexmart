@@ -5,6 +5,12 @@ import { ArrowRight, Star, Zap, Flame } from "lucide-react";
 import { useCartStore } from "@/store/cart";
 
 export function SingleFlashOffer({ products = [], config = {} }: { products?: any[], config?: any }) {
+  // Hide section if no real product data available
+  if (!products || products.length === 0) {
+    return null;
+  }
+
+  const product = products[0];
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
   const addItem = useCartStore((state) => state.addItem);
 
@@ -35,25 +41,13 @@ export function SingleFlashOffer({ products = [], config = {} }: { products?: an
 
   const formatTime = (v: number) => v.toString().padStart(2, "0");
 
-  const fallbackProduct = {
-    id: "sfo-1",
-    name: "Apple AirPods Pro 2",
-    description: "Écouteurs sans fil avec réduction de bruit",
-    price: 18900,
-    oldPrice: 24900,
-    rating: 4.8,
-    reviews: "18k",
-    discount: 24,
-    images: ["https://images.unsplash.com/photo-1600294037681-c80b4cb5b434?w=500&q=80"]
-  };
-
-  const product = products[0] || fallbackProduct;
-  const stockRemaining = config.stockRemaining || 8;
-  const totalStock = config.totalStock || 50;
-  const stockPercentage = Math.round((stockRemaining / totalStock) * 100);
+  // Only show stock information if real stock data exists
+  const stockRemaining = product.stock !== undefined ? product.stock : null;
+  const totalStock = config.totalStock || (stockRemaining ? stockRemaining + 10 : null);
+  const stockPercentage = stockRemaining && totalStock ? Math.round((stockRemaining / totalStock) * 100) : null;
 
   return (
-    <section className="my-8 md:my-16 container-main max-w-[1000px] mx-auto">
+    <div className="my-8 md:my-16 container-main max-w-[1000px] mx-auto">
       <div className="bg-[#fcfaf8] rounded-[2rem] border border-[#f5ece4] p-8 md:p-12 shadow-sm relative overflow-hidden flex flex-col md:flex-row items-center gap-12">
         
         {/* Left Side: Timer and Info */}
@@ -89,18 +83,20 @@ export function SingleFlashOffer({ products = [], config = {} }: { products?: an
             </div>
           </div>
 
-          <div className="max-w-[280px] mx-auto md:mx-0">
-            <p className="flex items-center gap-1.5 text-xs text-slate-600 font-medium mb-3">
-              <Flame className="w-4 h-4 text-[#f36b2b] fill-current" />
-              Plus que <span className="text-[#f36b2b] font-bold">{stockRemaining} pièces</span> en stock
-            </p>
-            <div className="w-full h-2 bg-[#f9eee6] rounded-full overflow-hidden">
-              <div 
-                className="h-full bg-[#f36b2b] rounded-full" 
-                style={{ width: `${stockPercentage}%` }} 
-              />
+          {stockRemaining !== null && (
+            <div className="max-w-[280px] mx-auto md:mx-0">
+              <p className="flex items-center gap-1.5 text-xs text-slate-600 font-medium mb-3">
+                <Flame className="w-4 h-4 text-[#f36b2b] fill-current" />
+                Plus que <span className="text-[#f36b2b] font-bold">{stockRemaining} pièces</span> en stock
+              </p>
+              <div className="w-full h-2 bg-[#f9eee6] rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-[#f36b2b] rounded-full" 
+                  style={{ width: `${stockPercentage}%` }} 
+                />
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Center: Image Showcase */}
@@ -109,7 +105,9 @@ export function SingleFlashOffer({ products = [], config = {} }: { products?: an
           <div className="w-64 h-64 rounded-full bg-[#faefe7] absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 border border-[#f5dfd0]/50 z-0"></div>
           
           <div className="relative z-10 w-56 h-56 drop-shadow-2xl hover:scale-105 transition-transform duration-500">
-             <Image src={product.images[0]} alt={product.name} fill className="object-contain" />
+             {product.images?.[0] && (
+               <Image src={product.images[0]} alt={product.name} fill className="object-contain" sizes="224px" />
+             )}
           </div>
           
           {/* Pedestal effect */}
@@ -127,32 +125,34 @@ export function SingleFlashOffer({ products = [], config = {} }: { products?: an
           </p>
 
           <div className="flex items-center justify-center md:justify-start gap-4 mb-4">
-            <span className="font-black text-[#f36b2b] text-4xl tracking-tight">{(product.price / 100).toLocaleString("fr-MA")} <span className="text-2xl">DH</span></span>
-            {product.oldPrice && (
-              <span className="text-slate-400 text-xl font-bold line-through">{(product.oldPrice / 100).toLocaleString("fr-MA")} DH</span>
+            <span className="font-black text-[#f36b2b] text-4xl tracking-tight">{product.price.toLocaleString("fr-MA")} <span className="text-2xl">DH</span></span>
+            {product.comparePrice && (
+              <span className="text-slate-400 text-xl font-bold line-through">{product.comparePrice.toLocaleString("fr-MA")} DH</span>
             )}
           </div>
 
           <div className="flex items-center justify-center md:justify-start gap-4 mb-8">
-             {product.discount && (
+             {product.comparePrice && product.price && (
                 <div className="bg-[#f9eee6] text-[#f36b2b] font-bold px-3 py-1.5 rounded-lg text-sm border border-[#f5dfd0]">
-                  -{product.discount}%
+                  -{Math.round(((product.comparePrice - product.price) / product.comparePrice) * 100)}%
                 </div>
              )}
-             <div className="flex items-center gap-1.5 text-sm">
-                <Star className="w-4 h-4 fill-[#fbbf24] text-[#fbbf24]" />
-                <span className="font-bold text-slate-700">{product.rating}</span>
-                <span className="text-slate-400">({product.reviews || "18k"})</span>
-             </div>
+             {product.rating && (
+               <div className="flex items-center gap-1.5 text-sm">
+                  <Star className="w-4 h-4 fill-[#fbbf24] text-[#fbbf24]" />
+                  <span className="font-bold text-slate-700">{product.rating}</span>
+                  {product.reviewCount && <span className="text-slate-400">({product.reviewCount})</span>}
+               </div>
+             )}
           </div>
 
-          <button onClick={() => addItem({ ...product, quantity: 1 } as any)} className="w-full md:w-auto inline-flex items-center justify-center gap-2 bg-[#f36b2b] hover:bg-[#e05615] text-white font-bold py-4 px-8 rounded-full transition-colors shadow-lg shadow-[#f36b2b]/30">
+          <button onClick={() => addItem(product, 1)} className="w-full md:w-auto inline-flex items-center justify-center gap-2 bg-[#f36b2b] hover:bg-[#e05615] text-white font-bold py-4 px-8 rounded-full transition-colors shadow-lg shadow-[#f36b2b]/30">
             Acheter maintenant
             <ArrowRight className="w-5 h-5" />
           </button>
         </div>
 
       </div>
-    </section>
+    </div>
   );
 }

@@ -253,11 +253,10 @@ export async function generateSEO(input: { title: string; description?: string; 
 
 export async function generateProductDescription(input: { title: string; supplierInfo?: string; tone?: string }) {
   return createJson(
-    "Generate ecommerce product copy. Return JSON with shortDescription, longDescription, highlights, specifications, faq, marketingCopy.",
+    "Generate ecommerce product copy. Return JSON with description, highlights, specifications, faq, marketingCopy.",
     input,
     {
-      shortDescription: input.supplierInfo?.slice(0, 150) || input.title,
-      longDescription: input.supplierInfo || input.title,
+      description: input.supplierInfo || input.title,
       highlights: [],
       specifications: [],
       faq: [],

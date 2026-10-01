@@ -22,6 +22,10 @@ export async function uploadImage(
   folder: string = "nexmart",
   options: Record<string, unknown> = {}
 ): Promise<UploadResult> {
+  console.log("[CLOUDINARY] Starting upload to folder:", folder);
+  console.log("[CLOUDINARY] File type:", typeof file);
+  console.log("[CLOUDINARY] Upload options:", options);
+  
   const result = await new Promise<UploadResult>((resolve, reject) => {
     const uploadOptions = {
       folder,
@@ -31,9 +35,21 @@ export async function uploadImage(
       ...options,
     };
 
+    console.log("[CLOUDINARY] Final upload options:", uploadOptions);
+
     if (typeof file === "string") {
+      console.log("[CLOUDINARY] Uploading from URL string");
       cloudinary.uploader.upload(file, uploadOptions, (error, result) => {
-        if (error || !result) return reject(error || new Error("Upload failed"));
+        if (error || !result) {
+          console.error("[CLOUDINARY] Upload failed:", error);
+          return reject(error || new Error("Upload failed"));
+        }
+        console.log("[CLOUDINARY] Upload successful:", {
+          url: result.secure_url,
+          publicId: result.public_id,
+          width: result.width,
+          height: result.height,
+        });
         resolve({
           url: result.secure_url,
           publicId: result.public_id,
@@ -44,8 +60,18 @@ export async function uploadImage(
         });
       });
     } else {
+      console.log("[CLOUDINARY] Uploading from buffer");
       const stream = cloudinary.uploader.upload_stream(uploadOptions, (error, result) => {
-        if (error || !result) return reject(error || new Error("Upload failed"));
+        if (error || !result) {
+          console.error("[CLOUDINARY] Upload failed:", error);
+          return reject(error || new Error("Upload failed"));
+        }
+        console.log("[CLOUDINARY] Upload successful:", {
+          url: result.secure_url,
+          publicId: result.public_id,
+          width: result.width,
+          height: result.height,
+        });
         resolve({
           url: result.secure_url,
           publicId: result.public_id,

@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/auth-api";
+import { AuthError, requireAuth } from "@/lib/auth-api";
 
 const wishlistSchema = z.object({
   productId: z.string().min(1),
@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true, action: "added" }, { status: 201 });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Erreur serveur";
-    const status = message === "Unauthorized" ? 401 : 500;
+    const status = err instanceof AuthError ? err.statusCode : 500;
     return NextResponse.json({ success: false, error: message }, { status });
   }
 }

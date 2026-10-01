@@ -53,8 +53,8 @@ export function MegaPromoBannerSection() {
     );
   }
 
-  // Return null if section is inactive or no data
-  if (!data || (data.section && !data.section.active)) {
+  // Return null if section is disabled or no data
+  if (!data || (data.section && !data.section.enabled)) {
     return null;
   }
 

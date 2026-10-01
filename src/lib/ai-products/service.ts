@@ -99,8 +99,7 @@ export function buildProductDescription(output: AIProductOutput) {
   const faq = output.faq.map((item) => `Q: ${item.question}\nA: ${item.answer}`).join("\n\n");
 
   return [
-    output.shortDescription,
-    output.longDescription,
+    output.description,
     highlights ? `Highlights\n${highlights}` : "",
     specs ? `Specifications\n${specs}` : "",
     faq ? `FAQ\n${faq}` : "",
@@ -202,14 +201,14 @@ export async function ensureUniqueSku(prisma: any, organizationId: string, sku: 
 
 function geminiAnalysisToProductOutput(analysis: any, fallback: AIProductOutput): AIProductOutput {
   const title = analysis.title || analysis.suggestedTitle || fallback.title;
-  const shortDescription = analysis.shortDescription || analysis.description || fallback.shortDescription;
+  const description = analysis.description || analysis.description || fallback.description;
   const longDescription = analysis.longDescription || analysis.description || fallback.longDescription;
   const tags = Array.isArray(analysis.tags) ? analysis.tags : fallback.tags;
 
   return {
     ...fallback,
     title,
-    shortDescription,
+    description,
     longDescription,
     seo: {
       ...fallback.seo,
@@ -217,7 +216,7 @@ function geminiAnalysisToProductOutput(analysis: any, fallback: AIProductOutput)
       seoDescription: analysis.seoDescription || analysis.seo?.seoDescription || fallback.seo.seoDescription,
       metaKeywords: analysis.metaKeywords || analysis.seo?.metaKeywords || tags,
       openGraphTitle: analysis.openGraphTitle || analysis.seo?.openGraphTitle || title,
-      openGraphDescription: analysis.openGraphDescription || analysis.seo?.openGraphDescription || shortDescription,
+      openGraphDescription: analysis.openGraphDescription || analysis.seo?.openGraphDescription || description,
       slug: analysis.slug || analysis.seo?.slug || fallback.seo.slug,
     },
     tags,
@@ -231,7 +230,7 @@ function geminiAnalysisToProductOutput(analysis: any, fallback: AIProductOutput)
     translations: analysis.translations || fallback.translations,
     suggestions: analysis.suggestions || fallback.suggestions,
     faq: analysis.faq || fallback.faq,
-    marketingCopy: analysis.marketingCopy || shortDescription,
+    marketingCopy: analysis.marketingCopy || description,
     pricingStrategy: analysis.pricingStrategy || fallback.pricingStrategy,
   };
 }
@@ -245,9 +244,9 @@ function normalizeProductOutput(
   const seo = {
     ...output.seo,
     seoTitle: (output.seo?.seoTitle || title).slice(0, 70),
-    seoDescription: (output.seo?.seoDescription || output.shortDescription || title).slice(0, 170),
+    seoDescription: (output.seo?.seoDescription || output.description || title).slice(0, 170),
     openGraphTitle: output.seo?.openGraphTitle || output.seo?.seoTitle || title,
-    openGraphDescription: output.seo?.openGraphDescription || output.seo?.seoDescription || output.shortDescription || title,
+    openGraphDescription: output.seo?.openGraphDescription || output.seo?.seoDescription || output.description || title,
     metaKeywords: dedupe(output.seo?.metaKeywords || output.tags || []),
     slug: output.seo?.slug || toSlug(title),
   };
@@ -257,8 +256,8 @@ function normalizeProductOutput(
   return {
     ...output,
     title,
-    shortDescription: output.shortDescription || title,
-    longDescription: output.longDescription || output.shortDescription || title,
+    description: output.description || title,
+    longDescription: output.longDescription || output.description || title,
     seo,
     tags: dedupe(output.tags || seo.metaKeywords || []),
     highlights: output.highlights || [],
@@ -268,11 +267,11 @@ function normalizeProductOutput(
     brand: output.brand || "NexMart",
     productType: output.productType || "Product",
     imageAnalysis: output.imageAnalysis || [],
-    translations: output.translations || fallbackTranslations(title, output.shortDescription || title, output.longDescription || title, output.highlights || []),
+    translations: output.translations || fallbackTranslations(title, output.description || title, output.longDescription || title, output.highlights || []),
     qualityScore,
     suggestions: output.suggestions || fallbackSuggestions(title),
     faq: output.faq || [],
-    marketingCopy: output.marketingCopy || output.shortDescription || title,
+    marketingCopy: output.marketingCopy || output.description || title,
     pricingStrategy: output.pricingStrategy || "Position pricing against landed cost, perceived quality, competitor range, and margin targets.",
   };
 }
@@ -286,7 +285,7 @@ function buildFallbackProduct(
   const title = rawTitle.trim().slice(0, 120);
   const category = categories[0]?.name || "General";
   const keywords = dedupe([category, "premium", "NexMart", ...title.split(/\s+/).filter((word) => word.length > 3)]).slice(0, 10);
-  const shortDescription =
+  const description =
     input.supplierInfo?.slice(0, 150) ||
     `${title} selected for NexMart customers with reliable quality, clear value, and fast merchandising readiness.`;
   const longDescription =
@@ -294,16 +293,16 @@ function buildFallbackProduct(
     `${title} is prepared for a premium ecommerce listing with customer-focused benefits, clear product details, and SEO-ready content. Review supplier details, pricing, and imagery before publishing.`;
   const seo = {
     seoTitle: `${title} | NexMart`.slice(0, 65),
-    seoDescription: shortDescription.slice(0, 160),
+    seoDescription: description.slice(0, 160),
     metaKeywords: keywords,
     openGraphTitle: title,
-    openGraphDescription: shortDescription.slice(0, 160),
+    openGraphDescription: description.slice(0, 160),
     slug: toSlug(title),
   };
   const highlights = ["SEO-ready listing copy", "Customer-focused benefits", "Reviewable AI merchandising draft"];
   const output: AIProductOutput = {
     title,
-    shortDescription,
+    description,
     longDescription,
     seo,
     tags: keywords,
@@ -317,7 +316,7 @@ function buildFallbackProduct(
     brand: "NexMart",
     productType: imageAnalysis[0]?.productType || "Product",
     imageAnalysis,
-    translations: fallbackTranslations(title, shortDescription, longDescription, highlights),
+    translations: fallbackTranslations(title, description, longDescription, highlights),
     qualityScore: { overall: 0, seo: 0, contentQuality: 0, readability: 0, conversionPotential: 0, notes: [] },
     suggestions: fallbackSuggestions(title),
     faq: [
@@ -345,11 +344,11 @@ function fallbackImageAnalysis(imageUrl: string, productName?: string): AIProduc
   };
 }
 
-function fallbackTranslations(title: string, shortDescription: string, longDescription: string, highlights: string[]) {
+function fallbackTranslations(title: string, description: string, longDescription: string, highlights: string[]) {
   return {
-    fr: { title, shortDescription, longDescription, highlights },
-    en: { title, shortDescription, longDescription, highlights },
-    ar: { title, shortDescription, longDescription, highlights },
+    fr: { title, description, longDescription, highlights },
+    en: { title, description, longDescription, highlights },
+    ar: { title, description, longDescription, highlights },
   };
 }
 

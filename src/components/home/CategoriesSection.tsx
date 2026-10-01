@@ -1,159 +1,162 @@
 "use client";
-import React from "react";
+
+import React, { useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { motion } from "framer-motion";
-import { 
-  MonitorSmartphone, 
-  Shirt, 
-  Sofa, 
-  Sparkles, 
-  Dumbbell, 
-  Gamepad2, 
-  Car, 
-  BookOpen, 
-  Baby,
-  ShoppingBag,
-  LayoutGrid,
-  ArrowRight
-} from "lucide-react";
-import type { Category } from "@/types";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
-const fallbackCategories = [
-  { name: "Livres", icon: null },
-  { name: "Électronique", icon: null },
-  { name: "Mode", icon: null },
-  { name: "Maison", icon: null },
-  { name: "Audio", icon: null },
-];
+export function CategoriesSection({ categories = [], categoryBubbles = [], config = {} }: any) {
+  const scrollRef = useRef<HTMLDivElement>(null);
 
-const getCategoryIcon = (name: string, className: string) => {
-  const lower = name.toLowerCase();
-  if (lower.includes('électronique') || lower.includes('electronic')) return <MonitorSmartphone className={className} />;
-  if (lower.includes('mode') || lower.includes('fashion') || lower.includes('vêtement')) return <Shirt className={className} />;
-  if (lower.includes('maison') || lower.includes('home') || lower.includes('déco')) return <Sofa className={className} />;
-  if (lower.includes('beauté') || lower.includes('beauty') || lower.includes('cosmétique')) return <Sparkles className={className} />;
-  if (lower.includes('sport')) return <Dumbbell className={className} />;
-  if (lower.includes('gaming') || lower.includes('jeu') || lower.includes('console')) return <Gamepad2 className={className} />;
-  if (lower.includes('auto') || lower.includes('voiture')) return <Car className={className} />;
-  if (lower.includes('livre') || lower.includes('book')) return <BookOpen className={className} />;
-  if (lower.includes('enfant') || lower.includes('kid') || lower.includes('bébé')) return <Baby className={className} />;
-  
-  return <ShoppingBag className={className} />;
-};
+  // Get category images from CMS config
+  const categoryImages = config?.categoryImages || {};
 
-const getCategoryAccent = (name: string) => {
-  const lower = name.toLowerCase();
-  if (lower.includes('électronique')) return 'hover:border-cyan-300 hover:shadow-[0_0_15px_rgba(6,182,212,0.15)] hover:bg-cyan-50/30 text-cyan-600';
-  if (lower.includes('mode')) return 'hover:border-purple-300 hover:shadow-[0_0_15px_rgba(168,85,247,0.15)] hover:bg-purple-50/30 text-purple-600';
-  if (lower.includes('maison')) return 'hover:border-green-300 hover:shadow-[0_0_15px_rgba(34,197,94,0.15)] hover:bg-green-50/30 text-green-600';
-  if (lower.includes('beauté')) return 'hover:border-pink-300 hover:shadow-[0_0_15px_rgba(236,72,153,0.15)] hover:bg-pink-50/30 text-pink-600';
-  if (lower.includes('sport')) return 'hover:border-emerald-300 hover:shadow-[0_0_15px_rgba(16,185,129,0.15)] hover:bg-emerald-50/30 text-emerald-600';
-  if (lower.includes('gaming')) return 'hover:border-violet-300 hover:shadow-[0_0_15px_rgba(139,92,246,0.15)] hover:bg-violet-50/30 text-violet-600';
-  if (lower.includes('auto')) return 'hover:border-orange-300 hover:shadow-[0_0_15px_rgba(249,115,22,0.15)] hover:bg-orange-50/30 text-orange-600';
-  if (lower.includes('livre')) return 'hover:border-blue-300 hover:shadow-[0_0_15px_rgba(59,130,246,0.15)] hover:bg-blue-50/30 text-blue-600';
-  if (lower.includes('enfant')) return 'hover:border-yellow-300 hover:shadow-[0_0_15px_rgba(234,179,8,0.15)] hover:bg-yellow-50/30 text-yellow-600';
-  
-  return 'hover:border-slate-300 hover:shadow-[0_0_15px_rgba(148,163,184,0.15)] hover:bg-slate-50/50 text-slate-600';
-};
+  // Debug logging
+  if (typeof window !== 'undefined') {
+    console.log('[CategoriesSection Debug]', {
+      categoriesCount: categories.length,
+      categoryImages,
+      firstCategory: categories[0],
+      firstCategoryImage: categories[0]?.image,
+      firstCategoryKeys: categories[0] ? Object.keys(categories[0]) : [],
+    });
+  }
 
-interface Props { categories: Category[]; config?: any }
+  // Helper to get image - prioritize Category.image from database, then CMS config
+  const getCategoryImage = (categoryId: string, categoryImage?: string | null): string => {
+    // First priority: Category.image from database (SOURCE OF TRUTH)
+    if (categoryImage && typeof categoryImage === 'string' && categoryImage.trim() !== "") {
+      return categoryImage;
+    }
+    
+    // Second priority: CMS config categoryImages
+    const imgConfig = categoryImages[categoryId];
+    
+    // If it's an object with imageUrl, use that
+    if (imgConfig && typeof imgConfig === 'object' && imgConfig.imageUrl) {
+      return imgConfig.imageUrl;
+    }
+    
+    // If it's a string URL, use that
+    if (imgConfig && typeof imgConfig === 'string') {
+      return imgConfig;
+    }
+    
+    // Fallback
+    return "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=80&w=300&auto=format&fit=crop";
+  };
 
-export function CategoriesSection({ categories, config = {} }: Props) {
-  const limit = config.limit || 9;
-  
-  // Use CMS categories if available, otherwise use fallback layout
-  const visibleCategories = categories.length > 0 ? categories.slice(0, limit) : fallbackCategories.map((cat, index) => ({
-    id: `fallback-${index}`,
-    name: cat.name,
-    slug: cat.name.toLowerCase().replace(/\s+/g, "-"),
-    image: cat.icon || null,
-    _count: { products: 120 - index * 8 },
-  }));
+  // Only use database categories - no hardcoded fallback
+  const itemsToRender = (categories && categories.length > 0)
+    ? categories.map((cat: any) => {
+        const finalImage = getCategoryImage(cat.id, cat.image);
+        if (typeof window !== 'undefined') {
+          console.log(`[Category ${cat.name}]`, {
+            dbImage: cat.image,
+            finalImage,
+          });
+        }
+        return {
+          id: cat.id,
+          name: cat.name,
+          slug: cat.slug,
+          image: finalImage,
+          href: `/category/${cat.slug}`,
+        };
+      })
+    : [];
+
+  const scroll = (direction: "left" | "right") => {
+    if (scrollRef.current) {
+      const scrollAmount = direction === "left" ? -320 : 320;
+      scrollRef.current.scrollBy({ left: scrollAmount, behavior: "smooth" });
+    }
+  };
 
   return (
-    <section className="my-10 md:my-16">
-      {/* Section Header */}
-      <div className="flex items-end justify-between mb-6 px-2">
-        <div>
-          <span className="text-[11px] sm:text-xs font-bold tracking-[0.15em] text-[#0d7a5e] uppercase mb-1 block">
-            Catégories
-          </span>
-          <h2 className="hidden sm:block text-2xl md:text-3xl font-bold text-slate-900 tracking-tight">
-            Parcourir par catégorie
-          </h2>
-        </div>
-        <Link 
-          href="/categories" 
-          className="flex items-center gap-1 text-[11px] sm:text-sm font-bold text-slate-600 hover:text-[#0d7a5e] transition-colors group"
-        >
-          Voir tout 
-          <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform group-hover:translate-x-1" />
-        </Link>
-      </div>
-
-      <div className="flex gap-4 sm:gap-5 justify-start md:justify-between overflow-x-auto pb-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden px-2 sm:px-0 snap-x w-full max-w-full">
-        {visibleCategories.map((cat, index) => {
-          const accentClass = getCategoryAccent(cat.name);
-          
-          return (
-            <motion.div 
-              key={cat.id} 
-              initial={{ opacity: 0, y: 15 }} 
-              animate={{ opacity: 1, y: 0 }} 
-              transition={{ delay: index * 0.05, duration: 0.4, ease: "easeOut" }}
-              className="shrink-0 snap-start"
-            >
-              <Link 
-                href={`/products?categoryId=${cat.id}`} 
-                className={`group relative flex flex-col items-center justify-center p-2.5 sm:p-4 gap-2 sm:gap-3 w-[80px] h-[95px] sm:w-[120px] sm:h-[135px] rounded-[20px] border border-slate-200 bg-white sm:shadow-sm transition-all duration-300 sm:hover:-translate-y-1 sm:${accentClass}`}
-              >
-                <div className="flex-1 flex items-center justify-center text-slate-500 group-hover:text-slate-800 transition-colors">
-                  {cat.image && typeof cat.image === "string" && cat.image.trim() ? (
-                    <Image 
-                      src={cat.image} 
-                      alt={cat.name} 
-                      width={44} 
-                      height={44} 
-                      className="object-contain drop-shadow-sm transition-transform duration-300 sm:group-hover:scale-110" 
-                    />
-                  ) : (
-                    <div className="transition-transform duration-300 sm:group-hover:scale-110">
-                      {getCategoryIcon(cat.name, "w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 stroke-[1.5]")}
-                    </div>
-                  )}
-                </div>
-                <span className="text-[11px] md:text-[13px] font-bold text-slate-700 text-center leading-tight line-clamp-1 w-full px-1">
-                  {cat.name}
-                </span>
-              </Link>
-            </motion.div>
-          );
-        })}
-
-        {/* View All Button (Mobile & Desktop) */}
-        <motion.div 
-          initial={{ opacity: 0, y: 15 }} 
-          animate={{ opacity: 1, y: 0 }} 
-          transition={{ delay: visibleCategories.length * 0.05, duration: 0.4, ease: "easeOut" }} 
-          className="shrink-0 snap-start"
-        >
-          <Link 
-            href="/categories" 
-            className="group relative flex flex-col items-center justify-center p-3 md:p-4 gap-3 w-[85px] h-[105px] sm:w-[120px] sm:h-[135px] rounded-[20px] border border-dashed border-slate-300 bg-slate-50/50 hover:bg-slate-50 hover:border-slate-400 hover:shadow-[0_0_15px_rgba(148,163,184,0.15)] transition-all duration-300 hover:-translate-y-1"
-          >
-            <div className="flex-1 flex items-center justify-center transition-transform duration-300 group-hover:scale-110">
-              <div className="flex items-center justify-center w-10 h-10 md:w-12 md:h-12 rounded-full bg-slate-100 text-slate-500 group-hover:text-slate-700 group-hover:bg-slate-200 transition-colors">
-                <LayoutGrid className="w-5 h-5 md:w-6 md:h-6" />
-              </div>
-            </div>
-            <span className="text-[12px] md:text-[13px] font-semibold text-slate-700 text-center flex items-center gap-1">
-              Voir tout <ArrowRight className="w-3 h-3 transition-transform group-hover:translate-x-0.5" />
+    <section className="my-6 w-full md:my-10">
+      <div className="w-full px-2 sm:px-4">
+        {/* Header */}
+        <div className="mb-6 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <h2 className="text-2xl font-serif font-bold tracking-tight text-slate-900 md:text-[28px]">
+              Catégories
+            </h2>
+            <span className="inline-flex items-center rounded-full bg-[#e6f4f1] px-3.5 py-1 text-xs font-semibold text-[#156a60] border border-[#cbe6e0] shadow-2xs">
+              Explorez par univers
             </span>
-          </Link>
-        </motion.div>
+          </div>
+
+          {/* Desktop Scroll Controls */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => scroll("left")}
+              type="button"
+              aria-label="Catégories précédentes"
+              className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200/90 bg-white text-slate-700 shadow-2xs transition hover:bg-slate-50 hover:text-slate-950 focus:outline-none focus:ring-2 focus:ring-slate-300 sm:h-9 sm:w-9"
+            >
+              <ChevronLeft className="h-4 w-4 stroke-[2.5]" />
+            </button>
+            <button
+              onClick={() => scroll("right")}
+              type="button"
+              aria-label="Catégories suivantes"
+              className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200/90 bg-white text-slate-700 shadow-2xs transition hover:bg-slate-50 hover:text-slate-950 focus:outline-none focus:ring-2 focus:ring-slate-300 sm:h-9 sm:w-9"
+            >
+              <ChevronRight className="h-4 w-4 stroke-[2.5]" />
+            </button>
+          </div>
+        </div>
+
+        {/* Carousel Container */}
+        <div
+          ref={scrollRef}
+          className="flex overflow-x-auto snap-x snap-mandatory scroll-smooth pb-3 pt-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden touch-pan-x"
+        >
+          <div className="flex w-full items-start justify-between gap-4 sm:gap-6 md:gap-8 lg:gap-10">
+            {itemsToRender.map((item, idx) => (
+              <motion.div
+                key={item.id}
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: idx * 0.03 }}
+                className="flex shrink-0 snap-start flex-col items-center text-center"
+              >
+                <Link
+                  href={item.href}
+                  className="group flex flex-col items-center justify-center text-center outline-none rounded-full p-1"
+                >
+                  {/* Concentric Circle Container matching reference photo */}
+                  <div className="relative flex h-24 w-24 items-center justify-center overflow-hidden rounded-full border border-[#ede9e2] bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-white via-[#f7f4ee] to-[#f2eee5] p-3 shadow-[0_4px_16px_rgba(0,0,0,0.03)] ring-4 ring-white/90 transition-all duration-300 group-hover:-translate-y-1.5 group-hover:border-[#dfd7ca] group-hover:shadow-[0_12px_28px_rgba(0,0,0,0.08)] sm:h-28 sm:w-28 md:h-32 md:w-32 lg:h-[136px] lg:w-[136px]">
+                    {item.image && typeof item.image === 'string' && item.image.trim() !== "" ? (
+                      <Image
+                        src={item.image}
+                        alt={item.name}
+                        width={140}
+                        height={140}
+                        className="h-full w-full object-contain transition-transform duration-300 group-hover:scale-108"
+                        unoptimized
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center text-muted-foreground">
+                        <span className="text-2xl font-serif font-bold text-slate-300">
+                          {item.name.charAt(0)}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Category Label */}
+                  <span className="mt-3.5 max-w-[110px] text-center text-xs font-serif font-bold leading-snug tracking-tight text-slate-900 transition-colors group-hover:text-teal-800 sm:max-w-[130px] sm:text-[13px] md:text-sm">
+                    {item.name}
+                  </span>
+                </Link>
+              </motion.div>
+            ))}
+          </div>
+        </div>
       </div>
     </section>
   );
 }
-

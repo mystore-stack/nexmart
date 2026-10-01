@@ -14,13 +14,16 @@ interface NewsletterSectionProps {
   title?: string;
   subtitle?: string;
   enabled?: boolean;
+  perks?: any[];
 }
 
-export function NewsletterSection({ title, subtitle, enabled = true }: NewsletterSectionProps) {
+export function NewsletterSection({ title, subtitle, enabled = true, perks = [] }: NewsletterSectionProps) {
   const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
 
   if (!enabled) return null;
+
+  const displayPerks = perks.length > 0 ? perks : PERKS;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -110,12 +113,15 @@ export function NewsletterSection({ title, subtitle, enabled = true }: Newslette
             transition={{ duration: 0.5, delay: 0.25 }}
             className="mb-10 flex flex-wrap justify-center gap-4"
           >
-            {PERKS.map(({ icon: Icon, text }) => (
-              <div key={text} className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/7 px-4 py-2.5 backdrop-blur">
-                <Icon className="h-4 w-4 flex-shrink-0 text-gold-400" />
-                <span className="text-xs font-medium text-white/75">{text}</span>
-              </div>
-            ))}
+            {displayPerks.map((perk: any) => {
+              const Icon = perk.icon === "Star" ? Star : perk.icon === "Sparkles" ? Sparkles : perk.icon === "ShieldCheck" ? ShieldCheck : Star;
+              return (
+                <div key={perk.text} className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/7 px-4 py-2.5 backdrop-blur">
+                  <Icon className="h-4 w-4 flex-shrink-0 text-gold-400" />
+                  <span className="text-xs font-medium text-white/75">{perk.text}</span>
+                </div>
+              );
+            })}
           </motion.div>
 
           <motion.div

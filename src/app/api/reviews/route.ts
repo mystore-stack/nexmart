@@ -25,15 +25,23 @@ export async function GET(req: NextRequest) {
     const [reviews, total] = await Promise.all([
       prisma.review.findMany({
         where:   { productId, product: { organizationId } },
-        include: { user: { select: { id: true, name: true, avatar: true } } },
         orderBy: { createdAt: "desc" },
         skip:    (page - 1) * limit,
         take:    limit,
+        include: {
+          user: {
+            select: { id: true, name: true, avatar: true },
+          },
+        },
       }),
       prisma.review.count({ where: { productId, product: { organizationId } } }),
     ]);
 
-    return NextResponse.json({ success: true, reviews, pagination: { page, limit, total } });
+    return NextResponse.json({
+      success: true,
+      reviews,
+      pagination: { page, limit, total },
+    });
   } catch {
     return NextResponse.json({ success: false, error: "Erreur serveur" }, { status: 500 });
   }
@@ -55,7 +63,11 @@ export async function POST(req: NextRequest) {
 
     const review = await prisma.review.create({
       data: { ...body, userId: session.userId, images: [] },
-      include: { user: { select: { id: true, name: true, avatar: true } } },
+    });
+
+    const user = await prisma.user.findUnique({
+      where: { id: session.userId },
+      select: { id: true, name: true, avatar: true },
     });
 
     // Update product rating
@@ -72,7 +84,10 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    return NextResponse.json({ success: true, review }, { status: 201 });
+    return NextResponse.json(
+      { success: true, review: { ...review, user } },
+      { status: 201 }
+    );
   } catch (err: any) {
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });
   }

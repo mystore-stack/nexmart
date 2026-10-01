@@ -8,6 +8,34 @@ export const heroAnimationSchema = z.object({
   easing: z.string().default("ease-out"),
 });
 
+export const heroDimensionsSchema = z.object({
+  // Desktop settings
+  desktopWidth: z.string().default("100%"),
+  desktopHeight: z.number().min(150).max(800).default(420),
+  desktopMaxWidth: z.number().positive().default(1440),
+  desktopAspectRatio: z.string().default("2.5/1"),
+  
+  // Tablet settings
+  tabletWidth: z.string().default("100%"),
+  tabletHeight: z.number().min(150).max(800).default(320),
+  tabletMaxWidth: z.number().positive().default(1024),
+  tabletAspectRatio: z.string().default("2.5/1"),
+  
+  // Mobile settings
+  mobileWidth: z.string().default("100%"),
+  mobileHeight: z.number().min(150).max(800).default(280),
+  mobileMaxWidth: z.number().positive().default(640),
+  mobileAspectRatio: z.string().default("2.5/1"),
+  
+  // Global settings
+  widthMode: z.enum(["fullWidth", "container", "custom"]).default("fullWidth"),
+  imageFit: z.enum(["cover", "contain", "fill"]).default("cover"),
+  imagePosition: z.enum(["center", "left", "right", "top", "bottom", "custom"]).default("center"),
+  imagePositionX: z.string().default("50%"),
+  imagePositionY: z.string().default("50%"),
+  borderRadius: z.string().default("0.5rem"),
+});
+
 export const heroBannerSchema = z.object({
   badgeText: z.string().optional(),
   title: z.string().min(1, "Title is required"),
@@ -41,6 +69,7 @@ export const heroBannerSchema = z.object({
   templateId: z.string().uuid().optional().nullable(),
   abTestGroupId: z.string().uuid().optional().nullable(),
   animationSettings: heroAnimationSchema.optional(),
+  dimensions: heroDimensionsSchema.optional(),
 });
 
 export const heroBannerReorderSchema = z.object({
@@ -65,3 +94,4 @@ export const heroABTestSchema = z.object({
 
 export type HeroBannerInput = z.infer<typeof heroBannerSchema>;
 export type HeroBannerReorderInput = z.infer<typeof heroBannerReorderSchema>;
+export type HeroDimensionsInput = z.infer<typeof heroDimensionsSchema>;

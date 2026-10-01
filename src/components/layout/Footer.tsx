@@ -1,246 +1,433 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
-import { Facebook, Instagram, Mail, Twitter, Youtube, MapPin, Phone, MessageCircle } from "lucide-react";
-import { useSiteConfig } from "@/components/providers/SiteConfigProvider";
-
-const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
+import {
+  Mail,
+  ArrowRight,
+  Check,
+  ShieldCheck,
+  Truck,
+  BadgeCheck,
+  Headphones,
+  ChevronRight,
+  ChevronUp,
   Facebook,
-  Twitter,
   Instagram,
   Youtube,
-  facebook: Facebook,
-  twitter: Twitter,
-  instagram: Instagram,
-  youtube: Youtube,
-};
+  Twitter,
+  Linkedin,
+  LayoutGrid,
+  User,
+  Store,
+  Heart,
+} from "lucide-react";
+import { useSiteConfig } from "@/components/providers/SiteConfigProvider";
+import { NexmartEmblem } from "@/components/ui/NexmartLogo";
 
-function MoroccanDivider({ color }: { color: string }) {
+// TikTok Icon SVG
+function TikTokIcon({ className = "w-4 h-4" }: { className?: string }) {
   return (
-    <div className="flex items-center justify-center gap-4 my-2">
-      <div className="flex-1 h-px bg-gradient-to-r from-transparent to-white/20" />
-      <svg width="32" height="32" viewBox="0 0 32 32" fill="none" className="opacity-60">
-        <path d="M16 2 L30 16 L16 30 L2 16 Z" stroke={color} strokeWidth="1" fill="none" />
-        <circle cx="16" cy="16" r="3" fill={color} />
-      </svg>
-      <div className="flex-1 h-px bg-gradient-to-l from-transparent to-white/20" />
-    </div>
+    <svg className={className} fill="currentColor" viewBox="0 0 24 24">
+      <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 1 1-5.2-1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V5.8a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 3 12a6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.33-6.34V8.69a8.27 8.27 0 0 0 4.84 1.56V6.8a4.85 4.85 0 0 1-0.92-.11z" />
+    </svg>
   );
 }
 
-function DefaultLogo({ primaryColor }: { primaryColor: string }) {
+// Payment Badges matching the image exactly: VISA, Mastercard, Apple Pay, CMI/Maroc, G Pay
+function PaymentBadges() {
   return (
-    <svg width="28" height="28" viewBox="0 0 40 40" fill="none">
-      <rect width="40" height="40" rx="10" fill={primaryColor} />
-      <path d="M20 6 L34 20 L20 34 L6 20 Z" stroke="rgba(212,175,55,0.8)" strokeWidth="1.5" fill="none" />
-      <circle cx="20" cy="20" r="4" fill="rgba(212,175,55,0.9)" />
-    </svg>
+    <div className="flex flex-wrap items-center gap-2">
+      {/* VISA */}
+      <span className="inline-flex items-center justify-center px-2.5 py-1 rounded bg-[#003882] text-[11px] font-extrabold tracking-wider text-white">
+        VISA
+      </span>
+      {/* Mastercard */}
+      <span className="inline-flex items-center justify-center px-2 py-1 rounded bg-[#1A1F29] text-[10px] font-bold text-white">
+        <span className="w-3 h-3 rounded-full bg-[#EB001B] inline-block -mr-1" />
+        <span className="w-3 h-3 rounded-full bg-[#F79E1B] inline-block opacity-90" />
+      </span>
+      {/* Apple Pay */}
+      <span className="inline-flex items-center justify-center px-2.5 py-1 rounded bg-black text-[11px] font-medium text-white border border-slate-800">
+         Pay
+      </span>
+      {/* CMI / Maroc */}
+      <span className="inline-flex items-center justify-center px-2 py-1 rounded bg-[#00A878] text-[10px] font-extrabold text-white">
+        mā
+      </span>
+      {/* G Pay */}
+      <span className="inline-flex items-center justify-center px-2.5 py-1 rounded bg-[#1A1F29] text-[11px] font-medium text-white border border-slate-800">
+        <span className="text-[#4285F4]">G</span>&nbsp;Pay
+      </span>
+    </div>
   );
 }
 
 export function Footer() {
   const { settings, footer } = useSiteConfig();
+  const [email, setEmail] = useState("");
+  const [subscribed, setSubscribed] = useState(false);
 
-  const contactInfo = {
-    email: footer?.contactInfo?.email ?? settings.email,
-    phone: footer?.contactInfo?.phone ?? settings.phone,
-    address: footer?.contactInfo?.address ?? settings.address,
+  const handleSubscribe = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (email.trim()) {
+      setSubscribed(true);
+      setEmail("");
+      setTimeout(() => setSubscribed(false), 4000);
+    }
   };
 
-  const socials =
-    (footer?.socialLinks?.length ? footer.socialLinks : settings.socialLinks)?.map(
-      (s: { platform?: string; url?: string; icon?: string }) => ({
-        icon: ICON_MAP[s.icon || s.platform || ""] || Facebook,
-        href: s.url || "#",
-        label: s.platform || "Social",
-      })
-    ) ?? [];
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
-  const columns =
-    footer?.columns?.length
-      ? (footer.columns as Array<{ title: string; links: Array<{ title: string; url: string }> }>)
-      : footer?.quickLinks?.length
-        ? [{ title: "Liens", links: footer.quickLinks.map((l: { title: string; url: string }) => l) }]
-        : [];
+  // Structured Columns matching the image
+  const categoriesLinks = [
+    { title: "Électroménager", url: "/categories/electromenager" },
+    { title: "Beauté & Soins", url: "/categories/beaute-soins" },
+    { title: "Maison & Cuisine", url: "/categories/maison-cuisine" },
+    { title: "High-Tech", url: "/categories/high-tech" },
+    { title: "Mode & Accessoires", url: "/categories/mode-accessoires" },
+    { title: "Sports & Loisirs", url: "/categories/sports-loisirs" },
+  ];
 
-  const legalLinks = (footer?.legalLinks as Array<{ title: string; url: string }>) ?? [];
-  const description = footer?.description ?? settings.seoDescription;
-  const copyright =
-    settings.copyrightText ??
-    `© ${new Date().getFullYear()} ${settings.storeName}. Tous droits réservés.`;
+  const serviceLinks = [
+    { title: "Aide & FAQ", url: "/faq" },
+    { title: "Livraison & Suivi", url: "/livraison" },
+    { title: "Retours & Remboursements", url: "/retours" },
+    { title: "Contactez-nous", url: "/contact" },
+    { title: "Conditions générales", url: "/cgv" },
+    { title: "Politique de confidentialité", url: "/confidentialite" },
+  ];
 
-  const newsletter = footer?.newsletterSettings as
-    | { enabled?: boolean; title?: string; placeholder?: string }
-    | undefined;
+  const accountLinks = [
+    { title: "Se connecter", url: "/login" },
+    { title: "Créer un compte", url: "/register" },
+    { title: "Mes commandes", url: "/account/orders" },
+    { title: "Mes favoris", url: "/wishlist" },
+    { title: "Mes adresses", url: "/account/addresses" },
+    { title: "Paramètres", url: "/account/settings" },
+  ];
+
+  const aboutLinks = [
+    { title: "Nos marques", url: "/marques" },
+    { title: "Carrières", url: "/careers" },
+    { title: "Blog & Actualités", url: "/blog" },
+    { title: "Programme fidélité", url: "/fidelite" },
+    { title: "Partenaires", url: "/partenaires" },
+  ];
+
+  const socialLinks = [
+    { name: "Facebook", href: settings.socialLinks?.facebook || "#", icon: Facebook },
+    { name: "Instagram", href: settings.socialLinks?.instagram || "#", icon: Instagram },
+    { name: "YouTube", href: settings.socialLinks?.youtube || "#", icon: Youtube },
+    { name: "Twitter", href: settings.socialLinks?.twitter || "#", icon: Twitter },
+    { name: "LinkedIn", href: "#", icon: Linkedin },
+    { name: "TikTok", href: "#", customIcon: TikTokIcon },
+  ];
 
   return (
-    <footer className="relative overflow-hidden">
-      <div
-        className="relative text-white bg-footer"
-        style={{ borderTopColor: settings.secondaryColor }}
-      >
-        <div className="absolute inset-0 moroccan-pattern-bg opacity-15" />
-        <div
-          className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent to-transparent"
-          style={{ backgroundImage: `linear-gradient(to right, transparent, ${settings.secondaryColor}99, transparent)` }}
-        />
-
-        {(newsletter?.enabled !== false) && (
-          <div className="relative border-b border-white/8">
-            <div className="container-main py-14">
-              <div className="grid gap-10 md:grid-cols-[1fr_1.2fr] md:items-center">
-                <div>
-                  <span className="mb-4 inline-flex rounded-full border px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.28em] border-white/10 bg-white/6 text-white/60">
-                    Newsletter
-                  </span>
-                  <h3 className="mb-3 font-display leading-tight text-white text-3xl font-light md:text-4xl">
-                    {newsletter?.title || "Newsletter"}
-                  </h3>
-                  {description && (
-                    <p className="max-w-sm text-sm leading-6 text-white/55">{description}</p>
-                  )}
-                </div>
-                <form className="flex flex-col gap-3 sm:flex-row" onSubmit={(e) => e.preventDefault()}>
-                  <div className="relative flex-1">
-                    <Mail className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
-                    <input
-                      type="email"
-                      placeholder={newsletter?.placeholder || "Votre adresse email"}
-                      className="h-14 w-full pl-11 pr-4 text-sm text-white outline-none backdrop-blur transition-all placeholder:text-white/35 rounded-2xl border border-white/14 bg-white/8 focus:border-white/30"
-                    />
-                  </div>
-                  <button
-                    type="submit"
-                    className="btn btn-gold h-14 px-7 font-display text-sm tracking-wide"
-                    style={{ backgroundColor: settings.secondaryColor }}
-                  >
-                    S&apos;abonner
-                  </button>
-                </form>
+    <footer className="relative bg-[#021A17] text-slate-200 font-sans border-t border-[#06332E]">
+      <div className="relative container-main px-4 sm:px-6 lg:px-10 pt-12 pb-8">
+        
+        {/* ================================================================= */}
+        {/* ROW 1: BRAND BLOCK (LEFT) & NEWSLETTER BLOCK (RIGHT)               */}
+        {/* ================================================================= */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-16 pb-12">
+          
+          {/* LEFT: NexMart Brand Section */}
+          <div className="lg:col-span-5 space-y-4">
+            {/* Logo */}
+            <Link href="/" className="inline-flex items-center gap-3.5 group">
+              <NexmartEmblem size={46} color="#00B48A" />
+              <div>
+                <span className="block text-2xl font-bold tracking-tight text-white font-sans leading-none">
+                  NexMart
+                </span>
+                <span className="block text-[10px] font-bold text-[#00B48A] tracking-[0.25em] uppercase mt-1">
+                  MAROC • PREMIUM
+                </span>
               </div>
+            </Link>
+
+            {/* Slogan & Description */}
+            <div className="space-y-1 pt-1">
+              <h4 className="text-base font-bold text-white">
+                Votre marketplace premium au Maroc
+              </h4>
+              <p className="text-xs text-slate-300/80 leading-relaxed max-w-sm">
+                Shopping intelligent, produits authentiques, paiement sécurisé et livraison express.
+              </p>
             </div>
-          </div>
-        )}
 
-        <div className="relative container-main py-14">
-          <div className="grid grid-cols-2 gap-10 md:grid-cols-4 lg:grid-cols-5">
-            <div className="col-span-2 lg:col-span-2">
-              <Link href="/" className="mb-6 flex items-center gap-3.5 group">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl shadow-brand-lg flex-shrink-0 overflow-hidden">
-                  {footer?.logoUrl || settings.logoUrl ? (
-                    <Image
-                      src={(footer?.logoUrl || settings.logoUrl)!}
-                      alt={settings.storeName}
-                      width={48}
-                      height={48}
-                      className="object-contain"
-                    />
-                  ) : (
-                    <DefaultLogo primaryColor={settings.primaryColor} />
-                  )}
-                </div>
-                <div>
-                  <span className="block font-display text-2xl font-semibold text-white">{settings.storeName}</span>
-                  {settings.storeTagline && (
-                    <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-white/60">
-                      {settings.storeTagline}
-                    </span>
-                  )}
-                </div>
-              </Link>
-
-              {description && (
-                <p className="max-w-xs text-sm leading-7 text-white/50 mb-7">{description}</p>
-              )}
-
-              <div className="space-y-2.5 mb-7">
-                {contactInfo.address && (
-                  <div className="flex items-center gap-2.5 text-sm text-white/50">
-                    <MapPin className="h-4 w-4 flex-shrink-0" style={{ color: settings.secondaryColor }} />
-                    {contactInfo.address}
-                  </div>
-                )}
-                {contactInfo.phone && (
-                  <a href={`tel:${contactInfo.phone}`} className="flex items-center gap-2.5 text-sm text-white/50 hover:text-white">
-                    <Phone className="h-4 w-4 flex-shrink-0" style={{ color: settings.secondaryColor }} />
-                    {contactInfo.phone}
-                  </a>
-                )}
-                {settings.whatsapp && (
+            {/* Social Icons Row */}
+            <div className="flex items-center gap-3 pt-2">
+              {socialLinks.map((social) => {
+                const Icon = social.icon;
+                const CustomIcon = social.customIcon;
+                return (
                   <a
-                    href={`https://wa.me/${settings.whatsapp.replace(/\D/g, "")}`}
+                    key={social.name}
+                    href={social.href}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-2.5 text-sm text-white/50 hover:text-white"
+                    aria-label={social.name}
+                    className="w-8 h-8 rounded-full border border-slate-700/80 bg-slate-900/60 text-slate-300 flex items-center justify-center transition-all duration-200 hover:border-[#00B48A] hover:text-[#00B48A] hover:scale-105"
                   >
-                    <MessageCircle className="h-4 w-4 flex-shrink-0" style={{ color: settings.secondaryColor }} />
-                    WhatsApp
+                    {CustomIcon ? <CustomIcon className="w-3.5 h-3.5" /> : Icon && <Icon className="w-3.5 h-3.5" />}
                   </a>
-                )}
-                {contactInfo.email && (
-                  <a href={`mailto:${contactInfo.email}`} className="flex items-center gap-2.5 text-sm text-white/50 hover:text-white">
-                    <Mail className="h-4 w-4 flex-shrink-0" style={{ color: settings.secondaryColor }} />
-                    {contactInfo.email}
-                  </a>
-                )}
-                {settings.businessHours && (
-                  <p className="text-xs text-white/40">Horaires: {settings.businessHours}</p>
-                )}
-              </div>
-
-              {socials.length > 0 && (
-                <div className="flex items-center gap-2.5">
-                  {socials.map(({ icon: Icon, href, label }) => (
-                    <a
-                      key={label}
-                      href={href}
-                      aria-label={label}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="grid h-9 w-9 place-items-center rounded-xl border border-white/10 bg-white/8 transition-all hover:border-white/30"
-                      style={{ ["--hover-bg" as string]: settings.primaryColor }}
-                    >
-                      <Icon className="h-4 w-4" />
-                    </a>
-                  ))}
-                </div>
-              )}
+                );
+              })}
             </div>
-
-            {columns.map((col) => (
-              <div key={col.title}>
-                <h4 className="mb-5 text-sm font-bold uppercase tracking-widest text-white/70">{col.title}</h4>
-                <ul className="space-y-3">
-                  {col.links?.map((link) => (
-                    <li key={link.title}>
-                      <Link href={link.url} className="text-sm text-white/50 transition-all hover:text-white hover:translate-x-1 inline-flex">
-                        {link.title}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
           </div>
 
-          <MoroccanDivider color={settings.secondaryColor} />
-
-          <div className="flex flex-col items-center justify-between gap-4 pt-4 sm:flex-row">
-            <p className="text-xs text-white/35">{copyright}</p>
-            {legalLinks.length > 0 && (
-              <div className="flex items-center gap-6">
-                {legalLinks.map((link) => (
-                  <Link key={link.title} href={link.url} className="text-xs text-white/30 hover:text-white/60 transition-colors">
-                    {link.title}
-                  </Link>
-                ))}
+          {/* RIGHT: Newsletter Section */}
+          <div className="lg:col-span-7 space-y-4">
+            {/* Icon & Title */}
+            <div className="flex items-start gap-3.5">
+              <div className="w-11 h-11 rounded-xl bg-[#06332E] border border-[#0A4D45] flex items-center justify-center text-[#00B48A] shrink-0">
+                <Mail className="w-5 h-5" />
               </div>
-            )}
+              <div>
+                <h3 className="text-lg font-bold text-white">Newsletter</h3>
+                <p className="text-xs text-slate-300/80 mt-0.5">
+                  Soyez le premier informé de nos offres exclusives, nouveautés et bons plans.
+                </p>
+              </div>
+            </div>
+
+            {/* Email Input Form */}
+            <form onSubmit={handleSubscribe} className="space-y-2.5 pt-1">
+              <div className="flex flex-col sm:flex-row items-center rounded-full bg-[#03221E] border border-[#0D4740] p-1 focus-within:border-[#00B48A] transition-colors">
+                <div className="flex items-center gap-2.5 px-4 w-full sm:w-auto flex-1 py-2 sm:py-0">
+                  <Mail className="w-4 h-4 text-slate-400 shrink-0" />
+                  <input
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="Votre adresse email"
+                    className="w-full bg-transparent text-xs text-white placeholder-slate-400 outline-none"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="w-full sm:w-auto h-10 px-6 rounded-full bg-[#00B48A] hover:bg-[#009E79] text-white font-bold text-xs transition-all duration-200 flex items-center justify-center gap-1.5 shrink-0"
+                >
+                  <span>S&apos;abonner</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              {subscribed && (
+                <p className="text-xs text-[#00B48A] font-semibold pl-2">
+                  ✓ Merci pour votre inscription !
+                </p>
+              )}
+
+              {/* Trust Checkmarks */}
+              <div className="flex flex-wrap items-center gap-6 pt-1 text-[11px] text-slate-300/90 pl-1">
+                <div className="flex items-center gap-1.5">
+                  <Check className="w-3.5 h-3.5 text-[#00B48A]" />
+                  <span>Offres exclusives</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Check className="w-3.5 h-3.5 text-[#00B48A]" />
+                  <span>Nouveautés</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Check className="w-3.5 h-3.5 text-[#00B48A]" />
+                  <span>Sans spam</span>
+                </div>
+              </div>
+            </form>
+          </div>
+
+        </div>
+
+      </div>
+
+      {/* ================================================================= */}
+      {/* ROW 2: TRUST / SERVICE FEATURES BAR (FULL-WIDTH DARK TEAL BAR)    */}
+      {/* ================================================================= */}
+      <div className="bg-[#032521] border-y border-[#063C36] py-6">
+        <div className="container-main px-4 sm:px-6 lg:px-10">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            
+            {/* Feature 1: Paiement sécurisé */}
+            <div className="flex items-center gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-[#063E38] border border-[#0A544C] flex items-center justify-center text-[#00B48A] shrink-0">
+                <ShieldCheck className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="text-xs font-bold text-white">Paiement sécurisé</h4>
+                <p className="text-[11px] text-slate-400 mt-0.5">100% sécurisé</p>
+              </div>
+            </div>
+
+            {/* Feature 2: Livraison express */}
+            <div className="flex items-center gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-[#063E38] border border-[#0A544C] flex items-center justify-center text-[#00B48A] shrink-0">
+                <Truck className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="text-xs font-bold text-white">Livraison express</h4>
+                <p className="text-[11px] text-slate-400 mt-0.5">Partout au Maroc</p>
+              </div>
+            </div>
+
+            {/* Feature 3: Produits authentiques */}
+            <div className="flex items-center gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-[#063E38] border border-[#0A544C] flex items-center justify-center text-[#00B48A] shrink-0">
+                <BadgeCheck className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="text-xs font-bold text-white">Produits authentiques</h4>
+                <p className="text-[11px] text-slate-400 mt-0.5">Garantie qualité</p>
+              </div>
+            </div>
+
+            {/* Feature 4: Service client */}
+            <div className="flex items-center gap-3.5">
+              <div className="w-10 h-10 rounded-xl bg-[#063E38] border border-[#0A544C] flex items-center justify-center text-[#00B48A] shrink-0">
+                <Headphones className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="text-xs font-bold text-white">Service client</h4>
+                <p className="text-[11px] text-slate-400 mt-0.5">7j/7 - 24h/24</p>
+              </div>
+            </div>
+
           </div>
         </div>
       </div>
+
+      {/* ================================================================= */}
+      {/* ROW 3: NAVIGATION COLUMNS WITH ICONS & CHEVRONS                   */}
+      {/* ================================================================= */}
+      <div className="container-main px-4 sm:px-6 lg:px-10 py-12">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8">
+          
+          {/* Column 1: Nos catégories */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 text-white">
+              <LayoutGrid className="w-4 h-4 text-[#00B48A]" />
+              <h4 className="text-xs font-extrabold uppercase tracking-wider">Nos catégories</h4>
+            </div>
+            <ul className="space-y-2.5 text-xs text-slate-300/80">
+              {categoriesLinks.map((link) => (
+                <li key={link.title}>
+                  <Link
+                    href={link.url}
+                    className="flex items-center justify-between hover:text-[#00B48A] transition-colors group"
+                  >
+                    <span>{link.title}</span>
+                    <ChevronRight className="w-3.5 h-3.5 text-slate-500 group-hover:text-[#00B48A] transition-colors" />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Column 2: Service client */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 text-white">
+              <Headphones className="w-4 h-4 text-[#00B48A]" />
+              <h4 className="text-xs font-extrabold uppercase tracking-wider">Service client</h4>
+            </div>
+            <ul className="space-y-2.5 text-xs text-slate-300/80">
+              {serviceLinks.map((link) => (
+                <li key={link.title}>
+                  <Link
+                    href={link.url}
+                    className="flex items-center justify-between hover:text-[#00B48A] transition-colors group"
+                  >
+                    <span>{link.title}</span>
+                    <ChevronRight className="w-3.5 h-3.5 text-slate-500 group-hover:text-[#00B48A] transition-colors" />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Column 3: Mon compte */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 text-white">
+              <User className="w-4 h-4 text-[#00B48A]" />
+              <h4 className="text-xs font-extrabold uppercase tracking-wider">Mon compte</h4>
+            </div>
+            <ul className="space-y-2.5 text-xs text-slate-300/80">
+              {accountLinks.map((link) => (
+                <li key={link.title}>
+                  <Link
+                    href={link.url}
+                    className="flex items-center justify-between hover:text-[#00B48A] transition-colors group"
+                  >
+                    <span>{link.title}</span>
+                    <ChevronRight className="w-3.5 h-3.5 text-slate-500 group-hover:text-[#00B48A] transition-colors" />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Column 4: À propos de NexMart */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 text-white">
+              <Store className="w-4 h-4 text-[#00B48A]" />
+              <h4 className="text-xs font-extrabold uppercase tracking-wider">À propos de NexMart</h4>
+            </div>
+            <ul className="space-y-2.5 text-xs text-slate-300/80">
+              {aboutLinks.map((link) => (
+                <li key={link.title}>
+                  <Link
+                    href={link.url}
+                    className="block hover:text-[#00B48A] transition-colors"
+                  >
+                    {link.title}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+        </div>
+      </div>
+
+      {/* ================================================================= */}
+      {/* ROW 4: BOTTOM BAR (COPYRIGHT, INSPIRATION, PAYMENTS, SCROLL TOP)   */}
+      {/* ================================================================= */}
+      <div className="border-t border-[#06332E] py-5 relative">
+        <div className="container-main px-4 sm:px-6 lg:px-10 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-slate-400">
+          
+          {/* Copyright & Inspiration */}
+          <div className="flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
+            <p>© {new Date().getFullYear()} NexMart. Tous droits réservés.</p>
+            <p className="flex items-center gap-1.5 text-slate-300">
+              <Heart className="w-3.5 h-3.5 text-[#00B48A]" />
+              <span>Le Maroc, notre inspiration</span>
+            </p>
+          </div>
+
+          {/* Payment Badges */}
+          <div className="flex items-center gap-3">
+            <PaymentBadges />
+          </div>
+
+        </div>
+
+        {/* Scroll To Top Floating Green Button (Bottom-Right matching the image) */}
+        <button
+          onClick={scrollToTop}
+          aria-label="Retour en haut"
+          className="fixed bottom-6 right-6 w-11 h-11 rounded-full bg-[#00B48A] hover:bg-[#009E79] text-white flex items-center justify-center shadow-lg transition-transform hover:scale-110 z-50"
+        >
+          <ChevronUp className="w-5 h-5 stroke-[2.5]" />
+        </button>
+      </div>
+
     </footer>
   );
 }
+
+export default Footer;

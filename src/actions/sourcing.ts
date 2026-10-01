@@ -3,7 +3,8 @@
 import { requireAdmin } from "@/lib/auth-server";
 import { prisma } from "@/lib/prisma";
 import { AliExpressProvider } from "@/lib/sourcing/aliexpress";
-import { DemoProvider } from "@/lib/sourcing/demo";
+// DemoProvider disabled for clean slate
+// import { DemoProvider } from "@/lib/sourcing/demo";
 import { CsvProvider } from "@/lib/sourcing/csv";
 import { ExternalProduct } from "@/lib/sourcing/types";
 import { revalidatePath } from "next/cache";
@@ -27,8 +28,10 @@ export async function getSourcingModeAction() {
 
 export async function searchDemoProductsAction(query: string) {
   await requireAdmin();
-  const provider = new DemoProvider();
-  return { success: true, data: await provider.searchProducts(query) };
+  // DemoProvider disabled for clean slate
+  return { success: false, error: "Demo provider disabled for clean slate" };
+  // const provider = new DemoProvider();
+  // return { success: true, data: await provider.searchProducts(query) };
 }
 
 export async function clearDemoDataAction() {
@@ -57,7 +60,9 @@ export async function fetchExternalProductAction(urlOrId: string, providerName: 
     if (providerName === "ALIEXPRESS") {
       provider = new AliExpressProvider();
     } else if (providerName === "DEMO") {
-      provider = new DemoProvider();
+      // DemoProvider disabled for clean slate
+      throw new Error("Demo provider disabled for clean slate");
+      // provider = new DemoProvider();
     } else if (providerName === "CSV") {
       throw new Error("CSV provider does not support individual product fetching. Use bulk import instead.");
     } else {
@@ -162,7 +167,9 @@ export async function syncProductAction(productId: string) {
     if (product.source === "ALIEXPRESS") {
       provider = new AliExpressProvider();
     } else if (product.source === "DEMO") {
-      provider = new DemoProvider();
+      // DemoProvider disabled for clean slate
+      return { success: false, error: "Demo provider disabled for clean slate" };
+      // provider = new DemoProvider();
     } else if (product.source === "CSV") {
       return { success: false, error: "CSV products cannot be synced. Re-import from updated CSV file." };
     } else {

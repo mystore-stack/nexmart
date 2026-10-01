@@ -5,45 +5,12 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
 export function PromoBannersGrid({ cards = [] }: { cards?: any[] }) {
-  // Use CMS cards if available, otherwise use mock data that matches the requested design
-  const displayCards = cards && cards.length > 0 ? cards : [
-    {
-      id: "1",
-      title: "Upto 70% OFF",
-      subtitle: "Sale\nMany items",
-      description: "Bags, Clothing, T-Shirts, Shoes, Watches and much more",
-      cta: "Shop Now",
-      href: "/products?sale=true",
-      type: "light", // Specific styling type for the first card
-    },
-    {
-      id: "2",
-      title: "Smart Watch",
-      subtitle: "20% OFF",
-      cta: "Shop Now",
-      href: "/products?category=smart-watch",
-      image: "https://images.unsplash.com/photo-1579586337278-3befd40fd17a?q=80&w=500&auto=format&fit=crop",
-      type: "dark",
-    },
-    {
-      id: "3",
-      title: "Deal Promos",
-      subtitle: "Starting At $99",
-      cta: "Shop Now",
-      href: "/products?deals=true",
-      image: "https://images.unsplash.com/photo-1511499767150-a48a237f0083?q=80&w=500&auto=format&fit=crop",
-      type: "dark",
-    },
-    {
-      id: "4",
-      title: "Fashion Bag",
-      subtitle: "20% OFF",
-      cta: "Shop Now",
-      href: "/products?category=bags",
-      image: "https://images.unsplash.com/photo-1584916201218-f4242ceb4809?q=80&w=500&auto=format&fit=crop",
-      type: "dark",
-    }
-  ];
+  // Hide section if no CMS cards provided
+  if (!cards || cards.length === 0) {
+    return null;
+  }
+
+  const displayCards = cards;
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full">

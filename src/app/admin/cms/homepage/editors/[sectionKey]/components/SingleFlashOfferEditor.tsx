@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useTransition } from "react";
+import React, { useState, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { updateSectionConfig } from "../actions";
 import { ProductSelector } from "@/components/admin/ProductSelector";
@@ -14,12 +14,68 @@ export function SingleFlashOfferEditor({ section, parsedConfig }: { section: any
     stockRemaining: 8,
     totalStock: 50,
   });
+  const [initialProducts, setInitialProducts] = useState<any[]>([]);
+  const [isLoadingProducts, setIsLoadingProducts] = useState(true);
 
   const handleSave = () => {
     startTransition(async () => {
       await updateSectionConfig(section.id, config);
       router.refresh();
     });
+  };
+
+  // Fetch section products on mount
+  useEffect(() => {
+    const fetchSectionProducts = async () => {
+      try {
+        setIsLoadingProducts(true);
+        const res = await fetch(`/api/admin/cms/homepage-sections/${section.sectionKey}/products`);
+        const data = await res.json();
+        
+        if (data.success && data.data) {
+          const products = Array.isArray(data.data.data) ? data.data.data : [];
+          setInitialProducts(products);
+        }
+      } catch (error) {
+        console.error(`[SingleFlashOfferEditor] Error fetching section products:`, error);
+        setInitialProducts(section.products || []);
+      } finally {
+        setIsLoadingProducts(false);
+      }
+    };
+
+    fetchSectionProducts();
+  }, [section.sectionKey]);
+
+  // Handle selection changes and save to database
+  const handleSelectionChange = async (products: any[]) => {
+    try {
+      const productIds = products.map(p => p.productId || p.product?.id).filter(Boolean);
+      
+      const res = await fetch(`/api/admin/cms/homepage-sections/${section.sectionKey}/products`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ products: productIds }),
+      });
+
+      const data = await res.json();
+      
+      if (data.success) {
+        const freshRes = await fetch(`/api/admin/cms/homepage-sections/${section.sectionKey}/products`);
+        const freshData = await freshRes.json();
+        
+        if (freshData.success && freshData.data) {
+          const products = Array.isArray(freshData.data.data) ? freshData.data.data : [];
+          setInitialProducts(products);
+        }
+        
+        startTransition(() => {
+          router.refresh();
+        });
+      }
+    } catch (error) {
+      console.error(`[SingleFlashOfferEditor] Error saving selection:`, error);
+    }
   };
 
   return (
@@ -87,11 +143,18 @@ export function SingleFlashOfferEditor({ section, parsedConfig }: { section: any
 
       <div className="pt-4 border-t">
         <h3 className="text-xl font-semibold mb-4">Featured Product (Select only 1)</h3>
-        <ProductSelector 
-          sectionKey={section.sectionKey} 
-          maxProducts={1}
-          initialProducts={section.products || []}
-        />
+        {isLoadingProducts ? (
+          <div className="text-center py-8 text-muted-foreground">
+            Loading products...
+          </div>
+        ) : (
+          <ProductSelector 
+            sectionKey={section.sectionKey} 
+            maxProducts={1}
+            initialProducts={initialProducts}
+            onSelectionChange={handleSelectionChange}
+          />
+        )}
       </div>
     </div>
   );

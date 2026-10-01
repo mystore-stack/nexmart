@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Star, ThumbsUp, Check } from "lucide-react";
 import Image from "next/image";
-import { useAuthStore } from "@/store/index";
+import { useSession } from "next-auth/react";
 import { formatDate } from "@/utils/format";
 import type { Review } from "@/types";
 import toast from "react-hot-toast";
@@ -27,13 +27,14 @@ export function ProductReviews({ productId, initialReviews, rating, reviewCount 
   const [reviews, setReviews] = useState<Review[]>(initialReviews);
   const [sort, setSort] = useState("newest");
   const [showForm, setShowForm] = useState(false);
-  const { user } = useAuthStore();
+  const { data: session, status } = useSession();
+  const user = session?.user as { id?: string; name?: string | null; email?: string | null } | null;
   const [form, setForm] = useState({ rating: 5, title: "", body: "" });
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) { toast.error("Connectez-vous pour laisser un avis"); return; }
+    if (status !== "authenticated" || !user) { toast.error("Connectez-vous pour laisser un avis"); return; }
     if (form.body.length < 10) { toast.error("L'avis doit contenir au moins 10 caractères"); return; }
     setSubmitting(true);
     try {

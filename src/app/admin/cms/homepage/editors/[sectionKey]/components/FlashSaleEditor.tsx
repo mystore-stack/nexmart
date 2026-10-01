@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useTransition } from "react";
+import React, { useState, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { updateSectionConfig } from "../actions";
 import { ProductSelector } from "@/components/admin/ProductSelector";
@@ -23,6 +23,8 @@ export function FlashSaleEditor({ section, parsedConfig }: { section: any; parse
     giftDescription: "Pour garder tous vos appareils propres et comme neufs au quotidien.",
     giftImage: "https://images.unsplash.com/photo-1584916201218-f4242ceb4809?q=80&w=200&auto=format&fit=crop"
   });
+  const [initialProducts, setInitialProducts] = useState<any[]>([]);
+  const [isLoadingProducts, setIsLoadingProducts] = useState(true);
 
   const handleSave = () => {
     startTransition(async () => {
@@ -48,6 +50,75 @@ export function FlashSaleEditor({ section, parsedConfig }: { section: any; parse
     const newFeatures = [...(config.features || [])];
     newFeatures[index] = { ...newFeatures[index], [field]: value };
     setConfig({ ...config, features: newFeatures });
+  };
+
+  // Fetch section products on mount
+  useEffect(() => {
+    const fetchSectionProducts = async () => {
+      try {
+        setIsLoadingProducts(true);
+        const res = await fetch(`/api/admin/cms/homepage-sections/${section.sectionKey}/products`);
+        const data = await res.json();
+        
+        console.log("[FlashSaleEditor] Fetched section products:", data);
+        console.log("[FlashSaleEditor] Data structure:", JSON.stringify(data, null, 2));
+        
+        if (data.success && data.data) {
+          // The API returns data.data.data as the products array
+          const products = Array.isArray(data.data.data) ? data.data.data : [];
+          console.log("[FlashSaleEditor] Setting initial products:", products);
+          console.log("[FlashSaleEditor] First product structure:", products[0]);
+          setInitialProducts(products);
+        } else {
+          console.warn("[FlashSaleEditor] No data in response");
+          setInitialProducts([]);
+        }
+      } catch (error) {
+        console.error("[FlashSaleEditor] Error fetching section products:", error);
+        setInitialProducts(section.products || []);
+      } finally {
+        setIsLoadingProducts(false);
+      }
+    };
+
+    fetchSectionProducts();
+  }, [section.sectionKey]);
+
+  // Handle selection changes and save to database
+  const handleSelectionChange = async (products: any[]) => {
+    try {
+      const productIds = products.map(p => p.productId || p.product?.id).filter(Boolean);
+      
+      console.log("[FlashSaleEditor] Saving selection:", productIds);
+      
+      const res = await fetch(`/api/admin/cms/homepage-sections/${section.sectionKey}/products`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ products: productIds }),
+      });
+
+      const data = await res.json();
+      
+      if (data.success) {
+        console.log("[FlashSaleEditor] Selection saved successfully");
+        const freshRes = await fetch(`/api/admin/cms/homepage-sections/${section.sectionKey}/products`);
+        const freshData = await freshRes.json();
+        
+        if (freshData.success && freshData.data) {
+          // The API returns data.data.data as the products array
+          const products = Array.isArray(freshData.data.data) ? freshData.data.data : [];
+          setInitialProducts(products);
+        }
+        
+        startTransition(() => {
+          router.refresh();
+        });
+      } else {
+        console.error("[FlashSaleEditor] Save failed:", data.error);
+      }
+    } catch (error) {
+      console.error("[FlashSaleEditor] Error saving selection:", error);
+    }
   };
 
   return (
@@ -164,11 +235,18 @@ export function FlashSaleEditor({ section, parsedConfig }: { section: any; parse
 
       <div className="pt-4 border-t">
         <h3 className="text-xl font-semibold mb-4">Flash Sale Products</h3>
-        <ProductSelector 
-          sectionKey={section.sectionKey} 
-          maxProducts={section.maxProducts || 8}
-          initialProducts={section.products || []}
-        />
+        {isLoadingProducts ? (
+          <div className="text-center py-8 text-muted-foreground">
+            Loading products...
+          </div>
+        ) : (
+          <ProductSelector 
+            sectionKey={section.sectionKey} 
+            maxProducts={section.maxProducts || 8}
+            initialProducts={initialProducts}
+            onSelectionChange={handleSelectionChange}
+          />
+        )}
       </div>
     </div>
   );

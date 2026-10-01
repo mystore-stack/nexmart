@@ -27,18 +27,33 @@ export default async function SectionEditorPage({
   }
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto p-8">
-      <div className="flex items-center gap-4 border-b pb-6">
-        <Link href="/admin/cms/homepage" className="p-2 hover:bg-muted rounded-full">
-          <ArrowLeft className="w-5 h-5" />
+    <div className="space-y-6 max-w-6xl mx-auto p-8">
+      <div className="flex items-center gap-4 pb-6">
+        <Link 
+          href="/admin/cms/homepage" 
+          className="p-3 hover:bg-emerald-50 rounded-full transition-colors group"
+        >
+          <ArrowLeft className="w-5 h-5 text-gray-600 group-hover:text-emerald-600 transition-colors" />
         </Link>
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Edit Section: {section.title}</h1>
-          <p className="text-muted-foreground mt-1">Configure {normalizedKey} content and products.</p>
+        <div className="flex-1">
+          <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Edit Section: {section.title}</h1>
+          <p className="text-gray-500 mt-1 flex items-center gap-2">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full text-xs font-medium">
+              {normalizedKey}
+            </span>
+            Configure content and products for this homepage section.
+          </p>
+        </div>
+        <div className={`px-4 py-2 rounded-xl text-sm font-semibold ${
+          section.enabled 
+            ? "bg-emerald-100 text-emerald-700" 
+            : "bg-gray-100 text-gray-600"
+        }`}>
+          {section.enabled ? "Active" : "Inactive"}
         </div>
       </div>
 
-      <div className="bg-card border rounded-2xl shadow-sm p-6">
+      <div className="bg-white border-2 border-emerald-100 rounded-3xl shadow-lg p-8">
         <EditorForm 
           section={section} 
           parsedConfig={typeof section.config === "string" ? JSON.parse(section.config) : (section.config || {})} 

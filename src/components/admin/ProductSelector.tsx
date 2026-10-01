@@ -39,6 +39,7 @@ interface ProductSelectorProps {
   initialProducts?: SelectedProduct[];
   disabled?: boolean;
   externalCategoryFilter?: string; // "all" or category ID
+  showSaveButton?: boolean; // Add a save button for explicit saves
 }
 
 export function ProductSelector({
@@ -48,6 +49,7 @@ export function ProductSelector({
   initialProducts = [],
   disabled = false,
   externalCategoryFilter,
+  showSaveButton = true,
 }: ProductSelectorProps) {
   const [selectedProducts, setSelectedProducts] = useState<SelectedProduct[]>(Array.isArray(initialProducts) ? initialProducts : []);
   const [searchQuery, setSearchQuery] = useState("");
@@ -83,25 +85,9 @@ export function ProductSelector({
   }, []);
 
   useEffect(() => {
-    // Skip callback on initial render to prevent infinite loop
-    if (isInitialRender.current) {
-      isInitialRender.current = false;
-      return;
-    }
-
-    if (onSelectionChange) {
-      onSelectionChange(safeSelectedProducts);
-    }
-  }, [safeSelectedProducts]);
-
-  useEffect(() => {
-    fetchCategories();
-    fetchBrands();
-  }, []);
-
-  useEffect(() => {
+    console.log("[ProductSelector] initialProducts changed:", initialProducts);
     setSelectedProducts(Array.isArray(initialProducts) ? initialProducts : []);
-  }, [initialProducts?.length]);
+  }, [initialProducts]); // Fix: Watch entire initialProducts array, not just length
 
   // Auto-search when external category filter changes
   useEffect(() => {
@@ -192,7 +178,8 @@ export function ProductSelector({
     }
   };
 
-  const addProduct = async (product: Product) => {
+  const addProduct = (product: Product) => {
+    console.log("[ProductSelector] Adding product:", product.name);
     // Check if product is already selected
     if (safeSelectedProducts.some(sp => sp.product.id === product.id)) {
       toast.error("Ce produit est déjà sélectionné");
@@ -204,55 +191,24 @@ export function ProductSelector({
       return;
     }
 
-    try {
-      const res = await fetch(`/api/admin/cms/homepage-sections/${sectionKey}/products`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          productId: product.id,
-          order: safeSelectedProducts.length,
-        }),
-      });
-
-      const data = await res.json();
-
-      if (data.success) {
-        setSelectedProducts([...selectedProducts, {
-          id: data.id,
-          order: safeSelectedProducts.length,
-          active: true,
-          product,
-        }]);
-        // Keep search results visible to show selection state
-        toast.success("Produit ajouté");
-      } else {
-        toast.error(data.error || "Erreur lors de l'ajout");
-      }
-    } catch (error) {
-      toast.error("Erreur lors de l'ajout");
-    }
+    // Add to local state without saving to server
+    const newProduct = {
+      id: `temp-${Date.now()}`, // Temporary ID
+      order: safeSelectedProducts.length,
+      active: true,
+      product,
+    };
+    console.log("[ProductSelector] Adding to state:", newProduct);
+    setSelectedProducts([...selectedProducts, newProduct]);
   };
 
-  const removeProduct = async (sectionProductId: string) => {
-    try {
-      const res = await fetch(`/api/admin/cms/homepage-sections/${sectionKey}/products?id=${sectionProductId}`, {
-        method: "DELETE",
-      });
-
-      const data = await res.json();
-      
-      if (data.success) {
-        setSelectedProducts(safeSelectedProducts.filter(sp => sp.id !== sectionProductId));
-        toast.success("Produit supprimé");
-      } else {
-        toast.error(data.error || "Erreur lors de la suppression");
-      }
-    } catch (error) {
-      toast.error("Erreur lors de la suppression");
-    }
+  const removeProduct = (sectionProductId: string) => {
+    console.log("[ProductSelector] Removing product with ID:", sectionProductId);
+    // Remove from local state without calling server
+    setSelectedProducts(safeSelectedProducts.filter(sp => sp.id !== sectionProductId));
   };
 
-  const reorderProducts = async (fromIndex: number, toIndex: number) => {
+  const reorderProducts = (fromIndex: number, toIndex: number) => {
     const newProducts = [...selectedProducts];
     const [moved] = newProducts.splice(fromIndex, 1);
     newProducts.splice(toIndex, 0, moved);
@@ -264,25 +220,6 @@ export function ProductSelector({
     }));
 
     setSelectedProducts(reorderedProducts);
-
-    // Save to server
-    try {
-      const res = await fetch(`/api/admin/cms/homepage-sections/${sectionKey}/products`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          items: reorderedProducts.map(sp => ({ id: sp.id, order: sp.order })),
-      
-        }),
-      });
-
-      const data = await res.json();
-      if (!data.success) {
-        toast.error("Erreur lors du réordonnancement");
-      }
-    } catch (error) {
-      toast.error("Erreur lors du réordonnancement");
-    }
   };
 
   const handleDragStart = (index: number) => {
@@ -300,73 +237,45 @@ export function ProductSelector({
     setDraggedIndex(null);
   };
 
-  const updateCustomPrice = async (sectionProductId: string, customPrice: number | undefined) => {
-    try {
-      const res = await fetch(`/api/admin/cms/homepage-sections/${sectionKey}/products`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: sectionProductId,
-          customPrice,
-        }),
-      });
+  const updateCustomPrice = (sectionProductId: string, customPrice: number | undefined) => {
+    const product = safeSelectedProducts.find(sp => sp.id === sectionProductId);
+    if (!product) return;
 
-      const data = await res.json();
-      if (data.success) {
-        setSelectedProducts(safeSelectedProducts.map(sp => 
-          sp.id === sectionProductId ? { ...sp, customPrice } : sp
-        ));
-        toast.success("Prix personnalisé mis à jour");
+    // Validate custom price only if a valid number is provided
+    if (customPrice !== undefined && customPrice !== null && !isNaN(customPrice)) {
+      if (customPrice < 0) {
+        toast.error("Le prix ne peut pas être négatif");
+        return;
       }
-    } catch (error) {
-      toast.error("Erreur lors de la mise à jour");
+      if (customPrice >= product.product.price) {
+        toast.error("Le prix promotionnel doit être inférieur au prix original");
+        return;
+      }
     }
+
+    setSelectedProducts(safeSelectedProducts.map(sp => 
+      sp.id === sectionProductId ? { ...sp, customPrice: customPrice || undefined } : sp
+    ));
   };
 
-  const updateCustomBadge = async (sectionProductId: string, customBadge: string | undefined) => {
-    try {
-      const res = await fetch(`/api/admin/cms/homepage-sections/${sectionKey}/products`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: sectionProductId,
-          customBadge,
-        }),
-      });
-
-      const data = await res.json();
-      if (data.success) {
-        setSelectedProducts(safeSelectedProducts.map(sp => 
-          sp.id === sectionProductId ? { ...sp, customBadge } : sp
-        ));
-        toast.success("Badge personnalisé mis à jour");
-      }
-    } catch (error) {
-      toast.error("Erreur lors de la mise à jour");
-    }
+  const updateCustomBadge = (sectionProductId: string, customBadge: string | undefined) => {
+    setSelectedProducts(safeSelectedProducts.map(sp => 
+      sp.id === sectionProductId ? { ...sp, customBadge } : sp
+    ));
   };
 
-  const updateDate = async (sectionProductId: string, field: "startDate" | "endDate", value: string | undefined) => {
-    try {
-      const res = await fetch(`/api/admin/cms/homepage-sections/${sectionKey}/products`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: sectionProductId,
-          [field]: value || null, // API handles null for deletion
-        }),
-      });
+  const updateDate = (sectionProductId: string, field: "startDate" | "endDate", value: string | undefined) => {
+    setSelectedProducts(safeSelectedProducts.map(sp => 
+      sp.id === sectionProductId ? { ...sp, [field]: value } : sp
+    ));
+  };
 
-      const data = await res.json();
-      if (data.success) {
-        setSelectedProducts(safeSelectedProducts.map(sp => 
-          sp.id === sectionProductId ? { ...sp, [field]: value } : sp
-        ));
-        toast.success("Date mise à jour");
-      }
-    } catch (error) {
-      toast.error("Erreur lors de la mise à jour");
-    }
+  const clearSearch = () => {
+    setSearchQuery("");
+    setSkuQuery("");
+    setCategoryFilter("");
+    setBrandFilter("");
+    setShowSearchResults(false);
   };
 
   return (
@@ -460,6 +369,16 @@ export function ProductSelector({
             <Search className="w-4 h-4" />
             {isSearching ? "Recherche..." : "Rechercher"}
           </button>
+          {(searchQuery || skuQuery || categoryFilter || brandFilter) && (
+            <button
+              onClick={clearSearch}
+              disabled={disabled}
+              className="px-4 py-2 border border-border rounded-xl text-sm font-medium hover:bg-muted inline-flex items-center gap-2"
+            >
+              <X className="w-4 h-4" />
+              Effacer
+            </button>
+          )}
         </div>
 
         {/* Search Results */}
@@ -481,6 +400,7 @@ export function ProductSelector({
                         alt={product.name}
                         fill
                         className="object-cover"
+                        sizes="64px"
                       />
                     )}
                   </div>
@@ -563,6 +483,7 @@ export function ProductSelector({
                       alt={sp.product.name}
                       fill
                       className="object-cover"
+                      sizes="64px"
                     />
                   )}
                 </div>
@@ -664,6 +585,38 @@ export function ProductSelector({
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {showSaveButton && (
+        <div className="flex justify-end gap-3">
+          <button
+            onClick={() => {
+              // Reset to initial products
+              setSelectedProducts(Array.isArray(initialProducts) ? initialProducts : []);
+              toast.info("Réinitialisé");
+            }}
+            disabled={disabled}
+            className="px-4 py-2 border border-border rounded-lg text-sm font-medium hover:bg-muted"
+          >
+            Annuler
+          </button>
+          <button
+            onClick={() => {
+              console.log("[ProductSelector] Save button clicked, products:", safeSelectedProducts);
+              if (onSelectionChange) {
+                onSelectionChange(safeSelectedProducts);
+                toast.success("Sauvegardé");
+              } else {
+                console.warn("[ProductSelector] onSelectionChange not provided - products saved to local state only");
+                toast.success("Produits sélectionnés (mise à jour locale)");
+              }
+            }}
+            disabled={disabled}
+            className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90"
+          >
+            Sauvegarder
+          </button>
         </div>
       )}
     </div>

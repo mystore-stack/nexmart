@@ -8,6 +8,7 @@ import { ProductGallery } from "@/components/product/ProductGallery";
 import { ProductInfo } from "@/components/product/ProductInfo";
 import { ProductReviews } from "@/components/product/ProductReviews";
 import { RelatedProducts } from "@/components/product/RelatedProducts";
+import { MobileProductDetail } from "@/components/mobile/MobileProductDetail";
 import type { Product } from "@/types";
 
 interface Props {
@@ -117,65 +118,69 @@ export default async function ProductPage({ params }: Props) {
       />
 
       <div className="page-enter">
-        <div className="border-b border-border">
-          <div className="container-main py-3">
-            <nav className="flex items-center gap-2 text-sm text-muted-foreground">
-              <a href="/" className="hover:text-foreground transition-colors">
-                Home
-              </a>
-              <span>/</span>
-              <a
-                href="/products"
-                className="hover:text-foreground transition-colors"
-              >
-                Products
-              </a>
-              <span>/</span>
-              <a
-                href={`/products?category=${product.category.slug}`}
-                className="hover:text-foreground transition-colors"
-              >
-                {product.category.name}
-              </a>
-              <span>/</span>
-              <span className="text-foreground truncate max-w-[200px]">
-                {product.name}
-              </span>
-            </nav>
-          </div>
+        {/* Mobile View */}
+        <div className="md:hidden">
+          <MobileProductDetail
+            product={product}
+            relatedProducts={related as unknown as Product[]}
+          />
         </div>
 
-        <div className="container-main py-8 md:py-12">
-          <div className="grid lg:grid-cols-2 gap-8 xl:gap-16">
-            <ProductGallery images={product.images} name={product.name} />
-            <ProductInfo product={product} />
-          </div>
-        </div>
-
-        <div className="border-t border-border">
-          <div className="container-main py-12">
-            <Suspense
-              fallback={<div className="skeleton h-64 rounded-2xl" />}
-            >
-              <ProductReviews
-                productId={product.id}
-                initialReviews={(product as any).reviews || []}
-                rating={product.rating}
-                reviewCount={product.reviewCount}
-              />
-            </Suspense>
-          </div>
-        </div>
-
-        {related.length > 0 && (
-          <div className="border-t border-border bg-surface">
-            <div className="container-main py-12">
-              <RelatedProducts
-                products={related as unknown as Product[]}
-              />
+        {/* Desktop View */}
+        <div className="hidden md:block">
+          <div className="border-b border-border">
+            <div className="container-main py-3">
+              <nav className="flex items-center gap-2 text-sm text-muted-foreground">
+                <a href="/" className="hover:text-foreground transition-colors">
+                  Home
+                </a>
+                <span>/</span>
+                <a href="/products" className="hover:text-foreground transition-colors">
+                  Products
+                </a>
+                <span>/</span>
+                <a
+                  href={`/products?category=${product.category.slug}`}
+                  className="hover:text-foreground transition-colors"
+                >
+                  {product.category.name}
+                </a>
+                <span>/</span>
+                <span className="text-foreground truncate max-w-[200px]">
+                  {product.name}
+                </span>
+              </nav>
             </div>
           </div>
-        )}
+
+          <div className="container-main py-8 md:py-12">
+            <div className="grid lg:grid-cols-2 gap-8 xl:gap-16">
+              <ProductGallery images={product.images} name={product.name} />
+              <ProductInfo product={product} />
+            </div>
+          </div>
+
+          <div className="border-t border-border">
+            <div className="container-main py-12">
+              <Suspense fallback={<div className="skeleton h-64 rounded-2xl" />}>
+                <ProductReviews
+                  productId={product.id}
+                  initialReviews={(product as any).reviews || []}
+                  rating={product.rating}
+                  reviewCount={product.reviewCount}
+                />
+              </Suspense>
+            </div>
+          </div>
+
+          {related.length > 0 && (
+            <div className="border-t border-border bg-surface">
+              <div className="container-main py-12">
+                <RelatedProducts products={related as unknown as Product[]} />
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </>
   );

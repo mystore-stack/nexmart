@@ -18,7 +18,7 @@ export function PromoCardsEditor({ section, parsedConfig }: { section: any; pars
   };
 
   const addCard = () => {
-    setCards([...cards, { id: Date.now().toString(), title: "New Promo", subtitle: "", image: "", href: "/", cta: "Acheter" }]);
+    setCards([...cards, { id: Date.now().toString(), image: "", href: "/" }]);
   };
 
   const removeCard = (index: number) => {
@@ -34,7 +34,10 @@ export function PromoCardsEditor({ section, parsedConfig }: { section: any; pars
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h3 className="text-xl font-semibold">Promotional Cards</h3>
+        <div>
+          <h3 className="text-xl font-semibold">Promotional Cards</h3>
+          <p className="text-sm text-muted-foreground mt-1">Upload complete promotional visuals - each image should contain all text, CTA, and design elements.</p>
+        </div>
         <button onClick={addCard} className="flex items-center gap-2 px-3 py-1.5 bg-secondary text-secondary-foreground rounded-lg hover:bg-secondary/80">
           <Plus className="w-4 h-4" /> Add Promo Card
         </button>
@@ -49,43 +52,17 @@ export function PromoCardsEditor({ section, parsedConfig }: { section: any; pars
                 <Trash2 className="w-4 h-4" />
               </button>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-4">
               <div>
-                <label className="block text-sm mb-1">Title</label>
-                <input 
-                  type="text" 
-                  value={card.title || ""} 
-                  onChange={(e) => updateCard(index, "title", e.target.value)}
-                  className="w-full border rounded-lg p-2"
-                />
-              </div>
-              <div>
-                <label className="block text-sm mb-1">Subtitle</label>
-                <input 
-                  type="text" 
-                  value={card.subtitle || ""} 
-                  onChange={(e) => updateCard(index, "subtitle", e.target.value)}
-                  className="w-full border rounded-lg p-2"
-                />
-              </div>
-              <div>
-                <label className="block text-sm mb-1">Background Image URL</label>
+                <label className="block text-sm mb-1">Promotional Image URL (Complete Visual)</label>
                 <input 
                   type="text" 
                   value={card.image || ""} 
                   onChange={(e) => updateCard(index, "image", e.target.value)}
                   className="w-full border rounded-lg p-2"
+                  placeholder="https://example.com/promo-visual.jpg"
                 />
-              </div>
-              <div>
-                <label className="block text-sm mb-1">Background Color (Hex)</label>
-                <input 
-                  type="text" 
-                  value={card.bgColor || ""} 
-                  onChange={(e) => updateCard(index, "bgColor", e.target.value)}
-                  className="w-full border rounded-lg p-2"
-                  placeholder="#000000"
-                />
+                <p className="text-xs text-muted-foreground mt-1">Upload a complete promotional visual with all text, CTA, and design elements included.</p>
               </div>
               <div>
                 <label className="block text-sm mb-1">Destination URL</label>
@@ -94,15 +71,7 @@ export function PromoCardsEditor({ section, parsedConfig }: { section: any; pars
                   value={card.href || ""} 
                   onChange={(e) => updateCard(index, "href", e.target.value)}
                   className="w-full border rounded-lg p-2"
-                />
-              </div>
-              <div>
-                <label className="block text-sm mb-1">Button Text (CTA)</label>
-                <input 
-                  type="text" 
-                  value={card.cta || ""} 
-                  onChange={(e) => updateCard(index, "cta", e.target.value)}
-                  className="w-full border rounded-lg p-2"
+                  placeholder="/promotions"
                 />
               </div>
             </div>

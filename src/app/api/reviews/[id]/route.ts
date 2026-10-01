@@ -23,7 +23,6 @@ export async function GET(
     const review = await prisma.review.findUnique({
       where: { id },
       include: {
-        user: { select: { id: true, name: true, avatar: true } },
         product: { select: { id: true, name: true, images: true } },
       },
     });
@@ -32,7 +31,12 @@ export async function GET(
       return NextResponse.json({ success: false, error: "Review not found" }, { status: 404 });
     }
 
-    return NextResponse.json({ success: true, review });
+    const user = await prisma.user.findUnique({
+      where: { id: review.userId },
+      select: { id: true, name: true, avatar: true },
+    });
+
+    return NextResponse.json({ success: true, review: { ...review, user } });
   } catch (error) {
     console.error("[REVIEW_GET_ERROR]", error);
     return NextResponse.json({ success: false, error: "Server error" }, { status: 500 });
@@ -83,9 +87,13 @@ export async function PUT(
       where: { id },
       data: body,
       include: {
-        user: { select: { id: true, name: true, avatar: true } },
         product: { select: { id: true, name: true, images: true } },
       },
+    });
+
+    const user = await prisma.user.findUnique({
+      where: { id: updatedReview.userId },
+      select: { id: true, name: true, avatar: true },
     });
 
     // Update product rating
@@ -102,7 +110,7 @@ export async function PUT(
       },
     });
 
-    return NextResponse.json({ success: true, review: updatedReview });
+    return NextResponse.json({ success: true, review: { ...updatedReview, user } });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ success: false, error: error.errors }, { status: 400 });

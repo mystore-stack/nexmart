@@ -5,6 +5,7 @@ import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getNextAuthSecret, isGoogleOAuthEnabled } from "@/lib/env";
+import { generateAuthRequestId, authDebug, logUserInfo } from "@/lib/auth-debug";
 
 const credentialsSchema = z.object({
   email: z.string().email(),
@@ -17,12 +18,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     signIn: "/login",
     error: "/login",
   },
+  events: {
+    async signOut() {
+      console.log("[LOGOUT NEXTAUTH] SignOut event triggered");
+      console.log("[LOGOUT NEXTAUTH] Session invalidated successfully");
+    },
+  },
   providers: [
     Credentials({
       name: "credentials",
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
+        csrfToken: { label: "CSRF Token", type: "hidden" },
       },
       async authorize(credentials) {
         try {
@@ -135,6 +143,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
   callbacks: {
     async signIn({ user, account }) {
+      const requestId = generateAuthRequestId();
+      console.log("[NEXTAUTH SIGN IN] === SIGN IN CALLBACK ===");
+      authDebug("NEXTAUTH_SIGNIN", {
+        requestId,
+        provider: account?.provider,
+        ...logUserInfo(user),
+      });
+      
       const authUser = user as {
         email?: string | null;
         id?: string;
@@ -142,6 +158,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         image?: string | null;
         name?: string | null;
       };
+      console.log("[NEXTAUTH SIGN IN] User:", {
+        hasEmail: !!authUser.email,
+        hasId: !!authUser.id,
+        provider: account?.provider
+      });
+
       if (account?.provider === "google") {
         const email = authUser.email ?? "";
         const existing = await prisma.user.findUnique({
@@ -176,31 +198,39 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         authUser.id = created.id;
         authUser.role = "USER";
       }
+      console.log("[NEXTAUTH SIGN IN] === SIGN IN CALLBACK END ===");
       return true;
     },
 
     async jwt({ token, user, account, trigger, session }) {
-      console.log("[NEXTAUTH] JWT callback called", { 
-        hasUser: !!user, 
+      const requestId = generateAuthRequestId();
+      console.log("[NEXTAUTH JWT] === JWT CALLBACK ===", {
+        hasUser: !!user,
         hasAccount: !!account,
         trigger,
-        existingTokenUserId: token.userId 
+        existingTokenUserId: token.userId
       });
-      
+      authDebug("NEXTAUTH_JWT", {
+        requestId,
+        hasUser: !!user,
+        trigger,
+        existingUserId: token.userId,
+      });
+
       const authUser = user as { id?: string; role?: string; image?: string | null };
       if (user) {
         // CRITICAL FIX: Never fall back to token.sub (OAuth provider ID)
         // Only use authUser.id which is guaranteed to be a database user ID
         if (!authUser.id) {
-          console.error("[NEXTAUTH] JWT callback: user.id is missing, cannot create valid token");
+          console.error("[NEXTAUTH JWT] user.id is missing, cannot create valid token");
           throw new Error("User ID is required for JWT token creation");
         }
         token.userId = authUser.id as string;
         token.role = (authUser.role as string) ?? token.role ?? "USER";
         token.provider = account?.provider ?? "credentials";
         token.picture = authUser.image ?? token.picture;
-        
-        console.log("[NEXTAUTH] JWT token created:", {
+
+        console.log("[NEXTAUTH JWT] JWT token created:", {
           userId: token.userId,
           role: token.role,
           provider: token.provider,
@@ -213,25 +243,34 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if ((session.user as { role?: string })?.role) {
           token.role = (session.user as { role?: string }).role ?? token.role;
         }
-        console.log("[NEXTAUTH] JWT token updated via trigger:", { trigger });
+        console.log("[NEXTAUTH JWT] JWT token updated via trigger:", { trigger });
       }
 
-      console.log("[NEXTAUTH] JWT token final state:", {
+      console.log("[NEXTAUTH JWT] JWT token final state:", {
         userId: token.userId,
         role: token.role,
         provider: token.provider,
       });
-      
+
+      console.log("[NEXTAUTH JWT] === JWT CALLBACK END ===");
       return token;
     },
 
     async session({ session, token }) {
-      console.log("[NEXTAUTH] Session callback called", { 
-        hasSessionUser: !!session.user, 
+      const requestId = generateAuthRequestId();
+      console.log("[NEXTAUTH SESSION] === SESSION CALLBACK ===", {
+        hasToken: !!token,
+        hasSession: !!session,
+        hasSessionUser: !!session.user,
         hasTokenUserId: !!token.userId,
-        tokenUserId: token.userId 
+        tokenUserId: token.userId
       });
-      
+      authDebug("NEXTAUTH_SESSION", {
+        requestId,
+        tokenUserId: token.userId,
+        tokenRole: token.role,
+      });
+
       if (session.user && token.userId) {
         const user = session.user as any;
         user.id = token.userId as string;
@@ -239,18 +278,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         user.provider = (token.provider as string) ?? "credentials";
         user.isVerified = Boolean(token.isVerified);
 
-        console.log("[NEXTAUTH] Session user populated:", {
+        console.log("[NEXTAUTH SESSION] Session user populated:", {
           id: user.id,
           email: user.email,
           role: user.role,
         });
       } else {
-        console.error("[NEXTAUTH] Session callback failed - missing session.user or token.userId", {
+        console.error("[NEXTAUTH SESSION] Session callback failed - missing session.user or token.userId", {
           hasSessionUser: !!session.user,
           hasTokenUserId: !!token.userId,
         });
       }
-      
+
+      console.log("[NEXTAUTH SESSION] === SESSION CALLBACK END ===");
       return session;
     },
   },

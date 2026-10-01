@@ -2,6 +2,7 @@
 // Global API wrapper that catches ALL errors automatically
 import { NextRequest, NextResponse } from "next/server";
 import { errorToResponse, ok, type ApiSuccess, type ApiError, type ApiResponse } from "./api-response";
+import { notifySystemError } from "./notifications/telegram";
 
 // ─── Handler Types ─────────────────────────────────────────────────
 
@@ -86,6 +87,23 @@ const DEFAULT_OPTIONS: WithApiOptions = {
       path: ctx.req.nextUrl.pathname,
       method: ctx.req.method,
     });
+
+    // Send Telegram notification for critical errors
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const isCritical = errorMessage.includes("CRITICAL") || 
+                      errorMessage.includes("database") ||
+                      errorMessage.includes("payment") ||
+                      errorMessage.includes("security");
+    
+    if (isCritical && process.env.NODE_ENV === "production") {
+      notifySystemError({
+        message: errorMessage,
+        path: ctx.req.nextUrl.pathname,
+        severity: "HIGH",
+      }).catch(telegramError => {
+        console.error("[Telegram] Failed to send error notification:", telegramError);
+      });
+    }
   },
   logRequests: false,
 };

@@ -10,7 +10,7 @@ import {
   Package, DollarSign, Box, AlertTriangle
 } from "lucide-react";
 import { formatPrice } from "@/utils/format";
-import toast from "react-hot-toast";
+import { ImageUploader } from "@/components/admin/ImageUploader";
 
 interface Product {
   id: string;
@@ -35,6 +35,8 @@ export default function EditProductPage() {
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [showUploadDialog, setShowUploadDialog] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: "",
     sku: "",
@@ -57,14 +59,40 @@ export default function EditProductPage() {
       const res = await fetch(`/api/admin/products/${productId}`, {
         credentials: "include",
       });
-      
+
       if (!res.ok) {
+        // Try to parse error response
+        let errorMessage = "Failed to fetch product";
+        try {
+          const errorData = await res.json();
+          if (errorData.error) {
+            errorMessage = errorData.error;
+          }
+        } catch (e) {
+          // If response is not JSON, use status text
+          errorMessage = res.statusText || errorMessage;
+        }
+
         if (res.status === 404) {
           toast.error("Product not found");
           router.push("/admin/products");
           return;
         }
-        throw new Error("Failed to fetch product");
+
+        if (res.status === 401) {
+          toast.error("Unauthorized - Please log in again");
+          router.push("/login");
+          return;
+        }
+
+        if (res.status === 403) {
+          toast.error("Forbidden - You don't have permission to access this product");
+          router.push("/admin/products");
+          return;
+        }
+
+        toast.error(errorMessage);
+        return;
       }
 
       const data = await res.json();
@@ -86,7 +114,7 @@ export default function EditProductPage() {
       }
     } catch (error) {
       console.error("Error fetching product:", error);
-      toast.error("Failed to load product");
+      toast.error("Failed to load product - Network error or server unavailable");
     } finally {
       setLoading(false);
     }
@@ -116,14 +144,44 @@ export default function EditProductPage() {
       });
 
       if (!res.ok) {
-        throw new Error("Failed to update product");
+        // Try to parse error response
+        let errorMessage = "Failed to update product";
+        try {
+          const errorData = await res.json();
+          if (errorData.error) {
+            errorMessage = errorData.error;
+          }
+        } catch (e) {
+          // If response is not JSON, use status text
+          errorMessage = res.statusText || errorMessage;
+        }
+
+        if (res.status === 401) {
+          toast.error("Unauthorized - Please log in again");
+          router.push("/login");
+          return;
+        }
+
+        if (res.status === 403) {
+          toast.error("Forbidden - You don't have permission to update this product");
+          return;
+        }
+
+        if (res.status === 404) {
+          toast.error("Product not found");
+          router.push("/admin/products");
+          return;
+        }
+
+        toast.error(errorMessage);
+        return;
       }
 
       toast.success("Product updated successfully");
       router.push("/admin/products");
     } catch (error) {
       console.error("Error updating product:", error);
-      toast.error("Failed to update product");
+      toast.error("Failed to update product - Network error or server unavailable");
     } finally {
       setSaving(false);
     }
@@ -140,6 +198,20 @@ export default function EditProductPage() {
       ...formData,
       images: formData.images.filter((_, i) => i !== index),
     });
+  };
+
+  const handleImageUpload = (url: string) => {
+    if (url && !formData.images.includes(url)) {
+      setFormData({ ...formData, images: [...formData.images, url] });
+      toast.success("Image added successfully");
+    }
+    setShowUploadDialog(false);
+    setUploadingImage(null);
+  };
+
+  const openUploadDialog = () => {
+    setShowUploadDialog(true);
+    setUploadingImage(null);
   };
 
   if (loading) {
@@ -320,7 +392,32 @@ export default function EditProductPage() {
                 >
                   <Plus className="w-4 h-4" />
                 </button>
+                <button
+                  type="button"
+                  className="btn-primary px-4"
+                  onClick={openUploadDialog}
+                >
+                  <Upload className="w-4 h-4" />
+                </button>
               </div>
+
+              {showUploadDialog && (
+                <div className="p-4 bg-muted rounded-xl">
+                  <ImageUploader
+                    value={uploadingImage || ""}
+                    onChange={handleImageUpload}
+                    folder="nexmart/products"
+                    aspectRatio="aspect-square"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowUploadDialog(false)}
+                    className="mt-3 w-full btn-outline text-sm"
+                  >
+                    Cancel Upload
+                  </button>
+                </div>
+              )}
 
               {formData.images.length > 0 && (
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

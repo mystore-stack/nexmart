@@ -71,7 +71,7 @@ export function PopularCategoriesSection({ config, categories = [] }: PopularCat
               }}
             >
               <Link
-                href={`/categories/${category.slug}`}
+                href={`/category/${category.slug}`}
                 className="group block"
               >
                 <div className="relative aspect-square rounded-3xl overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100 hover:shadow-2xl hover:shadow-blue-100/50 transition-all duration-500">
@@ -80,6 +80,7 @@ export function PopularCategoriesSection({ config, categories = [] }: PopularCat
                       src={category.image}
                       alt={category.name}
                       fill
+                      sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
                       className="object-cover group-hover:scale-110 transition-transform duration-700"
                     />
                   ) : (

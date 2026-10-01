@@ -21,6 +21,23 @@ export default function LoginPage() {
 
   React.useEffect(() => {
     setMounted(true);
+
+    // Check session on login page load
+    async function checkSessionOnLoad() {
+      try {
+        const res = await fetch("/api/auth/session");
+        const data = await res.json();
+        console.log("[LOGIN PAGE] Session check on page load:", {
+          authenticated: data.authenticated,
+          hasUser: !!data.user,
+          hasUserId: !!data.user?.id,
+          userEmail: data.user?.email || 'none'
+        });
+      } catch (e) {
+        console.error("[LOGIN PAGE] Failed to check session on load:", e);
+      }
+    }
+    checkSessionOnLoad();
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -32,11 +49,14 @@ export default function LoginPage() {
         email: form.email,
         password: form.password,
         redirect: false,
+        callbackUrl: from,
       });
       if (result?.error) {
         setError("Identifiants incorrects. Veuillez réessayer.");
       } else {
         toast.success("Bienvenue !");
+        // Wait a moment for session to be established
+        await new Promise(resolve => setTimeout(resolve, 300));
         router.push(from);
         router.refresh();
       }

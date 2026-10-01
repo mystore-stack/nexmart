@@ -10,7 +10,9 @@ import { getDefaultOrganizationId } from "@/lib/tenant";
 import {
   heroBannerSchema,
   heroBannerReorderSchema,
+  heroDimensionsSchema,
   type HeroBannerInput,
+  type HeroDimensionsInput,
 } from "@/lib/cms/schemas/hero";
 import {
   homepageBuilderSchema,
@@ -96,6 +98,92 @@ export async function updateHeroBanner(id: string, input: HeroBannerInput): Prom
     return { success: true, data: banner };
   } catch (error) {
     return { success: false, error: error instanceof Error ? error.message : "Failed to update banner" };
+  }
+}
+
+// ─── Hero Dimensions Actions ───────────────────────────────────────
+
+export async function updateHeroDimensions(input: HeroDimensionsInput): Promise<ActionResult> {
+  try {
+    const session = await requireCmsPermission(CmsPermission.CMS_EDIT);
+    const data = heroDimensionsSchema.parse(input);
+
+    let heroContent = await prisma.heroContent.findFirst({
+      where: { active: true },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    if (heroContent) {
+      heroContent = await prisma.heroContent.update({
+        where: { id: heroContent.id },
+        data: data
+      });
+    } else {
+      heroContent = await prisma.heroContent.create({
+        data: {
+          ...data,
+          title: "Hero Configuration",
+          subtitle: "Hero banner settings",
+          ctaText: "Explorer",
+          ctaLink: "/products",
+        }
+      });
+    }
+
+    await logCmsActivity({
+      userId: session.userId,
+      entityType: "hero_dimensions",
+      entityId: heroContent.id,
+      action: "UPDATE",
+    });
+
+    revalidatePath("/");
+    revalidateSiteContent();
+    return { success: true, data: heroContent };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : "Failed to update hero dimensions" };
+  }
+}
+
+export async function resetHeroDimensions(): Promise<ActionResult> {
+  try {
+    const session = await requireCmsPermission(CmsPermission.CMS_EDIT);
+    const defaultDimensions = heroDimensionsSchema.parse({});
+
+    let heroContent = await prisma.heroContent.findFirst({
+      where: { active: true },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    if (heroContent) {
+      heroContent = await prisma.heroContent.update({
+        where: { id: heroContent.id },
+        data: defaultDimensions
+      });
+    } else {
+      heroContent = await prisma.heroContent.create({
+        data: {
+          ...defaultDimensions,
+          title: "Hero Configuration",
+          subtitle: "Hero banner settings",
+          ctaText: "Explorer",
+          ctaLink: "/products",
+        }
+      });
+    }
+
+    await logCmsActivity({
+      userId: session.userId,
+      entityType: "hero_dimensions",
+      entityId: heroContent.id,
+      action: "RESET",
+    });
+
+    revalidatePath("/");
+    revalidateSiteContent();
+    return { success: true, data: heroContent };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : "Failed to reset hero dimensions" };
   }
 }
 

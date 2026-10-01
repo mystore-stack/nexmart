@@ -48,6 +48,13 @@ export async function POST(req: NextRequest) {
       createdAt: new Date().toISOString(),
     };
 
+    // Send Telegram notification for new user
+    await notifyNewUser({
+      name: user.name,
+      email: user.email,
+      userId: user.id,
+    });
+
     return NextResponse.json(
       {
         success: true,

@@ -34,20 +34,17 @@ export interface AIProductImageAnalysis {
 export interface AIProductTranslations {
   fr: {
     title: string;
-    shortDescription: string;
-    longDescription: string;
+    description: string;
     highlights: string[];
   };
   en: {
     title: string;
-    shortDescription: string;
-    longDescription: string;
+    description: string;
     highlights: string[];
   };
   ar: {
     title: string;
-    shortDescription: string;
-    longDescription: string;
+    description: string;
     highlights: string[];
   };
 }

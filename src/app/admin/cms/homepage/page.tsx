@@ -2,6 +2,7 @@ import React from "react";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { HOMEPAGE_SECTION_REGISTRY } from "@/lib/homepage/registry";
+import { getCanonicalSection } from "@/lib/homepage/canonical-contract";
 import { getDefaultOrganizationId } from "@/lib/tenant";
 import { SectionList } from "./SectionList";
 
@@ -16,18 +17,26 @@ export default async function HomepageCmsDashboard() {
   });
 
   // Ensure all registered sections exist in the DB (Seed if missing)
-  const existingKeys = new Set(dbSections.map((s) => s.sectionKey));
+  const existingKeys = new Set(dbSections.map((s: any) => s.sectionKey));
   const missingSections = HOMEPAGE_SECTION_REGISTRY.filter((k) => !existingKeys.has(k));
 
   if (missingSections.length > 0) {
     // create missing sections
     await prisma.homePageSection.createMany({
-      data: missingSections.map((key, index) => ({
-        sectionKey: key,
-        title: key.replace(/([A-Z])/g, " $1").trim(),
-        displayOrder: dbSections.length + index,
-        active: true,
-      })),
+      data: missingSections.map((key, index) => {
+        const definition = getCanonicalSection(key);
+        return {
+          sectionKey: key,
+          title: definition?.title || key.replace(/([A-Z])/g, " $1").trim(),
+          subtitle: definition?.subtitle,
+          description: definition?.description,
+          displayOrder: definition?.order ?? dbSections.length + index,
+          active: definition?.active ?? true,
+          enabled: definition?.active ?? true,
+          maxProducts: definition?.maxProducts ?? 12,
+          hideIfEmpty: definition?.hideIfEmpty ?? false,
+        };
+      }),
       skipDuplicates: true,
     });
   }

@@ -1,3 +1,7 @@
+// DISABLED FOR CLEAN SLATE: Homepage sections seed - disabled for clean slate
+// Original file content preserved below
+// ============================================================
+/*
 import dotenv from "dotenv";
 import "dotenv/config";
 import { PrismaClient } from "@prisma/client";
@@ -67,3 +71,9 @@ async function main() {
 main()
   .catch((e) => { console.error("❌ Seed failed:", e); process.exit(1); })
   .finally(async () => { await prisma.$disconnect(); });
+
+*/
+// ============================================================
+// End of disabled content
+
+export const DISABLED = true;

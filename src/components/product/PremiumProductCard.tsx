@@ -49,18 +49,18 @@ export const PremiumProductCard: React.FC<PremiumProductCardProps> = ({
   return (
     <GlassCard variant="premium" hover className="overflow-hidden group">
       {/* Image Container */}
-      <div className="relative overflow-hidden aspect-square bg-slate-900/50">
+      <div className="relative overflow-hidden aspect-square bg-white/10 backdrop-blur-sm">
         <motion.div
-          whileHover={{ scale: 1.1 }}
-          transition={{ duration: 0.5 }}
-          className="w-full h-full"
+          whileHover={{ scale: 1.05 }}
+          transition={{ duration: 0.4 }}
+          className="w-full h-full p-4"
         >
           <Image
             src={image}
             alt={name}
             width={400}
             height={400}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-contain"
           />
         </motion.div>
 

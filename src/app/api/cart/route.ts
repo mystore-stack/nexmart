@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/auth-api";
+import { requireAuth, AuthError } from "@/lib/auth-api";
 
 const cartItemSchema = z.object({
   productId: z.string().uuid(),
@@ -35,8 +35,9 @@ export async function GET() {
     return NextResponse.json({ success: true, items });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Unauthorized";
+    const status = err instanceof AuthError ? err.statusCode : 401;
     console.error("[CART API] GET error:", message);
-    return NextResponse.json({ success: false, error: message }, { status: 401 });
+    return NextResponse.json({ success: false, error: message }, { status });
   }
 }
 
@@ -81,7 +82,41 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true, item });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Erreur serveur";
-    const status = message === "Unauthorized" ? 401 : 500;
+    const status = err instanceof AuthError ? err.statusCode : 500;
+    return NextResponse.json({ success: false, error: message }, { status });
+  }
+}
+
+export async function PATCH(req: NextRequest) {
+  try {
+    const session = await requireAuth();
+    const body = z.object({
+      cartItemId: z.string().uuid(),
+      quantity: z.number().int().min(1).max(99),
+    }).parse(await req.json());
+
+    const item = await prisma.cartItem.findFirst({
+      where: {
+        id: body.cartItemId,
+        userId: session.userId,
+        product: { organizationId: session.organizationId, published: true },
+      },
+    });
+
+    if (!item) {
+      return NextResponse.json({ success: false, error: "Cart item not found" }, { status: 404 });
+    }
+
+    const updatedItem = await prisma.cartItem.update({
+      where: { id: item.id },
+      data: { quantity: body.quantity },
+      include: { product: { include: { category: true, variants: true } }, variant: true },
+    });
+
+    return NextResponse.json({ success: true, item: updatedItem });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Erreur serveur";
+    const status = err instanceof AuthError ? err.statusCode : 500;
     return NextResponse.json({ success: false, error: message }, { status });
   }
 }
@@ -89,6 +124,22 @@ export async function POST(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   try {
     const session = await requireAuth();
+    const itemId = new URL(req.url).searchParams.get("itemId");
+
+    if (itemId) {
+      const item = await prisma.cartItem.findFirst({
+        where: { id: itemId, userId: session.userId },
+        select: { id: true },
+      });
+
+      if (!item) {
+        return NextResponse.json({ success: false, error: "Cart item not found" }, { status: 404 });
+      }
+
+      await prisma.cartItem.delete({ where: { id: item.id } });
+      return NextResponse.json({ success: true, removedId: item.id });
+    }
+
     const organizationId = session.organizationId;
 
     // Get all cart items for the user
@@ -175,7 +226,7 @@ export async function DELETE(req: NextRequest) {
     });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Erreur serveur";
-    const status = message === "Unauthorized" ? 401 : 500;
+    const status = err instanceof AuthError ? err.statusCode : 500;
     return NextResponse.json({ success: false, error: message }, { status });
   }
 }

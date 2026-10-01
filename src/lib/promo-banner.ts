@@ -33,7 +33,7 @@ export type PromoBannerPayload = {
     destinationUrl?: string | null;
     viewAllButton?: string | null;
     maxProducts?: number | null;
-    active?: boolean | null;
+    enabled?: boolean | null;
     order?: number | null;
   };
   products: Array<{
@@ -126,7 +126,7 @@ export function buildPromoBannerPayload(
     destinationUrl: "/products",
     viewAllButton: "Voir l’offre",
     maxProducts: 6,
-    active: true,
+    enabled: true,
   };
 
   const resolvedPromo = promo ?? fallbackPromo;

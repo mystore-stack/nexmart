@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { Eye, EyeOff, Mail, Lock, User, ArrowRight, AlertCircle, Check } from "lucide-react";
 import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
-import { useAuthStore } from "@/store/index";
+import { signIn } from "next-auth/react";
 import toast from "react-hot-toast";
 
 const PW_RULES = [
@@ -23,7 +23,6 @@ function RegisterContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const from = searchParams.get("from") || "/";
-  const { setUser } = useAuthStore();
 
   const [form, setForm] = useState({ name: "", email: "", password: "" });
   const [showPw, setShowPw] = useState(false);
@@ -45,10 +44,20 @@ function RegisterContent() {
       });
       const data = await res.json();
       if (data.success) {
-        const user = data.user ?? data.data?.user;
-        if (user) setUser(user);
-        toast.success("Bienvenue sur NexMart ! 🎉");
-        router.push(from); router.refresh();
+        // Sign in with NextAuth after successful registration
+        const signInResult = await signIn("credentials", {
+          email: form.email,
+          password: form.password,
+          redirect: false,
+        });
+
+        if (signInResult?.ok) {
+          toast.success("Bienvenue sur NexMart ! 🎉");
+          router.push(from);
+          router.refresh();
+        } else {
+          setError("Inscription réussie mais connexion échouée. Veuillez vous connecter.");
+        }
       } else {
         setError(data.error || "Échec de l'inscription.");
       }

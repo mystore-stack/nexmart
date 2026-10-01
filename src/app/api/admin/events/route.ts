@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
       if (token) {
         try {
           const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret';
-          const decoded = verify(token, JWT_SECRET) as any;
+          const decoded = verify(token, JWT_SECRET, { ignoreExpiration: false }) as any;
           console.log("[SSE] Token decoded:", { userId: decoded.userId, role: decoded.role, type: decoded.type });
           
           // Verify this is an SSE token
@@ -51,7 +51,11 @@ export async function GET(req: NextRequest) {
             };
             console.log("[SSE] Session from token validated");
           }
-        } catch (tokenError) {
+        } catch (tokenError: any) {
+          if (tokenError.name === 'TokenExpiredError') {
+            console.error("[SSE] Token expired - client needs to refresh:", tokenError.expiredAt);
+            throw new Error("TOKEN_EXPIRED");
+          }
           console.error("[SSE] Token validation failed:", tokenError);
         }
       }

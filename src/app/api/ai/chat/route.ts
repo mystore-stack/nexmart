@@ -38,7 +38,14 @@ export async function GET(req: NextRequest) {
   try {
     const session = await getSession().catch(() => null);
     const conversationId = req.nextUrl.searchParams.get("conversationId");
+    
     if (!conversationId) {
+      return NextResponse.json({ success: true, conversation: null, messages: [] });
+    }
+
+    // Validate UUID format
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(conversationId)) {
       return NextResponse.json({ success: true, conversation: null, messages: [] });
     }
 
@@ -64,8 +71,10 @@ export async function GET(req: NextRequest) {
         createdAt: message.createdAt,
       })),
     });
-  } catch {
-    return NextResponse.json({ success: false, error: "Erreur serveur" }, { status: 500 });
+  } catch (err: unknown) {
+    console.error("AI chat GET error:", err);
+    const message = err instanceof Error ? err.message : "Erreur serveur";
+    return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
 }
 

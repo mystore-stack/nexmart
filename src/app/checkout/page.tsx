@@ -7,7 +7,7 @@ import { loadStripe } from "@stripe/stripe-js";
 import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { Check, ChevronRight, Lock, CreditCard, Truck, MapPin, Tag, ArrowLeft, Sparkles, ShieldCheck, Package, Home, Plus, Clock, ShoppingBag } from "lucide-react";
 import { useCartStore } from "@/store/cart";
-import { useAuthStore } from "@/store/index";
+import { useSession } from "next-auth/react";
 import { formatPrice } from "@/utils/format";
 import Image from "next/image";
 import Link from "next/link";
@@ -15,6 +15,7 @@ import toast from "react-hot-toast";
 import type { Address, Order } from "@/types";
 import { audit } from "@/lib/audit/client";
 import { generateIdempotencyKey } from "@/lib/idempotency";
+import { MobileCheckoutView } from "@/components/mobile/MobileCheckoutView";
 
 const stripePromise = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY 
   ? loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY) 
@@ -91,7 +92,8 @@ interface StripePaymentFormProps {
 
 export default function CheckoutPage() {
   const { items, getSubtotal, getDiscount, coupon, applyCoupon, removeCoupon } = useCartStore();
-  const { user } = useAuthStore();
+  const { data: session, status } = useSession();
+  const user = session?.user as { id?: string; name?: string | null; email?: string | null } | null;
   const router = useRouter();
   const mounted = useRef(false);
 
@@ -134,7 +136,7 @@ export default function CheckoutPage() {
   }, []);
 
   useEffect(() => {
-    if (!user) { if (mounted.current) router.push("/login?from=/checkout"); return; }
+    if (status !== "authenticated" || !user) { if (mounted.current) router.push("/login?from=/checkout"); return; }
     
     // Sync cart from database when user is authenticated
     const syncCartFromDatabase = async () => {
@@ -560,21 +562,27 @@ export default function CheckoutPage() {
   const handleAddAddress = async (newAddress: any) => {
     setIsAddingAddress(true);
     try {
+      console.log("[CHECKOUT] Creating address with data:", newAddress);
       const res = await fetch("/api/auth/addresses", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(newAddress),
       });
+      console.log("[CHECKOUT] API response status:", res.status, res.statusText);
       const data = await res.json();
+      console.log("[CHECKOUT] Address creation response:", data);
       if (data.success && data.address) {
         setAddresses((prev) => [...prev, data.address]);
         setSelectedAddress(data.address.id);
         setShowNewAddressForm(false);
         import('react-hot-toast').then(toast => toast.default.success("Adresse ajoutée avec succès"));
       } else {
-        import('react-hot-toast').then(toast => toast.default.error(data.error || "Erreur lors de l'ajout de l'adresse"));
+        console.error("[CHECKOUT] Address creation failed:", data);
+        const errorMsg = data.error || data.details || "Erreur lors de l'ajout de l'adresse";
+        import('react-hot-toast').then(toast => toast.default.error(errorMsg));
       }
     } catch (error) {
+      console.error("[CHECKOUT] Address creation error:", error);
       import('react-hot-toast').then(toast => toast.default.error("Erreur lors de l'ajout de l'adresse"));
     } finally {
       setIsAddingAddress(false);
@@ -589,7 +597,12 @@ export default function CheckoutPage() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 page-enter pb-24">
+    <>
+      <div className="sm:hidden">
+        <MobileCheckoutView />
+      </div>
+
+      <div className="hidden sm:block min-h-screen bg-zinc-50 dark:bg-zinc-950 page-enter pb-24">
       {/* Header */}
       <div className="border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 sticky top-0 z-50">
         <div className="container-main py-4">
@@ -849,7 +862,8 @@ export default function CheckoutPage() {
         </div>
       </div>
     </div>
-  );
+  </>
+);
 }
 
 // ─── Sub-components ──────────────────────────────────────────
@@ -869,12 +883,14 @@ function AddressStep({ addresses, selected, onSelect, onNext, showNewForm, setSh
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.phone.startsWith("+212") && !form.phone.startsWith("0")) {
+    // Phone validation - accept numbers with or without +212 prefix
+    // The UI shows +212 as a visual prefix, so user enters just the number
+    if (!form.phone || form.phone.length < 9) {
       import('react-hot-toast').then(toast => toast.default.error("Veuillez entrer un numéro de téléphone marocain valide"));
       return;
     }
-    // format phone if needed
-    const phoneToSave = form.phone.startsWith("0") ? "+212" + form.phone.substring(1) : form.phone;
+    // format phone - always add +212 prefix if not present
+    const phoneToSave = form.phone.startsWith("+212") ? form.phone : "+212" + form.phone.replace(/^0/, "");
     onAddAddress({ ...form, phone: phoneToSave });
   };
 
@@ -963,6 +979,7 @@ function AddressStep({ addresses, selected, onSelect, onNext, showNewForm, setSh
                 value={form.zip}
                 onChange={(e) => setForm({ ...form, zip: e.target.value })}
                 className="w-full h-12 px-4 rounded-xl border border-zinc-300 dark:border-zinc-700 bg-transparent focus:ring-2 focus:ring-brand-500 outline-none transition-all"
+                required
                 placeholder="20000"
               />
             </div>

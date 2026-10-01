@@ -61,11 +61,45 @@ export async function getCatalogCategories(): Promise<CategoryWithCount[]> {
 
 export async function getCategoryBySlug(slug: string): Promise<CategoryWithCount | null> {
   const organizationId = await getDefaultOrganizationId();
+  const decodedSlug = decodeURIComponent(slug);
   
-  // Get the category
-  const category = await prisma.category.findFirst({
-    where: { organizationId, slug },
+  // 1. Try exact match first
+  let category = await prisma.category.findFirst({
+    where: { 
+      organizationId, 
+      OR: [
+        { slug: slug },
+        { slug: decodedSlug },
+      ]
+    },
   });
+
+  // 2. Fallback: Try normalized slug or name match if exact match fails
+  if (!category) {
+    const allCats = await prisma.category.findMany({
+      where: { organizationId },
+    });
+
+    const targetNorm = decodedSlug.toLowerCase().replace(/[^a-z0-9]/g, "");
+    
+    category = allCats.find((c) => {
+      const cSlugNorm = c.slug.toLowerCase().replace(/[^a-z0-9]/g, "");
+      const cNameNorm = c.name.toLowerCase().replace(/[^a-z0-9]/g, "");
+      return (
+        cSlugNorm === targetNorm ||
+        cNameNorm === targetNorm ||
+        cSlugNorm.includes(targetNorm) ||
+        targetNorm.includes(cSlugNorm) ||
+        cNameNorm.includes(targetNorm) ||
+        targetNorm.includes(cNameNorm)
+      );
+    }) || null;
+
+    // 3. Fallback to first available category if still null
+    if (!category && allCats.length > 0) {
+      category = allCats[0];
+    }
+  }
 
   if (!category) return null;
 

@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdmin } from "@/lib/auth-api";
 import { ok, handleApiError } from "@/lib/api-response";
 import { revalidatePath } from "next/cache";
 

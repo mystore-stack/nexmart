@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useTransition } from "react";
+import React, { useState, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { updateSectionConfig } from "../actions";
 import { ProductSelector } from "@/components/admin/ProductSelector";
@@ -18,12 +18,75 @@ export function BundleBuilderEditor({ section, parsedConfig }: { section: any; p
     giftDescription: "Pour garder tous vos appareils propres et comme neufs au quotidien.",
     giftImage: "https://images.unsplash.com/photo-1584916201218-f4242ceb4809?q=80&w=200&auto=format&fit=crop"
   });
+  const [initialProducts, setInitialProducts] = useState<any[]>([]);
+  const [isLoadingProducts, setIsLoadingProducts] = useState(true);
 
   const handleSave = () => {
     startTransition(async () => {
       await updateSectionConfig(section.id, config);
       router.refresh();
     });
+  };
+
+  // Fetch section products on mount
+  useEffect(() => {
+    const fetchSectionProducts = async () => {
+      try {
+        setIsLoadingProducts(true);
+        const res = await fetch(`/api/admin/cms/homepage-sections/${section.sectionKey}/products`);
+        const data = await res.json();
+        
+        console.log("[BundleBuilderEditor] Fetched section products:", data);
+        
+        if (data.success && data.data) {
+          const products = Array.isArray(data.data.data) ? data.data.data : [];
+          setInitialProducts(products);
+        }
+      } catch (error) {
+        console.error("[BundleBuilderEditor] Error fetching section products:", error);
+        setInitialProducts(section.products || []);
+      } finally {
+        setIsLoadingProducts(false);
+      }
+    };
+
+    fetchSectionProducts();
+  }, [section.sectionKey]);
+
+  // Handle selection changes and save to database
+  const handleSelectionChange = async (products: any[]) => {
+    try {
+      const productIds = products.map(p => p.productId || p.product?.id).filter(Boolean);
+      
+      console.log("[BundleBuilderEditor] Saving selection:", productIds);
+      
+      const res = await fetch(`/api/admin/cms/homepage-sections/${section.sectionKey}/products`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ products: productIds }),
+      });
+
+      const data = await res.json();
+      
+      if (data.success) {
+        console.log("[BundleBuilderEditor] Selection saved successfully");
+        const freshRes = await fetch(`/api/admin/cms/homepage-sections/${section.sectionKey}/products`);
+        const freshData = await freshRes.json();
+        
+        if (freshData.success && freshData.data) {
+          const products = Array.isArray(freshData.data.data) ? freshData.data.data : [];
+          setInitialProducts(products);
+        }
+        
+        startTransition(() => {
+          router.refresh();
+        });
+      } else {
+        console.error("[BundleBuilderEditor] Save failed:", data.error);
+      }
+    } catch (error) {
+      console.error("[BundleBuilderEditor] Error saving selection:", error);
+    }
   };
 
   return (
@@ -139,11 +202,18 @@ export function BundleBuilderEditor({ section, parsedConfig }: { section: any; p
 
       <div className="pt-4 border-t">
         <h3 className="text-xl font-semibold mb-4">Eligible Bundle Products</h3>
-        <ProductSelector 
-          sectionKey={section.sectionKey} 
-          maxProducts={section.maxProducts || 4}
-          initialProducts={section.products || []}
-        />
+        {isLoadingProducts ? (
+          <div className="text-center py-8 text-muted-foreground">
+            Loading products...
+          </div>
+        ) : (
+          <ProductSelector 
+            sectionKey={section.sectionKey} 
+            maxProducts={section.maxProducts || 4}
+            initialProducts={initialProducts}
+            onSelectionChange={handleSelectionChange}
+          />
+        )}
       </div>
     </div>
   );

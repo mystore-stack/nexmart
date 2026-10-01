@@ -49,15 +49,27 @@ export function AIChatWidget() {
     if (!stored) return;
     setConversationId(stored);
     fetch(`/api/ai/chat?conversationId=${stored}`)
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) {
+          console.warn(`AI chat history fetch failed: ${r.status}`);
+          window.localStorage.removeItem("nexmart_ai_conversation_id");
+          setConversationId(undefined);
+          return null;
+        }
+        return r.json();
+      })
       .then((data) => {
-        if (!data.success || !Array.isArray(data.messages) || data.messages.length === 0) return;
+        if (!data || !data.success || !Array.isArray(data.messages) || data.messages.length === 0) return;
         setMessages((prev) => [
           prev[0],
           ...data.messages.map((m: any) => ({ id: m.id, role: m.role, content: m.content, timestamp: new Date(m.createdAt) })),
         ]);
       })
-      .catch(() => {});
+      .catch((err) => {
+        console.warn("AI chat history fetch error:", err);
+        window.localStorage.removeItem("nexmart_ai_conversation_id");
+        setConversationId(undefined);
+      });
   }, []);
 
   const scrollToBottom = useCallback(() => { messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, []);

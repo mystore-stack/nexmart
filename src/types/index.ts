@@ -256,7 +256,9 @@ export interface JwtPayload {
 }
 
 /** Authenticated user context (API routes, server actions) */
-export type AuthSession = Pick<JwtPayload, "userId" | "email" | "role">;
+export type AuthSession = Pick<JwtPayload, "userId" | "email" | "role"> & {
+  organizationId: string;
+};
 
 // Cart store (Zustand)
 export interface CartStore {

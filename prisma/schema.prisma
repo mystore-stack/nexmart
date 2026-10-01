@@ -8,22 +8,23 @@ datasource db {
 }
 
 model User {
-  id            String     @id @default(uuid()) @db.Uuid
-  email         String     @unique
+  id            String          @id @default(uuid()) @db.Uuid
+  email         String          @unique
   name          String
   password      String
   avatar        String?
   phone         String?
-  role          Role       @default(USER)
-  emailVerified Boolean    @default(false)
+  role          Role            @default(USER)
+  emailVerified Boolean         @default(false)
   verifyToken   String?
   resetToken    String?
   resetExpires  DateTime?
-  createdAt     DateTime   @default(now())
-  updatedAt     DateTime   @updatedAt
-  locale        LocaleCode @default(fr)
-
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  locale        LocaleCode      @default(fr)
+  pushTokens    ExpoPushToken[]
   orders        Order[]
+  reviews       Review[]
 
   @@index([email])
 }
@@ -41,67 +42,70 @@ model Address {
   zip       String
   isDefault Boolean  @default(false)
   createdAt DateTime @default(now())
-
   orders    Order[]
 
   @@index([userId])
 }
 
 model Category {
-  id             String   @id @default(uuid()) @db.Uuid
-  organizationId String   @db.Uuid
+  id             String    @id @default(uuid()) @db.Uuid
+  organizationId String    @db.Uuid
   name           String
   slug           String
   description    String?
   image          String?
-  parentId       String?  @db.Uuid
-  createdAt      DateTime @default(now())
-
+  parentId       String?   @db.Uuid
+  createdAt      DateTime  @default(now())
+  pageConfig     Json?
+  order          Int       @default(0)
   products       Product[]
 
   @@unique([organizationId, slug])
   @@index([organizationId])
+  @@index([order])
 }
 
 model Product {
-  id                String   @id @default(uuid()) @db.Uuid
-  organizationId    String   @db.Uuid
-  name              String
-  slug              String
-  description       String
-  price             Float
-  comparePrice      Float?
-  cost              Float?
-  categoryId        String   @db.Uuid
-  images            String[]
-  tags              String[]
-  sku               String
-  stock             Int      @default(0)
-  lowStockAt        Int      @default(5)
-  weight            Float?
-  published         Boolean  @default(false)
-  featured          Boolean  @default(false)
-  isVisible         Boolean  @default(true)
-  displayOrder      Int      @default(0)
-  rating            Float    @default(0)
-  reviewCount       Int      @default(0)
-  soldCount         Int      @default(0)
-  source            String?
-  externalProductId String?
-  externalUrl       String?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-
-  category          Category @relation(fields: [categoryId], references: [id])
-  reviews           Review[]
-  variants          ProductVariant[]
-  cartItems         CartItem[]
-  orderItems        OrderItem[]
+  id                      String                   @id @default(uuid()) @db.Uuid
+  organizationId          String                   @db.Uuid
+  name                    String
+  slug                    String
+  description             String
+  price                   Float
+  comparePrice            Float?
+  cost                    Float?
+  categoryId              String                   @db.Uuid
+  images                  String[]
+  tags                    String[]
+  sku                     String
+  stock                   Int                      @default(0)
+  lowStockAt              Int                      @default(5)
+  weight                  Float?
+  published               Boolean                  @default(false)
+  featured                Boolean                  @default(false)
+  isVisible               Boolean                  @default(true)
+  displayOrder            Int                      @default(0)
+  rating                  Float                    @default(0)
+  reviewCount             Int                      @default(0)
+  soldCount               Int                      @default(0)
+  source                  String?
+  externalProductId       String?
+  externalUrl             String?
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
+  brandId                 String?                  @db.Uuid
+  cartItems               CartItem[]
   homepageSectionProducts HomepageSectionProduct[] @relation("ProductSections")
+  orderItems              OrderItem[]
+  brand                   Brand?                   @relation(fields: [brandId], references: [id])
+  category                Category                 @relation(fields: [categoryId], references: [id])
+  variants                ProductVariant[]
+  reviews                 Review[]
 
   @@unique([organizationId, sku])
   @@unique([organizationId, slug])
   @@index([categoryId])
+  @@index([brandId])
   @@index([published])
   @@index([featured])
   @@index([isVisible])
@@ -115,17 +119,16 @@ model Product {
 }
 
 model ProductVariant {
-  id        String  @id @default(uuid()) @db.Uuid
-  productId String  @db.Uuid
+  id        String     @id @default(uuid()) @db.Uuid
+  productId String     @db.Uuid
   name      String
   value     String
   label     String
   price     Float?
-  stock     Int     @default(0)
+  stock     Int        @default(0)
   sku       String?
-
-  product   Product @relation(fields: [productId], references: [id])
   cartItems CartItem[]
+  product   Product    @relation(fields: [productId], references: [id])
 
   @@index([productId])
 }
@@ -143,8 +146,8 @@ model Review {
   verifiedPurchase Boolean  @default(false)
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
-
-  product          Product @relation(fields: [productId], references: [id])
+  product          Product  @relation(fields: [productId], references: [id])
+  user             User     @relation(fields: [userId], references: [id])
 
   @@unique([productId, userId])
   @@index([productId])
@@ -153,15 +156,14 @@ model Review {
 }
 
 model CartItem {
-  id        String   @id @default(uuid()) @db.Uuid
-  userId    String   @db.Uuid
-  productId String   @db.Uuid
-  variantId String?  @db.Uuid
-  quantity  Int      @default(1)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  product   Product  @relation(fields: [productId], references: [id])
+  id        String          @id @default(uuid()) @db.Uuid
+  userId    String          @db.Uuid
+  productId String          @db.Uuid
+  variantId String?         @db.Uuid
+  quantity  Int             @default(1)
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+  product   Product         @relation(fields: [productId], references: [id])
   variant   ProductVariant? @relation(fields: [variantId], references: [id])
 
   @@unique([userId, productId, variantId])
@@ -169,37 +171,36 @@ model CartItem {
 }
 
 model Order {
-  id                String        @id @default(uuid()) @db.Uuid
-  organizationId    String        @db.Uuid
+  id                String          @id @default(uuid()) @db.Uuid
+  organizationId    String          @db.Uuid
   orderNumber       String
-  userId            String        @db.Uuid
-  customerId        String?       @db.Uuid
-  addressId         String        @db.Uuid
-  status            OrderStatus   @default(PENDING)
-  paymentStatus     PaymentStatus @default(UNPAID)
+  userId            String          @db.Uuid
+  customerId        String?         @db.Uuid
+  addressId         String          @db.Uuid
+  status            OrderStatus     @default(PENDING)
+  paymentStatus     PaymentStatus   @default(UNPAID)
   paymentMethod     PaymentMethod
   subtotal          Float
-  discount          Float         @default(0)
-  shipping          Float         @default(0)
-  tax               Float         @default(0)
+  discount          Float           @default(0)
+  shipping          Float           @default(0)
+  tax               Float           @default(0)
   total             Float
-  couponId          String?       @db.Uuid
-  stripePaymentId   String?       @unique
-  idempotencyKey    String?       @unique
+  couponId          String?         @db.Uuid
+  stripePaymentId   String?         @unique
+  idempotencyKey    String?         @unique
   notes             String?
   trackingNumber    String?
   courier           String?
   estimatedDelivery DateTime?
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
-  currency          String        @default("MAD")
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  currency          String          @default("MAD")
   deliveryCity      String?
-
-  user     User       @relation(fields: [userId], references: [id])
-  address  Address    @relation(fields: [addressId], references: [id])
-  coupon   Coupon?    @relation(fields: [couponId], references: [id])
-  items    OrderItem[]
-  trackingHistory OrderTracking[]
+  address           Address         @relation(fields: [addressId], references: [id])
+  coupon            Coupon?         @relation(fields: [couponId], references: [id])
+  user              User            @relation(fields: [userId], references: [id])
+  items             OrderItem[]
+  trackingHistory   OrderTracking[]
 
   @@unique([organizationId, orderNumber])
   @@index([userId])
@@ -219,7 +220,6 @@ model OrderTracking {
   courier        String?
   notes          String?
   createdAt      DateTime    @default(now())
-
   order          Order       @relation(fields: [orderId], references: [id])
 
   @@index([orderId])
@@ -236,7 +236,6 @@ model OrderItem {
   image     String
   price     Float
   quantity  Int
-
   order     Order   @relation(fields: [orderId], references: [id])
   product   Product @relation(fields: [productId], references: [id])
 
@@ -259,7 +258,6 @@ model Coupon {
   endDate        DateTime?
   active         Boolean   @default(true)
   createdAt      DateTime  @default(now())
-
   orders         Order[]
 
   @@unique([organizationId, code])
@@ -288,6 +286,22 @@ model Notification {
 
   @@index([userId])
   @@index([read])
+}
+
+model ExpoPushToken {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  token     String   @unique
+  platform  String?
+  deviceId  String?
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([active])
+  @@index([userId, active])
 }
 
 model RecentlyViewed {
@@ -343,7 +357,7 @@ model AuditEvent {
 model AuditSession {
   id              String    @id @default(uuid()) @db.Uuid
   userId          String?   @db.Uuid
-  organizationId  String    @db.Uuid
+  organizationId  String?   @db.Uuid
   userAgent       String?
   ipAddress       String?
   referrer        String?
@@ -723,6 +737,33 @@ model MobileAppBanner {
   updatedAt     DateTime @updatedAt
 }
 
+model MobileAppSection {
+  id          String   @id @default(uuid()) @db.Uuid
+  sectionKey  String   @unique
+  titleFr     String
+  titleAr     String?
+  subtitleFr  String?
+  subtitleAr  String?
+  order       Int      @default(0)
+  active      Boolean  @default(true)
+  layoutType  String   @default("grid")
+  bannerImage String?
+  productIds  String[] @default([])
+  categoryIds String[] @default([])
+  brandIds    String[] @default([])
+  config      Json?
+  startAt     DateTime?
+  endAt       DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  type        String   @default("custom")
+
+  @@index([order])
+  @@index([active])
+  @@index([startAt])
+  @@index([endAt])
+}
+
 model HomePromoCard {
   id            String    @id @default(uuid()) @db.Uuid
   cardKey       String
@@ -912,7 +953,7 @@ model HomeFeature {
 }
 
 model HomePageSection {
-  id             String   @id @default(uuid()) @db.Uuid
+  id             String                   @id @default(uuid()) @db.Uuid
   sectionKey     String
   title          String
   subtitle       String?
@@ -920,32 +961,31 @@ model HomePageSection {
   bannerImage    String?
   viewAllButton  String?
   destinationUrl String?
-  order          Int      @default(0)
-  displayOrder   Int      @default(0)
-  active         Boolean  @default(true)
-  maxProducts    Int      @default(12)
-  hideIfEmpty    Boolean  @default(false)
+  order          Int                      @default(0)
+  displayOrder   Int                      @default(0)
+  active         Boolean                  @default(true)
+  maxProducts    Int                      @default(12)
+  hideIfEmpty    Boolean                  @default(false)
   config         Json?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
+  createdAt      DateTime                 @default(now())
+  updatedAt      DateTime                 @updatedAt
+  enabled        Boolean                  @default(true)
   products       HomepageSectionProduct[] @relation("SectionProducts")
 }
 
 model HomepageSectionProduct {
-  id          String    @id @default(uuid()) @db.Uuid
-  sectionId   String    @db.Uuid
-  productId   String    @db.Uuid
-  order       Int       @default(0)
+  id          String          @id @default(uuid()) @db.Uuid
+  sectionId   String          @db.Uuid
+  productId   String          @db.Uuid
+  order       Int             @default(0)
   customPrice Float?
   customBadge String?
-  active      Boolean   @default(true)
+  active      Boolean         @default(true)
   startDate   DateTime?
   endDate     DateTime?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  product     Product   @relation("ProductSections", fields: [productId], references: [id])
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  product     Product         @relation("ProductSections", fields: [productId], references: [id])
   section     HomePageSection @relation("SectionProducts", fields: [sectionId], references: [id])
 
   @@unique([sectionId, productId])
@@ -978,6 +1018,293 @@ model FooterConfig {
   active        Boolean  @default(true)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
+}
+
+model HeroCardConfig {
+  id            String   @id @default(uuid()) @db.Uuid
+  cardType      String   @default("flashDeal")
+  title         String
+  subtitle      String?
+  link          String
+  linkText      String
+  icon          String?
+  iconImage     String?
+  badge         String?
+  badgeColor    String?
+  price         String?
+  originalPrice String?
+  discount      String?
+  order         Int      @default(0)
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model HeroContent {
+  id                 String   @id @default(uuid()) @db.Uuid
+  title              String
+  subtitle           String?
+  description        String?
+  ctaText            String   @default("Explorer les offres")
+  ctaLink            String   @default("/products")
+  mainImage          String?
+  backgroundGradient String?
+  active             Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  borderRadius       String?  @default("0.5rem")
+  desktopAspectRatio String?  @default("2.5/1")
+  desktopHeight      Int?     @default(420)
+  desktopMaxWidth    Int?     @default(1440)
+  desktopWidth       String?  @default("100%")
+  imageFit           String?  @default("cover")
+  imagePosition      String?  @default("center")
+  imagePositionX     String?  @default("50%")
+  imagePositionY     String?  @default("50%")
+  mobileAspectRatio  String?  @default("2.5/1")
+  mobileHeight       Int?     @default(280)
+  mobileMaxWidth     Int?     @default(640)
+  mobileWidth        String?  @default("100%")
+  tabletAspectRatio  String?  @default("2.5/1")
+  tabletHeight       Int?     @default(320)
+  tabletMaxWidth     Int?     @default(1024)
+  tabletWidth        String?  @default("100%")
+  widthMode          String?  @default("fullWidth")
+}
+
+model CategoryBubbleConfig {
+  id            String   @id @default(uuid()) @db.Uuid
+  categoryId    String?  @db.Uuid
+  name          String
+  slug          String
+  image         String
+  link          String
+  isCenterBtn   Boolean  @default(false)
+  centerBtnText String?
+  centerBtnIcon String?
+  order         Int      @default(0)
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model ShowcaseCardConfig {
+  id          String   @id @default(uuid()) @db.Uuid
+  cardType    String   @default("sponsored")
+  title       String
+  subtitle    String?
+  description String?
+  image       String?
+  link        String?
+  linkText    String?
+  badge       String?
+  badgeColor  String?
+  price       String?
+  priceLabel  String?
+  stats       Json?
+  features    Json?
+  order       Int      @default(0)
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model NewsletterPerk {
+  id        String   @id @default(uuid()) @db.Uuid
+  icon      String   @default("Star")
+  text      String
+  order     Int      @default(0)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model MediaAsset {
+  id             String   @id @default(uuid()) @db.Uuid
+  organizationId String   @db.Uuid
+  filename       String
+  originalName   String
+  mimeType       String
+  size           Int
+  url            String
+  width          Int?
+  height         Int?
+  alt            String?
+  category       String?
+  tags           String[] @default([])
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([organizationId])
+  @@index([category])
+  @@index([createdAt])
+}
+
+model PromotionalCampaign {
+  id          String          @id @default(uuid()) @db.Uuid
+  name        String
+  slug        String          @unique
+  description String?
+  status      CampaignStatus  @default(DRAFT)
+  startAt     DateTime?
+  endAt       DateTime?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  slides      CampaignSlide[]
+
+  @@index([status])
+  @@index([startAt])
+  @@index([endAt])
+}
+
+model CampaignSlide {
+  id                  String              @id @default(uuid()) @db.Uuid
+  campaignId          String              @db.Uuid
+  order               Int                 @default(0)
+  title               String?
+  subtitle            String?
+  ctaText             String?
+  ctaUrl              String?
+  desktopImage        String?
+  mobileImage         String?
+  status              CampaignStatus      @default(DRAFT)
+  desktopVisualConfig Json?
+  mobileVisualConfig  Json?
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+  campaign            PromotionalCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@index([campaignId])
+  @@index([status])
+  @@index([order])
+}
+
+model MomentOffer {
+  id                      String            @id @default(uuid()) @db.Uuid
+  title                   String
+  slug                    String            @unique
+  subtitle                String?
+  description             String?
+  badge                   String?
+  desktopImage            String?
+  mobileImage             String?
+  ctaText                 String?
+  ctaUrl                  String?
+  productId               String?           @db.Uuid
+  categoryId              String?           @db.Uuid
+  price                   Float?
+  compareAtPrice          Float?
+  discount                String?
+  status                  MomentOfferStatus @default(DRAFT)
+  startAt                 DateTime?
+  endAt                   DateTime?
+  order                   Int               @default(0)
+  desktopVisualConfig     Json?
+  mobileVisualConfig      Json?
+  createdAt               DateTime          @default(now())
+  updatedAt               DateTime          @updatedAt
+  layoutConfig            Json?
+  internalName            String?
+  secondaryCtaText        String?
+  secondaryCtaUrl         String?
+  cardTransform           Json?
+  desktopImageMetadata    Json?
+  desktopOverlayConfig    Json?
+  mobileImageMetadata     Json?
+  mobileOverlayConfig     Json?
+  frameEnabled            Boolean           @default(true)
+  desktopCardSize         String?
+  desktopGridColumnSpan   Int?              @default(1)
+  desktopGridRowSpan      Int?              @default(1)
+  desktopLayoutConfig     Json?
+  mobileCardSize          String?
+  mobileGridColumnSpan    Int?              @default(1)
+  mobileGridRowSpan       Int?              @default(1)
+  mobileLayoutConfig      Json?
+  arrangementConfig       Json?
+  desktopArrangement      String?
+  mobileArrangement       String?
+  layoutTemplate          String?
+  desktopComposition      Json?
+  mobileComposition       Json?
+  tabletComposition       Json?
+  showProduct             Boolean           @default(true)
+  imageFirstComposition   Json?
+  masterCanvasComposition Json?
+
+  @@index([status])
+  @@index([startAt])
+  @@index([endAt])
+  @@index([order])
+  @@index([slug])
+}
+
+model Brand {
+  id               String            @id @default(uuid()) @db.Uuid
+  organizationId   String?           @db.Uuid
+  name             String
+  slug             String            @unique
+  logo             String?
+  description      String?
+  shortDescription String?
+  heroImage        String?
+  heroImageMobile  String?
+  website          String?
+  isActive         Boolean           @default(true)
+  isFeatured       Boolean           @default(false)
+  seoTitle         String?
+  seoDescription   String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  collections      BrandCollection[]
+  sections         BrandSection[]
+  products         Product[]
+
+  @@index([slug])
+  @@index([isActive])
+  @@index([isFeatured])
+}
+
+model BrandCollection {
+  id          String   @id @default(uuid()) @db.Uuid
+  brandId     String   @db.Uuid
+  name        String
+  slug        String
+  description String?
+  image       String?
+  mobileImage String?
+  link        String?
+  order       Int      @default(0)
+  enabled     Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  brand       Brand    @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@unique([brandId, slug])
+  @@index([brandId])
+  @@index([order])
+}
+
+model BrandSection {
+  id                String   @id @default(uuid()) @db.Uuid
+  brandId           String   @db.Uuid
+  type              String
+  title             String?
+  subtitle          String?
+  description       String?
+  bannerImage       String?
+  bannerMobileImage String?
+  ctaText           String?
+  ctaLink           String?
+  enabled           Boolean  @default(true)
+  order             Int      @default(0)
+  config            Json?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  brand             Brand    @relation(fields: [brandId], references: [id], onDelete: Cascade)
+
+  @@index([brandId])
+  @@index([order])
 }
 
 enum AuditEventType {
@@ -1165,4 +1492,20 @@ enum EmailType {
   CART_ABANDONMENT
   STOCK_ALERT
   DAILY_REPORT
+}
+
+enum CampaignStatus {
+  DRAFT
+  SCHEDULED
+  PUBLISHED
+  EXPIRED
+  DISABLED
+}
+
+enum MomentOfferStatus {
+  DRAFT
+  SCHEDULED
+  PUBLISHED
+  EXPIRED
+  DISABLED
 }

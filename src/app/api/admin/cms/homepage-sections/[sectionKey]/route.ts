@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAdmin } from "@/lib/auth";
+import { requireAdmin } from "@/lib/auth-api";
 import { normalizeToCanonicalKey, getCanonicalSection, normalizeSectionType } from "@/lib/homepage/canonical-contract";
 import { ok, fail, handleApiError } from "@/lib/api-response";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { randomUUID } from "crypto";
 
 const buildSectionLookupCandidates = (rawKey: string) => {
@@ -62,9 +62,9 @@ export async function GET(
       return fail("Section not found", 404);
     }
 
-    const sectionWithProducts = await prisma.homePageSection.findFirst({
+    const sectionWithProducts = await prisma.homePageSection.findUnique({
       where: { 
-        sectionKey: section.sectionKey
+        id: section.id
       },
       include: {
         products: {
@@ -114,10 +114,12 @@ export async function PATCH(
     }
 
     // Update section directly for immediate effect on public homepage
+    // Sync enabled with active for consistency - enabled is the frontend filter
     const updatedSection = await prisma.homePageSection.update({
-      where: { sectionKey: section.sectionKey },
+      where: { id: section.id },
       data: {
-        ...(body.active !== undefined ? { active: body.active } : {}),
+        ...(body.active !== undefined ? { active: body.active, enabled: body.active } : {}),
+        ...(body.enabled !== undefined ? { enabled: body.enabled } : {}),
         ...(body.displayOrder !== undefined ? { displayOrder: body.displayOrder } : {}),
         ...(body.title !== undefined ? { title: body.title } : {}),
         ...(body.subtitle !== undefined ? { subtitle: body.subtitle } : {}),
@@ -125,6 +127,8 @@ export async function PATCH(
         ...(body.bannerImage !== undefined ? { bannerImage: body.bannerImage } : {}),
         ...(body.viewAllButton !== undefined ? { viewAllButton: body.viewAllButton } : {}),
         ...(body.destinationUrl !== undefined ? { destinationUrl: body.destinationUrl } : {}),
+        ...(body.maxProducts !== undefined ? { maxProducts: body.maxProducts } : {}),
+        ...(body.config !== undefined ? { config: body.config } : {}),
         ...(body.sectionKey !== undefined ? { sectionType: normalizeSectionType(getCanonicalSection(body.sectionKey)?.sectionType ?? body.sectionKey) ?? section.sectionType } : {}),
       }
     });
@@ -132,8 +136,9 @@ export async function PATCH(
     console.log("[SECTION PATCH] Updated section:", updatedSection);
     console.log("[SECTION PATCH] Response will be:", { success: true, data: updatedSection });
     
-    // Revalidate public homepage
+    // Revalidate public homepage and section data
     revalidatePath("/");
+    revalidateTag("homepage-sections");
     
     return ok(updatedSection);
   } catch (err) {
@@ -163,11 +168,12 @@ export async function DELETE(
     // Prisma cascade will delete related HomepageSectionProduct records
     // due to onDelete: Cascade in schema
     await prisma.homePageSection.delete({
-      where: { sectionKey: section.sectionKey }
+      where: { id: section.id }
     });
 
     revalidatePath("/");
     revalidatePath("/admin/cms/homepage");
+    revalidateTag("homepage-sections");
     return ok({ sectionKey: section.sectionKey });
   } catch (err) {
     return handleApiError(err);
@@ -217,6 +223,19 @@ export async function POST(
     const products = await prisma.homePageSectionProduct.findMany({
       where: { sectionId: section.id },
     });
+
+    if (products.length > 0) {
+      await prisma.homePageSectionProduct.createMany({
+        data: products.map((p: { productId: string; order: number; customPrice: number | null; customBadge: string | null; active: boolean }) => ({
+          sectionId: duplicate.id,
+          productId: p.productId,
+          order: p.order,
+          customPrice: p.customPrice,
+          customBadge: p.customBadge,
+          active: p.active,
+        })),
+      });
+    }
 
     if (products.length > 0) {
       await prisma.homePageSectionProduct.createMany({

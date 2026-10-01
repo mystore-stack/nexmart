@@ -29,6 +29,8 @@ export function FeaturedProductsEditor({ section, parsedConfig }: { section: any
   const [categorySearch, setCategorySearch] = useState("");
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
   const [selectedCategoryTab, setSelectedCategoryTab] = useState<string>("all");
+  const [initialProducts, setInitialProducts] = useState<any[]>([]);
+  const [isLoadingProducts, setIsLoadingProducts] = useState(true);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -64,6 +66,69 @@ export function FeaturedProductsEditor({ section, parsedConfig }: { section: any
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Fetch section products on mount
+  useEffect(() => {
+    const fetchSectionProducts = async () => {
+      try {
+        setIsLoadingProducts(true);
+        const res = await fetch(`/api/admin/cms/homepage-sections/${section.sectionKey}/products`);
+        const data = await res.json();
+        
+        console.log("[FeaturedProductsEditor] Fetched section products:", data);
+        
+        if (data.success && data.data) {
+          // The API returns data.data.data as the products array
+          const products = Array.isArray(data.data.data) ? data.data.data : [];
+          setInitialProducts(products);
+        }
+      } catch (error) {
+        console.error("[FeaturedProductsEditor] Error fetching section products:", error);
+        setInitialProducts(section.products || []);
+      } finally {
+        setIsLoadingProducts(false);
+      }
+    };
+
+    fetchSectionProducts();
+  }, [section.sectionKey]);
+
+  // Handle selection changes and save to database
+  const handleSelectionChange = async (products: any[]) => {
+    try {
+      const productIds = products.map(p => p.productId || p.product?.id).filter(Boolean);
+      
+      console.log("[FeaturedProductsEditor] Saving selection:", productIds);
+      
+      const res = await fetch(`/api/admin/cms/homepage-sections/${section.sectionKey}/products`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ products: productIds }),
+      });
+
+      const data = await res.json();
+      
+      if (data.success) {
+        console.log("[FeaturedProductsEditor] Selection saved successfully");
+        const freshRes = await fetch(`/api/admin/cms/homepage-sections/${section.sectionKey}/products`);
+        const freshData = await freshRes.json();
+        
+        if (freshData.success && freshData.data) {
+          // The API returns data.data.data as the products array
+          const products = Array.isArray(freshData.data.data) ? freshData.data.data : [];
+          setInitialProducts(products);
+        }
+        
+        startTransition(() => {
+          router.refresh();
+        });
+      } else {
+        console.error("[FeaturedProductsEditor] Save failed:", data.error);
+      }
+    } catch (error) {
+      console.error("[FeaturedProductsEditor] Error saving selection:", error);
+    }
+  };
 
   const handleSave = () => {
     startTransition(async () => {
@@ -384,12 +449,19 @@ export function FeaturedProductsEditor({ section, parsedConfig }: { section: any
               : "When tabs are disabled, you can manually select products to display."
             }
           </p>
-          <ProductSelector
-            sectionKey={section.sectionKey}
-            maxProducts={section.maxProducts || 18}
-            initialProducts={section.products || []}
-            externalCategoryFilter={config.enableTabs !== false ? selectedCategoryTab : undefined}
-          />
+          {isLoadingProducts ? (
+            <div className="text-center py-8 text-muted-foreground">
+              Loading products...
+            </div>
+          ) : (
+            <ProductSelector
+              sectionKey={section.sectionKey}
+              maxProducts={section.maxProducts || 18}
+              initialProducts={initialProducts}
+              externalCategoryFilter={config.enableTabs !== false ? selectedCategoryTab : undefined}
+              onSelectionChange={handleSelectionChange}
+            />
+          )}
         </div>
       </div>
     </div>

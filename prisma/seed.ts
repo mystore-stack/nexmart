@@ -1,3 +1,7 @@
+// DISABLED FOR CLEAN SLATE: Main seed file - disabled for clean slate
+// Original file content preserved below
+// ============================================================
+/*
 // prisma/seed.ts
 import dotenv from "dotenv";
 import "dotenv/config";
@@ -202,8 +206,7 @@ const COUPONS = [
 type ProductSeed = {
   name: string;
   slug: string;
-  shortDescription: string;
-  longDescription: string;
+  description: string;
   price: number;
   compareAtPrice: number;
   discount: number;
@@ -236,8 +239,7 @@ function buildProductSeed(categorySlug: string, index: number): ProductSeed {
   const badgePool = ["Best Seller", "New", "Trending", "Limited", "Premium", "Editor's Choice"];
   const badges = [badgePool[index % badgePool.length], badgePool[(index + 2) % badgePool.length]];
   const productName = `${brand} ${blueprint.descriptor} ${blueprint.name} ${color}`.trim();
-  const shortDescription = `${productName} brings ${blueprint.feature} together with refined craftsmanship and a premium finish.`;
-  const longDescription = `${productName} is designed for shoppers who want dependable performance, modern aesthetics, and everyday comfort. Its thoughtful engineering balances style, durability, and practicality for both home and travel.`;
+  const description = `${productName} is designed for shoppers who want dependable performance, modern aesthetics, and everyday comfort. Its thoughtful engineering balances style, durability, and practicality for both home and travel. ${productName} brings ${blueprint.feature} together with refined craftsmanship and a premium finish.`;
   const images = IMAGE_POOL[categorySlug];
   const galleryImages = [images[index % images.length], images[(index + 1) % images.length], images[(index + 2) % images.length]];
   const categoryPrefix = categorySlug.replace(/[^a-z0-9]+/g, "").slice(0, 4).toUpperCase();
@@ -247,8 +249,7 @@ function buildProductSeed(categorySlug: string, index: number): ProductSeed {
   return {
     name: productName,
     slug,
-    shortDescription,
-    longDescription,
+    description,
     price,
     compareAtPrice: comparePrice,
     discount: discountPercent,
@@ -345,7 +346,7 @@ async function main() {
       organizationId: organization.id,
       name: productSeed.name,
       slug: productSeed.slug,
-      description: `${productSeed.shortDescription}\n\n${productSeed.longDescription}`,
+      description: productSeed.description,
       price: productSeed.price,
       comparePrice: productSeed.compareAtPrice,
       categoryId,
@@ -608,3 +609,8 @@ async function main() {
 main()
   .catch((e) => { console.error("❌ Seed failed:", e); process.exit(1); })
   .finally(async () => { await prisma.$disconnect(); });
+*/
+// ============================================================
+// End of disabled content
+
+export const DISABLED = true;

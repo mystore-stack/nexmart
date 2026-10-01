@@ -1,29 +1,18 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { getHomePageData } from "@/lib/home-data";
 
 export async function GET() {
   try {
-    const sections = await prisma.homePageSection.findMany({
-      where: { active: true },
-      orderBy: { displayOrder: "asc" },
-      include: {
-        products: {
-          where: { active: true },
-          orderBy: { order: "asc" },
-          include: {
-            product: {
-              include: {
-                category: true,
-              },
-            },
-          },
-        },
-      },
-    });
+    const homepage = await getHomePageData();
+    const sections = homepage.cms.homeSections || [];
 
     return NextResponse.json({
       success: true,
       data: sections,
+      categories: homepage.categories,
+      brands: homepage.cms.brandPartners,
+      sponsored: homepage.cms.sponsored,
+      momentOffers: homepage.cms.momentOffers,
     });
   } catch (error) {
     console.error("Error fetching homepage sections:", error);

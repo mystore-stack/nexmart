@@ -2,9 +2,14 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import { immer } from "zustand/middleware/immer";
-import { signOut } from "next-auth/react";
 import type { WishlistStore, WishlistItem, Product, User } from "@/types";
 import toast from "react-hot-toast";
+
+// Global logout state lock to prevent race conditions
+let isLoggingOut = false;
+
+// Export function to check logout state (for AuthProvider)
+export const checkIsLoggingOut = () => isLoggingOut;
 
 export const useWishlistStore = create<WishlistStore>()(
   persist(
@@ -114,27 +119,63 @@ interface AuthStore {
 }
 
 export const useAuthStore = create<AuthStore>()(
-  persist(
-    (set) => ({
-      user: null,
-      isLoading: false,
-      setUser: (user) => set({ user }),
-      setLoading: (isLoading) => set({ isLoading }),
-      logout: async () => {
-        try {
-          await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
-        } catch {
-          /* continue */
-        }
-        await signOut({ callbackUrl: "/login" });
-        set({ user: null });
-      },
-    }),
-    {
-      name: "nexmart-auth",
-      partialize: (state) => ({ user: state.user }),
-    }
-  )
+  // NO PERSISTENCE - State is derived from NextAuth only
+  // localStorage persistence was causing competing auth state
+  // DEPRECATED: Components should use useSession() directly from next-auth/react
+  // This store is kept for backward compatibility but should be migrated away
+  (set) => ({
+    user: null,
+    isLoading: false,
+    setUser: (user) => set({ user }),
+    setLoading: (isLoading) => set({ isLoading }),
+    logout: async () => {
+      const requestId = `client_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      console.log(`[AUTH DEBUG CLIENT] ${new Date().toISOString()} [${requestId}] LOGOUT_CLICK (DEPRECATED STORE)`);
+      console.log(`[AUTH DEBUG CLIENT] ${new Date().toISOString()} [${requestId}] LOGOUT_METHOD: nextauth-signout-direct`);
+
+      // Prevent concurrent logout attempts
+      if (isLoggingOut) {
+        console.log(`[AUTH DEBUG CLIENT] ${new Date().toISOString()} [${requestId}] LOGOUT_ALREADY_IN_PROGRESS - skipping`);
+        return;
+      }
+
+      isLoggingOut = true;
+      console.log(`[AUTH DEBUG CLIENT] ${new Date().toISOString()} [${requestId}] LOGOUT_STATE_LOCKED`);
+
+      console.log("[AUTH STORE LOGOUT] === LOGOUT FLOW START ===");
+
+      // Clear local state first
+      set({ user: null });
+      console.log("[AUTH STORE LOGOUT] Local state cleared");
+      console.log(`[AUTH DEBUG CLIENT] ${new Date().toISOString()} [${requestId}] LOCAL_STATE_CLEARED`);
+
+      // Use NextAuth signOut directly (no API endpoint needed)
+      try {
+        console.log("[AUTH STORE LOGOUT] Calling NextAuth signOut directly");
+        console.log(`[AUTH DEBUG CLIENT] ${new Date().toISOString()} [${requestId}] LOGOUT_REQUEST_START`);
+
+        // Import signOut dynamically to avoid circular dependency
+        const { signOut } = await import("next-auth/react");
+        await signOut({ redirect: false });
+
+        console.log("[AUTH STORE LOGOUT] NextAuth signOut completed");
+        console.log(`[AUTH DEBUG CLIENT] ${new Date().toISOString()} [${requestId}] LOGOUT_REQUEST_SUCCESS`);
+      } catch (error) {
+        console.error("[AUTH STORE LOGOUT] Logout error:", error);
+      }
+
+      console.log("[AUTH STORE LOGOUT] === LOGOUT FLOW END ===");
+      console.log(`[AUTH DEBUG CLIENT] ${new Date().toISOString()} [${requestId}] LOGOUT_COMPLETE`);
+
+      // Release logout lock
+      isLoggingOut = false;
+      console.log(`[AUTH DEBUG CLIENT] ${new Date().toISOString()} [${requestId}] LOGOUT_STATE_UNLOCKED`);
+
+      // Redirect to login
+      console.log(`[AUTH DEBUG CLIENT] ${new Date().toISOString()} [${requestId}] LOGOUT_REDIRECT`);
+      window.location.href = "/login";
+    },
+  })
 );
 
 export { useCartStore } from "./cart";

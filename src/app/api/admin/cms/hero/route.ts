@@ -4,6 +4,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { ok, created, handleApiError } from "@/lib/api-response";
 import { requireAdmin } from "@/lib/auth-api";
+import { getDefaultOrganizationId } from "@/lib/tenant";
 
 const schema = z.object({
   eyebrow: z.string().optional(),
@@ -23,6 +24,46 @@ const schema = z.object({
   active: z.boolean().default(true),
   startDate: z.string().nullable().optional(),
   endDate: z.string().nullable().optional(),
+  // Hero dimension settings
+  desktopWidth: z.string().optional(),
+  desktopHeight: z.number().optional(),
+  desktopMaxWidth: z.number().optional(),
+  desktopAspectRatio: z.string().optional(),
+  tabletWidth: z.string().optional(),
+  tabletHeight: z.number().optional(),
+  tabletMaxWidth: z.number().optional(),
+  tabletAspectRatio: z.string().optional(),
+  mobileWidth: z.string().optional(),
+  mobileHeight: z.number().optional(),
+  mobileMaxWidth: z.number().optional(),
+  mobileAspectRatio: z.string().optional(),
+  widthMode: z.string().optional(),
+  imageFit: z.string().optional(),
+  imagePosition: z.string().optional(),
+  imagePositionX: z.string().optional(),
+  imagePositionY: z.string().optional(),
+  borderRadius: z.string().optional(),
+});
+
+const heroConfigSchema = z.object({
+  desktopWidth: z.string().default("100%"),
+  desktopHeight: z.number().default(420),
+  desktopMaxWidth: z.number().default(1440),
+  desktopAspectRatio: z.string().default("2.5/1"),
+  tabletWidth: z.string().default("100%"),
+  tabletHeight: z.number().default(320),
+  tabletMaxWidth: z.number().default(1024),
+  tabletAspectRatio: z.string().default("2.5/1"),
+  mobileWidth: z.string().default("100%"),
+  mobileHeight: z.number().default(280),
+  mobileMaxWidth: z.number().default(640),
+  mobileAspectRatio: z.string().default("2.5/1"),
+  widthMode: z.string().default("fullWidth"),
+  imageFit: z.string().default("cover"),
+  imagePosition: z.string().default("center"),
+  imagePositionX: z.string().default("50%"),
+  imagePositionY: z.string().default("50%"),
+  borderRadius: z.string().default("0.5rem"),
 });
 
 export async function GET() {

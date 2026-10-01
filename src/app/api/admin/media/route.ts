@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth-server";
 import { getDefaultOrganizationId } from "@/lib/tenant";
+import { uploadImage } from "@/lib/cloudinary";
 
 // GET - List all media assets
 export async function GET(req: NextRequest) {
@@ -72,18 +73,17 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Upload to Cloudinary (using existing upload API)
-    const uploadFormData = new FormData();
-    uploadFormData.append("file", file);
+    // Upload to Cloudinary directly
+    const bytes = await file.arrayBuffer();
+    const buffer = Buffer.from(bytes);
     
-    const uploadResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/admin/upload`, {
-      method: "POST",
-      body: uploadFormData,
+    const uploadResult = await uploadImage(buffer, "media-assets", {
+      transformation: [
+        { quality: "auto" },
+      ],
     });
     
-    const uploadData = await uploadResponse.json();
-    
-    if (!uploadData.success) {
+    if (!uploadResult.url) {
       return NextResponse.json(
         { success: false, error: "Upload failed" },
         { status: 500 }
@@ -107,13 +107,13 @@ export async function POST(req: NextRequest) {
     const mediaAsset = await prisma.mediaAsset.create({
       data: {
         organizationId,
-        filename: uploadData.filename || file.name,
+        filename: uploadResult.publicId || file.name,
         originalName: file.name,
         mimeType: file.type,
         size: file.size,
-        url: uploadData.url,
-        width,
-        height,
+        url: uploadResult.url,
+        width: width || uploadResult.width,
+        height: height || uploadResult.height,
         alt: alt || null,
         category: category || null,
         tags: tags ? tags.split(",").map(t => t.trim()) : [],

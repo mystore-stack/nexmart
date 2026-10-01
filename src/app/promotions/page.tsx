@@ -29,11 +29,40 @@ export default async function PromotionsPage() {
   const promos = await safeFetch(() => prisma.homePromoCard.findMany({
     where: {
       active: true,
-      OR: [{ startDate: null }, { startDate: { lte: now } }],
-      AND: [{ OR: [{ endDate: null }, { endDate: { gte: now } }] }],
+      OR: [
+        { startDate: null }, 
+        { startDate: { lte: now } }
+      ],
+      AND: [
+        { 
+          OR: [
+            { endDate: null }, 
+            { endDate: { gte: now } }
+          ] 
+        }
+      ],
     },
     orderBy: { order: "asc" },
   }), []);
+
+  console.log("[PROMOTIONS PAGE] HomePromoCard count:", promos.length);
+
+  // Also fetch from the promotion section if HomePromoCard is empty
+  const promotionSection = await safeFetch(() => prisma.homePageSection.findFirst({
+    where: {
+      sectionKey: "promotion",
+    },
+    include: {
+      products: {
+        include: {
+          product: true,
+        },
+        orderBy: { order: "asc" },
+      },
+    },
+  }), null);
+
+  console.log("[PROMOTIONS PAGE] Promotion section:", promotionSection?.id, "Products:", promotionSection?.products?.length);
   
   const mysteryBoxes = await safeFetch(() => prisma.mysteryBoxConfig.findMany({
     where: { active: true },
@@ -98,6 +127,8 @@ export default async function PromotionsPage() {
                 width={1200}
                 height={800}
                 className="h-56 w-full object-cover"
+                sizes="(max-width: 768px) 100vw, 1200px"
+                priority={false}
               />
             </div>
           </div>
@@ -116,34 +147,60 @@ export default async function PromotionsPage() {
         </div>
 
         <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-          {promos.length > 0 ? (
-            promos.map((promo) => (
-              <div key={promo.id} className="group overflow-hidden rounded-3xl border border-border/80 bg-card shadow-sm transition hover:-translate-y-1 hover:shadow-luxury">
-                <div className="relative h-64 w-full overflow-hidden">
-                  <Image src={promo.image} alt={promo.title} fill className="object-cover transition duration-500 group-hover:scale-105" />
-                </div>
-                <div className="p-6">
-                  <div className="flex flex-wrap items-center gap-2 mb-3">
-                    {promo.badgeText ? (
-                      <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-700">{promo.badgeText}</span>
-                    ) : null}
-                    {Array.isArray(promo.discountPills) && promo.discountPills.length > 0 ? (
-                      promo.discountPills.slice(0, 2).map((pill, index) => (
-                        <span key={index} className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700">
-                          {String(pill)}
-                        </span>
-                      ))
-                    ) : null}
+          {promotionSection && promotionSection.products && promotionSection.products.length > 0 ? (
+            // Display promotion section products
+            promotionSection.products.map((sp: any) => {
+              const product = sp.product;
+              const customPrice = sp.customPrice;
+              const originalPrice = product.price;
+              const displayPrice = customPrice || originalPrice;
+              const discount = customPrice ? Math.round(((originalPrice - customPrice) / originalPrice) * 100) : 0;
+
+              console.log("[PROMOTIONS PAGE] Rendering product:", product.name, "Custom price:", customPrice, "Discount:", discount);
+
+              return (
+                <div key={sp.id} className="group overflow-hidden rounded-3xl border border-border/80 bg-card shadow-sm transition hover:-translate-y-1 hover:shadow-luxury">
+                  <div className="relative h-64 w-full overflow-hidden">
+                    {product.images && product.images[0] ? (
+                      <Image 
+                        src={product.images[0]} 
+                        alt={product.name} 
+                        fill 
+                        className="object-cover transition duration-500 group-hover:scale-105"
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                        priority={false}
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-slate-100">
+                        <span className="text-muted-foreground">No image</span>
+                      </div>
+                    )}
+                    {discount > 0 && (
+                      <div className="absolute top-3 right-3 bg-green-600 text-white px-3 py-1 rounded-full text-sm font-bold">
+                        -{discount}%
+                      </div>
+                    )}
                   </div>
-                  <h3 className="text-2xl font-bold text-foreground mb-2">{promo.title}</h3>
-                  <p className="text-sm leading-relaxed text-muted-foreground mb-5">{promo.subtitle}</p>
-                  <Link href={promo.link} className="inline-flex items-center gap-2 rounded-2xl bg-brand-700 px-4 py-3 text-sm font-semibold text-white transition hover:bg-brand-800">
-                    {promo.ctaText}
-                    <ArrowRight className="h-4 w-4" />
-                  </Link>
+                  <div className="p-6">
+                    <h3 className="text-2xl font-bold text-foreground mb-2">{product.name}</h3>
+                    <div className="flex items-center gap-2 mb-4">
+                      <span className="text-xl font-bold text-green-600">
+                        {displayPrice.toLocaleString("fr-MA")} DH
+                      </span>
+                      {customPrice && (
+                        <span className="text-sm text-gray-400 line-through">
+                          {originalPrice.toLocaleString("fr-MA")} DH
+                        </span>
+                      )}
+                    </div>
+                    <Link href={`/products/${product.slug}`} className="inline-flex items-center gap-2 rounded-2xl bg-brand-700 px-4 py-3 text-sm font-semibold text-white transition hover:bg-brand-800">
+                      Voir le produit
+                      <ArrowRight className="h-4 w-4" />
+                    </Link>
+                  </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           ) : (
             <div className="rounded-3xl border border-dashed border-border/80 bg-card p-8 text-center text-muted-foreground">
               Aucune promotion active pour le moment. Revenez bientôt pour découvrir les nouvelles offres.

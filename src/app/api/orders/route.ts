@@ -2,7 +2,7 @@ import { notifyNewOrder } from "@/lib/notifications/telegram";
 // src/app/api/orders/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/auth-api";
+import { AuthError, requireAuth } from "@/lib/auth-api";
 import { generateOrderNumber } from "@/utils/format";
 import { getValidatedShippingCost } from "@/lib/shipping";
 import { z } from "zod";
@@ -250,7 +250,17 @@ export async function GET(req: NextRequest) {
     const session = await requireAuth();
     const organizationId = session.organizationId;
     const { searchParams } = new URL(req.url);
-    const page = Math.max(1, parseInt(searchParams.get("page") || "1"));
+    const pageResult = z.coerce.number().int().min(1).max(100000).safeParse(
+      searchParams.get("page") ?? "1"
+    );
+    if (!pageResult.success) {
+      return NextResponse.json(
+        { success: false, error: "Numéro de page invalide", code: "INVALID_PAGE" },
+        { status: 400 }
+      );
+    }
+
+    const page = pageResult.data;
     const limit = 10;
 
     const [orders, total] = await Promise.all([
@@ -264,11 +274,34 @@ export async function GET(req: NextRequest) {
       prisma.order.count({ where: { userId: session.userId, organizationId } }),
     ]);
 
-    return NextResponse.json({ success: true, orders, pagination: { page, limit, total } });
+    const mobileOrders = orders.map((order) => ({
+      ...order,
+      shippingCost: order.shipping,
+    }));
+
+    return NextResponse.json({ success: true, orders: mobileOrders, pagination: { page, limit, total } });
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Erreur serveur";
-    const status = message === "Unauthorized" ? 401 : 500;
-    return NextResponse.json({ success: false, error: message }, { status });
+    if (err instanceof AuthError) {
+      return NextResponse.json(
+        { success: false, error: "Authentification requise", code: err.code },
+        { status: err.statusCode }
+      );
+    }
+
+    // Handle organization access errors specifically
+    if (err instanceof Error && err.message.includes("has no organization access")) {
+      console.error("[ORDERS API] User lacks organization access:", err);
+      return NextResponse.json(
+        { success: false, error: "Accès organisation requis. Veuillez vous reconnecter.", code: "NO_ORGANIZATION_ACCESS" },
+        { status: 403 }
+      );
+    }
+
+    console.error("[ORDERS API] Failed to load order history:", err);
+    return NextResponse.json(
+      { success: false, error: "Impossible de charger les commandes", code: "ORDERS_FETCH_FAILED" },
+      { status: 500 }
+    );
   }
 }
 
@@ -1081,6 +1114,12 @@ export async function POST(req: NextRequest) {
         { status: err.status }
       );
     }
+    if (err instanceof AuthError) {
+      return NextResponse.json(
+        { success: false, error: "Authentification requise", code: err.code },
+        { status: err.statusCode }
+      );
+    }
     if (err instanceof z.ZodError) {
       return NextResponse.json(
         {
@@ -1092,19 +1131,33 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
+    // Handle organization access errors specifically
+    if (err instanceof Error && err.message.includes("has no organization access")) {
+      console.error("[ORDERS API] User lacks organization access:", err);
+      return NextResponse.json(
+        { success: false, error: "Accès organisation requis. Veuillez vous reconnecter.", code: "NO_ORGANIZATION_ACCESS" },
+        { status: 403 }
+      );
+    }
     const message = err instanceof Error ? err.message : "Erreur serveur";
-    const status =
-      message === "Unauthorized"
-        ? 401
-        : message.includes("invalide") ||
+    const isClientError =
+      message.includes("invalide") ||
             message.includes("Stock") ||
             message.includes("stock") ||
             message.includes("introuvable") ||
             message.includes("Coupon") ||
             message.includes("minimum") ||
-            message.includes("Paiement")
-          ? 400
-          : 500;
-    return NextResponse.json({ success: false, error: message }, { status });
+            message.includes("Paiement");
+    if (!isClientError) {
+      console.error("[ORDERS API] Order creation failed:", err);
+    }
+    return NextResponse.json(
+      {
+        success: false,
+        error: isClientError ? message : "Impossible de créer la commande",
+        ...(isClientError ? {} : { code: "ORDER_CREATE_FAILED" }),
+      },
+      { status: isClientError ? 400 : 500 }
+    );
   }
 }

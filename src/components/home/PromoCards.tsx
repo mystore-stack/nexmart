@@ -20,57 +20,7 @@ type PromoCard = {
   active: boolean;
 };
 
-const defaultCards: PromoCard[] = [
-  {
-    id: "vente-flash",
-    cardKey: "FLASH_SALE",
-    title: "Vente Flash",
-    subtitle: "Offres limitées",
-    image: "/images/promo_flash_sale.jpg",
-    link: "/products?tag=sponsored",
-    ctaText: "Voir les offres",
-    badgeText: "⏰ Timer",
-    order: 0,
-    active: true,
-  },
-  {
-    id: "mystery-boxes",
-    cardKey: "MYSTERY_BOX",
-    title: "Mystery Boxes",
-    subtitle: "À partir de 199 DH",
-    image: "/images/promo_mystery_box.jpg",
-    link: "/products?tag=mystery-box",
-    ctaText: "Découvrir",
-    badgeText: "✨ Surprise",
-    order: 1,
-    active: true,
-  },
-  {
-    id: "buy-more-save-more",
-    cardKey: "BUY_MORE",
-    title: "Buy More Save More",
-    subtitle: "Économisez en quantité",
-    image: "/images/promo_buy_more.jpg",
-    link: "/deals?type=volume-discount",
-    ctaText: "Voir les offres",
-    badgeText: "🏷️ Promo",
-    discountPills: ["2+ -10%", "3+ -20%", "5+ -30%"],
-    order: 2,
-    active: true,
-  },
-  {
-    id: "build-your-bundle",
-    cardKey: "BUNDLE",
-    title: "Build Your Bundle",
-    subtitle: "Créez votre pack",
-    image: "/images/promo_bundle.jpg",
-    link: "/bundle-builder",
-    ctaText: "Créer maintenant",
-    badgeText: "📦 Pack",
-    order: 3,
-    active: true,
-  },
-];
+// No hardcoded fallback data - CMS only
 
 const getCardColor = (cardKey: string) => {
   switch (cardKey) {
@@ -88,7 +38,7 @@ const getCardColor = (cardKey: string) => {
 };
 
 export function PromoCards() {
-  const [cards, setCards] = useState<PromoCard[]>(defaultCards);
+  const [cards, setCards] = useState<PromoCard[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -107,18 +57,23 @@ export function PromoCards() {
 
   if (loading) {
     return (
-      <section className="my-8">
+      <div className="my-8">
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {Array.from({ length: 4 }).map((_, index) => (
             <div key={index} className="h-80 animate-pulse rounded-2xl bg-gray-200" />
           ))}
         </div>
-      </section>
+      </div>
     );
   }
 
+  // Return nothing if no cards from CMS
+  if (cards.length === 0) {
+    return null;
+  }
+
   return (
-    <section className="my-8">
+    <div className="my-8">
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {cards.map((card, index) => {
           const bgColor = getCardColor(card.cardKey);
@@ -192,6 +147,6 @@ export function PromoCards() {
           );
         })}
       </div>
-    </section>
+    </div>
   );
 }

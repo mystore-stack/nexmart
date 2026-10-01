@@ -19,10 +19,10 @@ export async function updateSectionOrder(updates: { id: string; displayOrder: nu
   return { success: true };
 }
 
-export async function toggleSectionEnabled(id: string, active: boolean) {
+export async function toggleSectionEnabled(id: string, enabled: boolean) {
   await prisma.homePageSection.update({
     where: { id },
-    data: { active },
+    data: { enabled },
   });
 
   revalidatePath("/");

@@ -20,14 +20,26 @@ export async function POST(req: NextRequest) {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    // Upload to Cloudinary
-    const result = await uploadImage(buffer, "hero-banners", {
+    // Get folder from form data or default to hero-banners
+    const folder = (formData.get("folder") as string) || "hero-banners";
+    
+    // Upload to Cloudinary without cropping - preserve original aspect ratio
+    const result = await uploadImage(buffer, folder, {
       transformation: [
-        { width: 1920, height: 1080, crop: "fill", quality: "auto" },
+        { quality: "auto:good" },
+        { fetch_format: "auto" },
       ],
     });
 
-    return NextResponse.json({ success: true, url: result.url, publicId: result.publicId });
+    return NextResponse.json({ 
+      success: true, 
+      data: { 
+        url: result.url, 
+        publicId: result.publicId,
+        width: result.width,
+        height: result.height
+      } 
+    });
   } catch (error: any) {
     console.error("[UPLOAD ERROR]", error);
     if (error.statusCode) {

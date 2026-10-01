@@ -45,18 +45,11 @@ class ClientAuditSDK {
 
     if (!this.sessionId) {
       try {
-        // Don't send empty organizationId - if not available, skip session creation
-        if (!this.organizationId) {
-          console.warn("[AUDIT CLIENT] No organizationId available, skipping session creation");
-          this.startFlushInterval();
-          return null;
-        }
-
         const response = await fetch("/api/audit/session", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            organizationId: this.organizationId,
+            organizationId: this.organizationId || undefined,
             userId: this.userId || undefined,
             userAgent: navigator.userAgent,
             referrer: document.referrer,

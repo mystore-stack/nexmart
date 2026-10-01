@@ -145,7 +145,7 @@ export async function GET() {
               destinationUrl: section.destinationUrl,
               viewAllButton: section.viewAllButton,
               maxProducts: section.maxProducts,
-              active: section.active,
+              enabled: section.enabled,
               order: section.order,
             }
           : null,
