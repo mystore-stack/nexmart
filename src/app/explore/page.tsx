@@ -13,14 +13,14 @@ export const metadata: Metadata = {
 };
 
 export default async function ExplorePage() {
-  const { categories, cms, featuredProducts } = await getHomePageData();
+  const { categories, cms } = await getHomePageData();
 
   // Extract products from CMS sections
   const flashSaleSection = cms.homeSections?.find((s: any) => s.sectionKey === "flashSale");
   const flashProducts = flashSaleSection?.products?.map((p: any) => p.product || p).filter(Boolean) || [];
 
   const bestSellersSection = cms.homeSections?.find((s: any) => s.sectionKey === "bestSellers");
-  const bestSellers = bestSellersSection?.products?.map((p: any) => p.product || p).filter(Boolean) || featuredProducts || [];
+  const bestSellers = bestSellersSection?.products?.map((p: any) => p.product || p).filter(Boolean) || [];
 
   const brands = cms.brandPartners || [];
 
@@ -130,24 +130,6 @@ export default async function ExplorePage() {
                   <span className="text-xs font-bold text-slate-800">{brand.name}</span>
                 )}
               </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* Recommended items */}
-      {featuredProducts && featuredProducts.length > 0 && (
-        <section className="px-4">
-          <div className="flex items-center justify-between mb-3">
-            <div>
-              <h2 className="text-base font-bold text-slate-900">Sélection pour vous</h2>
-              <p className="text-xs text-slate-500">Recommandations basées sur les tendances</p>
-            </div>
-            <Sparkles className="h-5 w-5 text-emerald-600" />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            {featuredProducts.slice(0, 6).map((product: any) => (
-              <ProductCard key={product.id} product={product} />
             ))}
           </div>
         </section>
