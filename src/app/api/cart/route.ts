@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/auth-api";
+import { requireUnifiedAuth } from "@/lib/unified-auth";
 
 const cartItemSchema = z.object({
   productId: z.string().uuid(),
@@ -12,9 +12,9 @@ const cartItemSchema = z.object({
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
-    const session = await requireAuth();
+    const session = await requireUnifiedAuth(req);
     const organizationId = session.organizationId;
     
     console.log("[CART API] GET request for user:", {
@@ -42,7 +42,7 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await requireAuth();
+    const session = await requireUnifiedAuth(req);
     const organizationId = session.organizationId;
     const { productId, variantId, quantity } = cartItemSchema.parse(await req.json());
 
@@ -88,7 +88,7 @@ export async function POST(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
-    const session = await requireAuth();
+    const session = await requireUnifiedAuth(req);
     const organizationId = session.organizationId;
 
     // Get all cart items for the user
