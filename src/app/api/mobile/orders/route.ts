@@ -60,7 +60,6 @@ export async function GET(req: NextRequest) {
                 slug: true,
               },
             },
-            variant: true,
           },
         },
         address: true,
@@ -93,8 +92,8 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Unauthorized';
-    const status = err instanceof MobileAuthError ? err.statusCode : 401;
+    const message = err instanceof Error ? err.message : 'Server error';
+    const status = err instanceof MobileAuthError ? err.statusCode : 500;
     console.error('[MOBILE ORDERS] GET error:', message);
     return NextResponse.json({ success: false, error: message }, { status });
   }
@@ -170,7 +169,6 @@ export async function POST(req: NextRequest) {
                   slug: true,
                 },
               },
-              variant: true,
             },
           },
           address: true,
@@ -218,7 +216,6 @@ export async function POST(req: NextRequest) {
                       slug: true,
                     },
                   },
-                  variant: true,
                 },
               },
               address: true,
@@ -299,7 +296,7 @@ export async function POST(req: NextRequest) {
             quantity: item.quantity,
             price,
             name: product.name,
-            image: product.images[0] || '', // REQUIRED FIELD - matches website pattern
+            image: (product.images && product.images.length > 0) ? product.images[0] : '',
           };
         });
 
@@ -417,7 +414,6 @@ export async function POST(req: NextRequest) {
                       slug: true,
                     },
                   },
-                  variant: true,
                 },
               },
               address: true,
@@ -445,7 +441,6 @@ export async function POST(req: NextRequest) {
                         slug: true,
                       },
                     },
-                    variant: true,
                   },
                 },
                 address: true,

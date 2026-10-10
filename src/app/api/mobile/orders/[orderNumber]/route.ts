@@ -39,7 +39,6 @@ export async function GET(
                 slug: true,
               },
             },
-            variant: true,
           },
         },
         address: true,
@@ -61,8 +60,8 @@ export async function GET(
       order,
     });
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Unauthorized';
-    const status = err instanceof MobileAuthError ? err.statusCode : 401;
+    const message = err instanceof Error ? err.message : 'Server error';
+    const status = err instanceof MobileAuthError ? err.statusCode : 500;
     console.error('[MOBILE ORDERS] Detail GET error:', message);
     return NextResponse.json({ success: false, error: message }, { status });
   }
