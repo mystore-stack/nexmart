@@ -22,26 +22,46 @@ export async function GET(req: NextRequest) {
     const session = await requireMobileAuth(req);
     const organizationId = session.organizationId;
 
-    const items = await prisma.wishlistItem.findMany({
+    // Fetch wishlist items (WishlistItem has no product relation, only productId)
+    const wishlistItems = await prisma.wishlistItem.findMany({
       where: {
         userId: session.userId,
-        product: { organizationId },
-      },
-      include: {
-        product: {
-          include: {
-            category: true,
-            variants: true,
-          },
-        },
       },
       orderBy: { createdAt: 'desc' },
     });
 
+    // Extract productIds
+    const productIds = wishlistItems.map((item) => item.productId);
+
+    // Fetch products with organization scoping
+    const products = await prisma.product.findMany({
+      where: {
+        id: { in: productIds },
+        organizationId,
+        published: true,
+      },
+      include: {
+        category: true,
+        variants: true,
+      },
+    });
+
+    // Map products to wishlist items
+    const items = wishlistItems
+      .map((wishlistItem) => {
+        const product = products.find((p) => p.id === wishlistItem.productId);
+        if (!product) return null;
+        return {
+          ...wishlistItem,
+          product,
+        };
+      })
+      .filter((item) => item !== null);
+
     return NextResponse.json({ success: true, items });
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : 'Unauthorized';
-    const status = err instanceof MobileAuthError ? err.statusCode : 401;
+    const message = err instanceof Error ? err.message : 'Server error';
+    const status = err instanceof MobileAuthError ? err.statusCode : 500;
     console.error('[MOBILE WISHLIST] GET error:', message);
     return NextResponse.json({ success: false, error: message }, { status });
   }
