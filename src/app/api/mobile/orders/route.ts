@@ -416,7 +416,7 @@ export async function POST(req: NextRequest) {
               trackingHistory: {
                 create: {
                   status: 'PENDING',
-                  message: 'Order placed successfully',
+                  notes: 'Order placed successfully',
                 },
               },
             },
