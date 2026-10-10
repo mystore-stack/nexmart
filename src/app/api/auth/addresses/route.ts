@@ -2,7 +2,7 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/auth-api";
+import { requireUnifiedAuth } from "@/lib/unified-auth";
 import { ok, created, unauthorized, handleApiError } from "@/lib/api";
 
 const addressSchema = z.object({
@@ -19,7 +19,7 @@ const addressSchema = z.object({
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await requireAuth();
+    const session = await requireUnifiedAuth(req);
 
     const addresses = await prisma.address.findMany({
       where: { userId: session.userId },
@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
   try {
     console.log("[ADDRESS POST] Starting address creation");
 
-    const session = await requireAuth();
+    const session = await requireUnifiedAuth(req);
     console.log("[ADDRESS POST] Session retrieved:", {
       userId: session.userId,
       email: session.email,

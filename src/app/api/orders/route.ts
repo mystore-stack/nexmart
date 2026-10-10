@@ -2,7 +2,7 @@ import { notifyNewOrder } from "@/lib/notifications/telegram";
 // src/app/api/orders/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/auth-api";
+import { requireUnifiedAuth } from "@/lib/unified-auth";
 import { generateOrderNumber } from "@/utils/format";
 import { getValidatedShippingCost } from "@/lib/shipping";
 import { z } from "zod";
@@ -247,7 +247,7 @@ async function cleanupInvalidCartItems(
 
 export async function GET(req: NextRequest) {
   try {
-    const session = await requireAuth();
+    const session = await requireUnifiedAuth(req);
     const organizationId = session.organizationId;
     const { searchParams } = new URL(req.url);
     const page = Math.max(1, parseInt(searchParams.get("page") || "1"));
@@ -278,7 +278,7 @@ export async function POST(req: NextRequest) {
   let authContext: { userId?: string; organizationId?: string } = {};
 
   try {
-    const session = await requireAuth();
+    const session = await requireUnifiedAuth(req);
     const organizationId = session.organizationId;
     authContext = { userId: session.userId, organizationId };
 
