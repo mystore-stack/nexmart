@@ -61,8 +61,25 @@ export async function GET(
     });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Server error';
-    const status = err instanceof MobileAuthError ? err.statusCode : 500;
-    console.error('[MOBILE ORDERS] Detail GET error:', message);
-    return NextResponse.json({ success: false, error: message }, { status });
+    
+    // Detect database connection errors
+    const isConnectionError = typeof message === 'string' && (
+      message.toLowerCase().includes('connection') ||
+      message.toLowerCase().includes('closed') ||
+      message.toLowerCase().includes('database') ||
+      message.toLowerCase().includes('pool') ||
+      message.toLowerCase().includes('timeout')
+    );
+    
+    const status = err instanceof MobileAuthError 
+      ? err.statusCode 
+      : isConnectionError ? 503 : 500;
+      
+    const code = err instanceof MobileAuthError 
+      ? err.code 
+      : isConnectionError ? 'DATABASE_UNAVAILABLE' : 'SERVER_ERROR';
+
+    console.error('[MOBILE ORDERS] Detail GET error:', { message, code, status, isConnectionError });
+    return NextResponse.json({ success: false, error: message, code }, { status });
   }
 }
