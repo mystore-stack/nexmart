@@ -93,7 +93,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       where: { id, organizationId },
       data,
       include: {
-        items: { include: { product: true, variant: true } },
+        items: { include: { product: true } },
         address: true,
         coupon: true,
       },
@@ -135,7 +135,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     const order = await prisma.order.findFirst({
       where: { id, organizationId },
       include: {
-        items: { include: { product: true, variant: true } },
+        items: { include: { product: true } },
         address: true,
         coupon: true,
         trackingHistory: {
