@@ -158,7 +158,7 @@ export async function POST(req: NextRequest) {
     // Check for existing order BEFORE acquiring lock (database-level idempotency)
     const existingOrder = await prisma.order.findUnique({
       where: { idempotencyKey },
-      select: { id: true, orderNumber: true, userId },
+      select: { id: true, orderNumber: true, userId: true },
     });
 
     if (existingOrder) {
@@ -208,7 +208,7 @@ export async function POST(req: NextRequest) {
         // Double-check idempotency within transaction (handles race condition)
         const existingOrderInTx = await tx.order.findUnique({
           where: { idempotencyKey },
-          select: { id: true, orderNumber: true, userId },
+          select: { id: true, orderNumber: true, userId: true },
         });
 
         if (existingOrderInTx) {
