@@ -142,13 +142,46 @@ export async function POST(req: NextRequest) {
     // Check for existing order BEFORE acquiring lock (database-level idempotency)
     const existingOrder = await prisma.order.findUnique({
       where: { idempotencyKey },
-      select: { id: true, orderNumber: true },
+      select: { id: true, orderNumber: true, userId },
     });
 
     if (existingOrder) {
+      // Verify order belongs to authenticated user
+      if (existingOrder.userId !== session.userId) {
+        console.error('[MOBILE ORDERS] Idempotency key belongs to different user:', { idempotencyKey, actualUserId: existingOrder.userId, sessionUserId: session.userId });
+        return NextResponse.json(
+          { success: false, error: 'Invalid idempotency key', code: 'IDEMPOTENCY_KEY_INVALID' },
+          { status: 400 }
+        );
+      }
+
       console.log('[MOBILE ORDERS] Duplicate order detected:', { idempotencyKey, existingOrderNumber: existingOrder.orderNumber });
+      // Fetch full order details for response
+      const fullOrder = await prisma.order.findUnique({
+        where: { id: existingOrder.id },
+        include: {
+          items: {
+            include: {
+              product: {
+                select: {
+                  id: true,
+                  name: true,
+                  images: true,
+                  slug: true,
+                },
+              },
+              variant: true,
+            },
+          },
+          address: true,
+          trackingHistory: {
+            orderBy: { createdAt: 'asc' },
+          },
+        },
+      });
+
       return NextResponse.json(
-        { success: true, order: existingOrder, duplicate: true, message: 'Order already exists' },
+        { success: true, order: fullOrder, duplicate: true, idempotencyKey, message: 'Order already exists' },
         { status: 200 }
       );
     }
@@ -160,12 +193,41 @@ export async function POST(req: NextRequest) {
         // Double-check idempotency within transaction (handles race condition)
         const existingOrderInTx = await tx.order.findUnique({
           where: { idempotencyKey },
-          select: { id: true, orderNumber: true },
+          select: { id: true, orderNumber: true, userId },
         });
 
         if (existingOrderInTx) {
+          // Verify order belongs to authenticated user
+          if (existingOrderInTx.userId !== session.userId) {
+            console.error('[MOBILE ORDERS] Idempotency key belongs to different user in transaction:', { idempotencyKey, actualUserId: existingOrderInTx.userId, sessionUserId: session.userId });
+            throw new MobileAuthError('Invalid idempotency key', 400, 'IDEMPOTENCY_KEY_INVALID');
+          }
+
           console.log('[MOBILE ORDERS] Duplicate order detected in transaction:', { idempotencyKey, existingOrderNumber: existingOrderInTx.orderNumber });
-          return existingOrderInTx;
+          // Fetch full order details
+          const fullOrder = await tx.order.findUnique({
+            where: { id: existingOrderInTx.id },
+            include: {
+              items: {
+                include: {
+                  product: {
+                    select: {
+                      id: true,
+                      name: true,
+                      images: true,
+                      slug: true,
+                    },
+                  },
+                  variant: true,
+                },
+              },
+              address: true,
+              trackingHistory: {
+                orderBy: { createdAt: 'asc' },
+              },
+            },
+          });
+          return fullOrder;
         }
 
         // Validate address belongs to user
@@ -310,58 +372,102 @@ export async function POST(req: NextRequest) {
         const orderNumber = generateOrderNumber();
 
         // Create order with all required fields
-        const order = await tx.order.create({
-          data: {
-            orderNumber,
-            userId: session.userId,
-            organizationId,
-            addressId,
-            paymentMethod,
-            paymentStatus: 'UNPAID', // Match website convention for CASH_ON_DELIVERY
-            status: 'PENDING',
-            subtotal,
-            shipping: validatedShippingCost,
-            tax: 0,
-            total,
-            notes: notes || null,
-            idempotencyKey, // Prevent duplicate orders
-            items: {
-              create: orderItems.map((item) => ({
-                productId: item.productId,
-                variantId: item.variantId,
-                quantity: item.quantity,
-                price: item.price,
-                name: item.name,
-                image: item.image, // REQUIRED FIELD
-              })),
-            },
-            trackingHistory: {
-              create: {
-                status: 'PENDING',
-                message: 'Order placed successfully',
+        let order;
+        try {
+          order = await tx.order.create({
+            data: {
+              orderNumber,
+              userId: session.userId,
+              organizationId,
+              addressId,
+              paymentMethod,
+              paymentStatus: 'UNPAID', // Match website convention for CASH_ON_DELIVERY
+              status: 'PENDING',
+              subtotal,
+              shipping: validatedShippingCost,
+              tax: 0,
+              total,
+              notes: notes || null,
+              idempotencyKey, // Prevent duplicate orders
+              items: {
+                create: orderItems.map((item) => ({
+                  productId: item.productId,
+                  variantId: item.variantId,
+                  quantity: item.quantity,
+                  price: item.price,
+                  name: item.name,
+                  image: item.image, // REQUIRED FIELD
+                })),
+              },
+              trackingHistory: {
+                create: {
+                  status: 'PENDING',
+                  message: 'Order placed successfully',
+                },
               },
             },
-          },
-          include: {
-            items: {
+            include: {
+              items: {
+                include: {
+                  product: {
+                    select: {
+                      id: true,
+                      name: true,
+                      images: true,
+                      slug: true,
+                    },
+                  },
+                  variant: true,
+                },
+              },
+              address: true,
+              trackingHistory: {
+                orderBy: { createdAt: 'asc' },
+              },
+            },
+          });
+        } catch (err: unknown) {
+          // Handle Prisma unique constraint violation (P2002)
+          const error = err as { code?: string; message?: string };
+          if (error.code === 'P2002' || error.message?.includes('Unique constraint')) {
+            console.log('[MOBILE ORDERS] Unique constraint violation, fetching existing order:', { idempotencyKey });
+            // Fetch the existing order created by concurrent request
+            const existingOrder = await tx.order.findUnique({
+              where: { idempotencyKey },
               include: {
-                product: {
-                  select: {
-                    id: true,
-                    name: true,
-                    images: true,
-                    slug: true,
+                items: {
+                  include: {
+                    product: {
+                      select: {
+                        id: true,
+                        name: true,
+                        images: true,
+                        slug: true,
+                      },
+                    },
+                    variant: true,
                   },
                 },
-                variant: true,
+                address: true,
+                trackingHistory: {
+                  orderBy: { createdAt: 'asc' },
+                },
               },
-            },
-            address: true,
-            trackingHistory: {
-              orderBy: { createdAt: 'asc' },
-            },
-          },
-        });
+            });
+
+            if (existingOrder) {
+              // Verify order belongs to authenticated user
+              if (existingOrder.userId !== session.userId) {
+                console.error('[MOBILE ORDERS] Idempotency key belongs to different user after P2002:', { idempotencyKey, actualUserId: existingOrder.userId, sessionUserId: session.userId });
+                throw new MobileAuthError('Invalid idempotency key', 400, 'IDEMPOTENCY_KEY_INVALID');
+              }
+              // Return existing order - transaction will rollback stock changes
+              return existingOrder;
+            }
+          }
+          // Re-throw if not a unique constraint error or order not found
+          throw err;
+        }
 
         // Clear cart after successful order creation
         await tx.cartItem.deleteMany({
@@ -413,6 +519,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       order,
+      idempotencyKey, // Return key so client can reuse for retries
     });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Server error';
