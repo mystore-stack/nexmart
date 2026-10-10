@@ -6,23 +6,47 @@ import { signMobileToken } from '@/lib/mobile-auth';
 import { requireMobileAuth } from '@/lib/mobile-auth-api';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
+import { redis, isRedisEnabled } from '@/lib/redis';
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email format'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
 });
 
-// Simple in-memory rate limiting (production should use Redis)
-const loginAttempts = new Map<string, { count: number; resetAt: number }>();
 const MAX_ATTEMPTS = 10;
 const WINDOW_MS = 15 * 60 * 1000; // 15 minutes
 
-function checkRateLimit(ip: string): boolean {
+/**
+ * Check rate limit using Redis if available, otherwise in-memory fallback
+ * NOTE: In-memory fallback is NOT production-safe for multi-instance deployments
+ */
+async function checkRateLimit(ip: string): Promise<boolean> {
+  if (isRedisEnabled) {
+    try {
+      const key = `ratelimit:login:${ip}`;
+      const current = await redis.incr(key);
+      if (current === 1) {
+        await redis.expire(key, WINDOW_MS / 1000);
+      }
+      return current <= MAX_ATTEMPTS;
+    } catch (err) {
+      console.error('[MOBILE AUTH] Redis rate limit check failed, falling back to in-memory:', err);
+    }
+  }
+
+  // Fallback to in-memory (NOT production-safe for multi-instance)
+  const loginAttempts = globalThis as unknown as {
+    mobileLoginAttempts?: Map<string, { count: number; resetAt: number }>;
+  };
+  if (!loginAttempts.mobileLoginAttempts) {
+    loginAttempts.mobileLoginAttempts = new Map();
+  }
+
   const now = Date.now();
-  const attempts = loginAttempts.get(ip);
+  const attempts = loginAttempts.mobileLoginAttempts.get(ip);
 
   if (!attempts || now > attempts.resetAt) {
-    loginAttempts.set(ip, { count: 1, resetAt: now + WINDOW_MS });
+    loginAttempts.mobileLoginAttempts.set(ip, { count: 1, resetAt: now + WINDOW_MS });
     return true;
   }
 
@@ -38,7 +62,7 @@ export async function POST(req: NextRequest) {
   try {
     const ip = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown';
 
-    if (!checkRateLimit(ip)) {
+    if (!(await checkRateLimit(ip))) {
       return NextResponse.json(
         { success: false, error: 'Too many login attempts. Please try again later.', code: 'RATE_LIMITED' },
         { status: 429 }

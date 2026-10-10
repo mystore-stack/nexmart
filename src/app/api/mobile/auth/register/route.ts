@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma';
 import { signMobileToken } from '@/lib/mobile-auth';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
+import { redis, isRedisEnabled } from '@/lib/redis';
 
 const registerSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -12,17 +13,40 @@ const registerSchema = z.object({
   password: z.string().min(6, 'Password must be at least 6 characters'),
 });
 
-// Simple in-memory rate limiting
-const registerAttempts = new Map<string, { count: number; resetAt: number }>();
 const MAX_ATTEMPTS = 5;
 const WINDOW_MS = 60 * 60 * 1000; // 1 hour
 
-function checkRateLimit(ip: string): boolean {
+/**
+ * Check rate limit using Redis if available, otherwise in-memory fallback
+ * NOTE: In-memory fallback is NOT production-safe for multi-instance deployments
+ */
+async function checkRateLimit(ip: string): Promise<boolean> {
+  if (isRedisEnabled) {
+    try {
+      const key = `ratelimit:register:${ip}`;
+      const current = await redis.incr(key);
+      if (current === 1) {
+        await redis.expire(key, WINDOW_MS / 1000);
+      }
+      return current <= MAX_ATTEMPTS;
+    } catch (err) {
+      console.error('[MOBILE AUTH] Redis rate limit check failed, falling back to in-memory:', err);
+    }
+  }
+
+  // Fallback to in-memory (NOT production-safe for multi-instance)
+  const registerAttempts = globalThis as unknown as {
+    mobileRegisterAttempts?: Map<string, { count: number; resetAt: number }>;
+  };
+  if (!registerAttempts.mobileRegisterAttempts) {
+    registerAttempts.mobileRegisterAttempts = new Map();
+  }
+
   const now = Date.now();
-  const attempts = registerAttempts.get(ip);
+  const attempts = registerAttempts.mobileRegisterAttempts.get(ip);
 
   if (!attempts || now > attempts.resetAt) {
-    registerAttempts.set(ip, { count: 1, resetAt: now + WINDOW_MS });
+    registerAttempts.mobileRegisterAttempts.set(ip, { count: 1, resetAt: now + WINDOW_MS });
     return true;
   }
 
@@ -38,7 +62,7 @@ export async function POST(req: NextRequest) {
   try {
     const ip = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown';
 
-    if (!checkRateLimit(ip)) {
+    if (!(await checkRateLimit(ip))) {
       return NextResponse.json(
         { success: false, error: 'Too many registration attempts. Please try again later.', code: 'RATE_LIMITED' },
         { status: 429 }
