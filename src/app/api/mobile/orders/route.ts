@@ -17,7 +17,7 @@ const createOrderSchema = z.object({
   items: z.array(
     z.object({
       productId: z.string().uuid('Invalid product ID format'),
-      variantId: z.string().uuid('Invalid variant ID format').optional(),
+      variantId: z.string().uuid('Invalid variant ID format').optional().nullable(),
       quantity: z.number().int().min(1).max(99),
     })
   ).min(1, 'At least one item required'),
