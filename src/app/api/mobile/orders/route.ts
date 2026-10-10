@@ -113,24 +113,23 @@ export async function GET(req: NextRequest) {
  * - Event publishing for cache invalidation
  */
 export async function POST(req: NextRequest) {
-  const idempotencyKey = generateIdempotencyKey();
+  const body = await req.json();
+  const validation = createOrderSchema.safeParse(body);
+
+  if (!validation.success) {
+    return NextResponse.json(
+      { success: false, error: 'Invalid order payload', code: 'INVALID_PAYLOAD', details: validation.error.errors },
+      { status: 400 }
+    );
+  }
+
+  const { addressId, paymentMethod, items, notes, city, shippingCarrierId, shippingCost, idempotencyKey: clientKey } = validation.data;
+  const idempotencyKey = clientKey || generateIdempotencyKey();
   const lockKey = LOCK_KEYS.order(idempotencyKey);
 
   try {
     const session = await requireMobileAuth(req);
     const organizationId = session.organizationId;
-
-    const body = await req.json();
-    const validation = createOrderSchema.safeParse(body);
-
-    if (!validation.success) {
-      return NextResponse.json(
-        { success: false, error: 'Invalid order payload', code: 'INVALID_PAYLOAD', details: validation.error.errors },
-        { status: 400 }
-      );
-    }
-
-    const { addressId, paymentMethod, items, notes, city, shippingCarrierId, shippingCost } = validation.data;
 
     // Reject unsupported payment methods (Stripe not supported in mobile yet)
     if (paymentMethod === 'STRIPE') {
@@ -140,10 +139,35 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Check for existing order BEFORE acquiring lock (database-level idempotency)
+    const existingOrder = await prisma.order.findUnique({
+      where: { idempotencyKey },
+      select: { id: true, orderNumber: true },
+    });
+
+    if (existingOrder) {
+      console.log('[MOBILE ORDERS] Duplicate order detected:', { idempotencyKey, existingOrderNumber: existingOrder.orderNumber });
+      return NextResponse.json(
+        { success: true, order: existingOrder, duplicate: true, message: 'Order already exists' },
+        { status: 200 }
+      );
+    }
+
     // Execute order creation with distributed lock for concurrency control
     const result = await withLock(lockKey, async () => {
       // Use Prisma transaction for atomicity
       return await prisma.$transaction(async (tx) => {
+        // Double-check idempotency within transaction (handles race condition)
+        const existingOrderInTx = await tx.order.findUnique({
+          where: { idempotencyKey },
+          select: { id: true, orderNumber: true },
+        });
+
+        if (existingOrderInTx) {
+          console.log('[MOBILE ORDERS] Duplicate order detected in transaction:', { idempotencyKey, existingOrderNumber: existingOrderInTx.orderNumber });
+          return existingOrderInTx;
+        }
+
         // Validate address belongs to user
         const address = await tx.address.findFirst({
           where: {
@@ -216,6 +240,66 @@ export async function POST(req: NextRequest) {
             image: product.images[0] || '', // REQUIRED FIELD - matches website pattern
           };
         });
+
+        // Decrement stock atomically within transaction (concurrency-safe)
+        for (const item of orderItems) {
+          if (item.variantId) {
+            const variantUpdate = await tx.productVariant.updateMany({
+              where: {
+                id: item.variantId,
+                productId: item.productId,
+                stock: { gte: item.quantity },
+              },
+              data: { stock: { decrement: item.quantity } },
+            });
+
+            if (variantUpdate.count !== 1) {
+              throw new MobileAuthError(
+                `Variant stock update failed for ${item.name}. Please try again.`,
+                400,
+                'VARIANT_STOCK_UPDATE_FAILED'
+              );
+            }
+
+            const productUpdate = await tx.product.updateMany({
+              where: {
+                id: item.productId,
+                organizationId,
+                published: true,
+              },
+              data: { soldCount: { increment: item.quantity } },
+            });
+
+            if (productUpdate.count !== 1) {
+              throw new MobileAuthError(
+                `Product sold count update failed for ${item.name}. Please try again.`,
+                400,
+                'PRODUCT_SOLD_COUNT_UPDATE_FAILED'
+              );
+            }
+          } else {
+            const productUpdate = await tx.product.updateMany({
+              where: {
+                id: item.productId,
+                organizationId,
+                published: true,
+                stock: { gte: item.quantity },
+              },
+              data: {
+                stock: { decrement: item.quantity },
+                soldCount: { increment: item.quantity },
+              },
+            });
+
+            if (productUpdate.count !== 1) {
+              throw new MobileAuthError(
+                `Product stock update failed for ${item.name}. Please try again.`,
+                400,
+                'PRODUCT_STOCK_UPDATE_FAILED'
+              );
+            }
+          }
+        }
 
         // Server-side shipping cost validation
         const validatedShippingCost = getValidatedShippingCost(orderCity, subtotal, carrierId, shippingCost);
