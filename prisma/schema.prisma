@@ -1,5 +1,6 @@
 generator client {
   provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
 }
 
 datasource db {
@@ -738,25 +739,25 @@ model MobileAppBanner {
 }
 
 model MobileAppSection {
-  id          String   @id @default(uuid()) @db.Uuid
-  sectionKey  String   @unique
+  id          String    @id @default(uuid()) @db.Uuid
+  sectionKey  String    @unique
   titleFr     String
   titleAr     String?
   subtitleFr  String?
   subtitleAr  String?
-  order       Int      @default(0)
-  active      Boolean  @default(true)
-  layoutType  String   @default("grid")
+  order       Int       @default(0)
+  active      Boolean   @default(true)
+  layoutType  String    @default("grid")
   bannerImage String?
-  productIds  String[] @default([])
-  categoryIds String[] @default([])
-  brandIds    String[] @default([])
+  productIds  String[]  @default([])
+  categoryIds String[]  @default([])
+  brandIds    String[]  @default([])
   config      Json?
   startAt     DateTime?
   endAt       DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  type        String   @default("custom")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  type        String    @default("custom")
 
   @@index([order])
   @@index([active])

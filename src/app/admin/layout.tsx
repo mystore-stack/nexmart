@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard, Package, ShoppingCart, Users, BarChart2,
   Tag, FolderOpen, Menu, X, LogOut, ChevronRight,
-  Home, Store, Truck, FileText, Upload, Bell, Settings, Sparkles
+  Home, Store, Truck, FileText, Upload, Bell, Settings, Sparkles, Smartphone
 } from "lucide-react";
 import { useSession, signOut } from "next-auth/react";
 
@@ -24,6 +24,7 @@ const NAV = [
   { icon: Truck, label: "Livraison", href: "/admin/delivery" },
   { icon: FileText, label: "CMS Homepage", href: "/admin/cms/homepage" },
   { icon: Sparkles, label: "Offres de moments", href: "/admin/cms/offres-de-moments" },
+  { icon: Smartphone, label: "CMS Mobile App", href: "/admin/cms/mobile-app" },
 ];
 
 
