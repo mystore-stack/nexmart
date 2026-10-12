@@ -3,6 +3,7 @@
 // Compatible with Expo React Native HomeScreen contract
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { normalizeHeroBanner } from '@/lib/cms/schemas/mobile-hero';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -85,6 +86,29 @@ interface HeroItem {
   image: string | null;
   gradient: string[];
   target: HeroNavigationTarget;
+  // Advanced controls (new)
+  mode?: 'image-only' | 'editable-overlay';
+  imageZoom?: number;
+  imageRotation?: number;
+  imagePosition?: { x: number; y: number };
+  badgeVisible?: boolean;
+  badgeFontSize?: number;
+  badgeColor?: string;
+  badgeBackgroundColor?: string;
+  titleVisible?: boolean;
+  titleFontSize?: number;
+  titleFontWeight?: string;
+  titleColor?: string;
+  titlePosition?: { x: number; y: number };
+  subtitleVisible?: boolean;
+  subtitleFontSize?: number;
+  subtitleColor?: string;
+  ctaVisible?: boolean;
+  ctaBackgroundColor?: string;
+  ctaTextColor?: string;
+  ctaBorderRadius?: number;
+  ctaWidth?: number;
+  ctaHeight?: number;
 }
 
 function parseHeroTarget(rawTarget?: any, rawLink?: string | null): HeroNavigationTarget {
@@ -132,24 +156,50 @@ function mapHeroItems(configOrSection: any, fallbackSlides: PrismaHeroSlide[]): 
 
   if (configBanners && configBanners.length > 0) {
     return configBanners.map((b: any, idx: number) => {
-      const badgeFr = b.badgeFr || b.badge || '';
-      const badgeAr = b.badgeAr || badgeFr;
-      const titleFr = b.titleFr || b.title || '';
-      const titleAr = b.titleAr || titleFr;
-      const subtitleFr = b.subtitleFr || b.subtitle || '';
-      const subtitleAr = b.subtitleAr || subtitleFr;
-      const ctaFr = b.ctaFr || b.cta || '';
-      const ctaAr = b.ctaAr || ctaFr;
+      // Normalize banner to handle new schema and legacy data
+      const normalized = normalizeHeroBanner(b);
+
+      const badgeFr = normalized.badgeFr || '';
+      const badgeAr = normalized.badgeAr || badgeFr;
+      const titleFr = normalized.titleFr || '';
+      const titleAr = normalized.titleAr || titleFr;
+      const subtitleFr = normalized.subtitleFr || '';
+      const subtitleAr = normalized.subtitleAr || subtitleFr;
+      const ctaFr = normalized.ctaFr || '';
+      const ctaAr = normalized.ctaAr || ctaFr;
 
       return {
-        id: b.id || `banner-${idx + 1}`,
+        id: normalized.id || `banner-${idx + 1}`,
         badge: { fr: badgeFr, ar: badgeAr },
         title: { fr: titleFr, ar: titleAr },
         subtitle: { fr: subtitleFr, ar: subtitleAr },
         cta: { fr: ctaFr, ar: ctaAr },
-        image: b.image || null,
-        gradient: normalizeGradient(b.gradient),
-        target: parseHeroTarget(b.target, b.link || b.href),
+        image: normalized.image || null,
+        gradient: normalizeGradient(normalized.gradient),
+        target: parseHeroTarget(normalized.target, normalized.link || normalized.href),
+        // Pass through new controls for mobile app to use
+        mode: normalized.mode,
+        imageZoom: normalized.imageZoom,
+        imageRotation: normalized.imageRotation,
+        imagePosition: normalized.imagePosition,
+        badgeVisible: normalized.badgeVisible,
+        badgeFontSize: normalized.badgeFontSize,
+        badgeColor: normalized.badgeColor,
+        badgeBackgroundColor: normalized.badgeBackgroundColor,
+        titleVisible: normalized.titleVisible,
+        titleFontSize: normalized.titleFontSize,
+        titleFontWeight: normalized.titleFontWeight,
+        titleColor: normalized.titleColor,
+        titlePosition: normalized.titlePosition,
+        subtitleVisible: normalized.subtitleVisible,
+        subtitleFontSize: normalized.subtitleFontSize,
+        subtitleColor: normalized.subtitleColor,
+        ctaVisible: normalized.ctaVisible,
+        ctaBackgroundColor: normalized.ctaBackgroundColor,
+        ctaTextColor: normalized.ctaTextColor,
+        ctaBorderRadius: normalized.ctaBorderRadius,
+        ctaWidth: normalized.ctaWidth,
+        ctaHeight: normalized.ctaHeight,
       };
     });
   }
