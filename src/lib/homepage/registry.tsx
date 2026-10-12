@@ -27,6 +27,7 @@ import {
   PromoCarousel,
 } from "@/components/home/CampaignSections";
 import { CanvaSectionRenderer } from "@/components/home/CanvaSectionRenderer";
+import { ImageGallerySection } from "@/components/home/ImageGallerySection";
 import { SkeletonGrid } from "@/components/ui/Skeleton";
 import { getCanonicalSectionKeys, getCanonicalSections, normalizeToCanonicalKey } from "./canonical-contract";
 
@@ -190,6 +191,17 @@ export function renderHomepageSection(section: HomePageSectionRenderInput, conte
       return (
         <div key={section.id ?? `offersGrid`} className="w-full">
           <CanvaSectionRenderer composition={composition} />
+        </div>
+      );
+    }
+    case "imageGallery": {
+      const galleryConfig = section.config as any;
+      const shouldHide = section.hideIfEmpty === true && (!galleryConfig?.images || galleryConfig.images.length === 0);
+      if (shouldHide) return null;
+
+      return (
+        <div key={section.id ?? `imageGallery`} className="container-main">
+          <ImageGallerySection config={galleryConfig} />
         </div>
       );
     }

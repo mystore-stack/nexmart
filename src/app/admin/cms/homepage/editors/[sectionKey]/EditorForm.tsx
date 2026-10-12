@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { HeroEditor } from "./components/HeroEditor";
 import { HeroEditorV2 } from "./components/HeroEditorV2";
 import { ProductCollectionManager } from "./components/ProductCollectionManager";
@@ -23,62 +23,89 @@ import { CanvaOffersEditor } from "./components/CanvaOffersEditor";
 import { PromotionEditor } from "./components/PromotionEditor";
 import { FeaturedBrandsEditor } from "./components/FeaturedBrandsEditor";
 import { SponsoredProductsEditor } from "./components/SponsoredProductsEditor";
+import { ImageGallerySectionEditor } from "./components/ImageGallerySectionEditor";
 import { getCanonicalSection } from "@/lib/homepage/canonical-contract";
 
 export function EditorForm({ section, parsedConfig }: { section: any; parsedConfig: any }) {
+  const [localConfig, setLocalConfig] = useState(parsedConfig);
+
+  const handleSaveConfig = async (newConfig: any) => {
+    try {
+      const response = await fetch(`/api/admin/cms/homepage/${section.sectionKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          config: newConfig,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save');
+      }
+
+      setLocalConfig(newConfig);
+      return true;
+    } catch (error) {
+      console.error('Save error:', error);
+      return false;
+    }
+  };
+
   const renderSpecializedEditor = () => {
     // Get the canonical section info to get the proper sectionType
     const canonicalSection = getCanonicalSection(section.sectionKey);
     const normalizedType = section.sectionType || canonicalSection?.sectionType;
-    
+
     switch (normalizedType) {
       case "HERO":
         // Use new V2 editor for HERO sections
-        return <HeroEditorV2 section={section} parsedConfig={parsedConfig} />;
+        return <HeroEditorV2 section={section} parsedConfig={localConfig} />;
       case "CAMPAIGN_HERO":
-        return <CampaignHeroEditor section={section} parsedConfig={parsedConfig} />;
+        return <CampaignHeroEditor section={section} parsedConfig={localConfig} />;
       case "FEATURED_PRODUCTS":
-        return <FeaturedProductsEditor section={section} parsedConfig={parsedConfig} />;
+        return <FeaturedProductsEditor section={section} parsedConfig={localConfig} />;
       case "SEASONAL_COLLECTION":
-        return <ProductCollectionManager section={section} parsedConfig={parsedConfig} />;
+        return <ProductCollectionManager section={section} parsedConfig={localConfig} />;
       case "AI_RECOMMENDATIONS": // Recommended
         if (section.sectionKey === "recommended") {
-          return <RecommendedEditor section={section} parsedConfig={parsedConfig} />;
+          return <RecommendedEditor section={section} parsedConfig={localConfig} />;
         }
-        return <ProductCollectionManager section={section} parsedConfig={parsedConfig} />;
+        return <ProductCollectionManager section={section} parsedConfig={localConfig} />;
       case "CATEGORIES":
-        return <CategoriesEditor section={section} parsedConfig={parsedConfig} />;
+        return <CategoriesEditor section={section} parsedConfig={localConfig} />;
       case "CATEGORY_CIRCLE_CAROUSEL":
-        return <CategoryCircleCarouselEditor section={section} parsedConfig={parsedConfig} />;
+        return <CategoryCircleCarouselEditor section={section} parsedConfig={localConfig} />;
       case "FLASH_DEALS": // Flash Sale
-        return <FlashSaleEditor section={section} parsedConfig={parsedConfig} />;
+        return <FlashSaleEditor section={section} parsedConfig={localConfig} />;
       case "BRANDS": // Brand Carousel
-        return <BrandCarouselEditor section={section} parsedConfig={parsedConfig} />;
+        return <BrandCarouselEditor section={section} parsedConfig={localConfig} />;
       case "FEATURED_BRANDS_PROMO":
-        return <FeaturedBrandsEditor section={section} parsedConfig={parsedConfig} />;
+        return <FeaturedBrandsEditor section={section} parsedConfig={localConfig} />;
       case "BANNER": // Mega Promo
       case "PROMOTIONAL_CARDS":
-        return <PromoCardsEditor section={section} parsedConfig={parsedConfig} />;
+        return <PromoCardsEditor section={section} parsedConfig={localConfig} />;
       case "PROMO_CAROUSEL":
-        return <PromoCarouselEditor section={section} parsedConfig={parsedConfig} />;
+        return <PromoCarouselEditor section={section} parsedConfig={localConfig} />;
       case "SERVICE_BANNERS":
-        return <ServiceBannersEditor section={section} parsedConfig={parsedConfig} />;
+        return <ServiceBannersEditor section={section} parsedConfig={localConfig} />;
       case "BUNDLE_DEALS": // Bundle Builder
-        return <BundleBuilderEditor section={section} parsedConfig={parsedConfig} />;
+        return <BundleBuilderEditor section={section} parsedConfig={localConfig} />;
       case "SHOWCASE_GRID":
-        return <ShowcaseGridEditor section={section} parsedConfig={parsedConfig} />;
+        return <ShowcaseGridEditor section={section} parsedConfig={localConfig} />;
       case "OFFERS_GRID":
-        return <CanvaOffersEditor section={section} parsedConfig={parsedConfig} />;
+        return <CanvaOffersEditor section={section} parsedConfig={localConfig} />;
+      case "IMAGE_GALLERY":
+        return <ImageGallerySectionEditor section={section} parsedConfig={localConfig} onSave={handleSaveConfig} />;
       case "PROMOTION":
-        return <PromotionEditor section={section} parsedConfig={parsedConfig} />;
+        return <PromotionEditor section={section} parsedConfig={localConfig} />;
       case "SPONSORED_PRODUCTS":
-        return <SponsoredProductsEditor section={section} parsedConfig={parsedConfig} />;
+        return <SponsoredProductsEditor section={section} parsedConfig={localConfig} />;
       case "NEWSLETTER":
-        return <NewsletterEditor section={section} parsedConfig={parsedConfig} />;
+        return <NewsletterEditor section={section} parsedConfig={localConfig} />;
       default:
         // Fallback for sections that don't have a specialized editor built yet
 
-        return <GenericJsonEditor section={section} parsedConfig={parsedConfig} />;
+        return <GenericJsonEditor section={section} parsedConfig={localConfig} />;
     }
   };
 

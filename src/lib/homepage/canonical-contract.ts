@@ -78,6 +78,18 @@ export const CANONICAL_HOMEPAGE_SECTIONS: CanonicalHomepageSection[] = [
     requiredDataSource: "cms.homeSections.offersGrid.config",
   },
   {
+    key: "imageGallery",
+    sectionType: "IMAGE_GALLERY",
+    title: "Offres de Moments",
+    subtitle: "Image-only promotional gallery",
+    description: "Configurable image gallery with grid or carousel layout",
+    component: "ImageGallerySection",
+    order: 3,
+    active: true,
+    hideIfEmpty: true,
+    requiredDataSource: "cms.homeSections.imageGallery.config",
+  },
+  {
     key: "categories",
     sectionType: "CATEGORIES",
     title: "Categories",
