@@ -26,6 +26,7 @@ model User {
   pushTokens    ExpoPushToken[]
   orders        Order[]
   reviews       Review[]
+  nexplayWallet NexPlayWallet?
 
   @@index([email])
 }
@@ -1308,6 +1309,178 @@ model BrandSection {
   @@index([order])
 }
 
+// ──────────────────────────────────────────────────────────────────────────
+// NexPlay Loyalty & Gamification System
+// ──────────────────────────────────────────────────────────────────────────
+
+model NexPlayWallet {
+  id             String   @id @default(uuid()) @db.Uuid
+  userId         String   @db.Uuid
+  points         Int      @default(0)
+  level          Int      @default(1)
+  levelLabel     String   @default("Débutant")
+  nextLevel      Int      @default(100)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  transactions    NexPlayTransaction[]
+  challenges      NexPlayChallengeCompletion[]
+  rouletteSpins   NexPlayRouletteSpin[]
+  couponRedemptions NexPlayCouponRedemption[]
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId])
+  @@index([userId])
+}
+
+model NexPlayTransaction {
+  id             String   @id @default(uuid()) @db.Uuid
+  walletId       String   @db.Uuid
+  userId         String   @db.Uuid
+  type           NexPlayTransactionType
+  amount         Int
+  balanceAfter   Int
+  label          String
+  metadata       Json?
+  createdAt      DateTime @default(now())
+  wallet         NexPlayWallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+
+  @@index([walletId])
+  @@index([userId])
+  @@index([createdAt])
+  @@index([type])
+}
+
+model NexPlayChallenge {
+  id             String   @id @default(uuid()) @db.Uuid
+  title          Json     // { fr: string, ar: string }
+  description    Json     // { fr: string, ar: string }
+  type           String   // 'product_view', 'purchase', 'review', etc.
+  reward         Int
+  goal           Int
+  active         Boolean  @default(true)
+  dailyReset     Boolean  @default(true)
+  validFrom      DateTime @default(now())
+  validUntil     DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  completions    NexPlayChallengeCompletion[]
+
+  @@index([active])
+  @@index([dailyReset])
+  @@index([validFrom])
+  @@index([validUntil])
+}
+
+model NexPlayChallengeCompletion {
+  id             String   @id @default(uuid()) @db.Uuid
+  userId         String   @db.Uuid
+  challengeId    String   @db.Uuid
+  walletId       String   @db.Uuid
+  progress       Int      @default(0)
+  completed      Boolean  @default(false)
+  completedAt    DateTime?
+  claimedAt      DateTime?
+  dailyResetDate String   // Format: YYYY-MM-DD in Africa/Casablanca timezone
+  idempotencyKey  String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  challenge      NexPlayChallenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  wallet         NexPlayWallet     @relation(fields: [walletId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, challengeId, dailyResetDate])
+  @@unique([idempotencyKey], map: "nexplay_challenge_completion_idempotency_key")
+  @@index([userId])
+  @@index([challengeId])
+  @@index([dailyResetDate])
+  @@index([completed])
+}
+
+model NexPlayRouletteSpin {
+  id             String   @id @default(uuid()) @db.Uuid
+  userId         String   @db.Uuid
+  spinDate       String   // Format: YYYY-MM-DD in Africa/Casablanca timezone
+  spinsUsed      Int      @default(0)
+  result         Json?    // Prize information
+  prizeId        String?  @db.Uuid
+  walletId       String   @db.Uuid
+  idempotencyKey  String?
+  createdAt      DateTime @default(now())
+  wallet         NexPlayWallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  prize          NexPlayPrize? @relation(fields: [prizeId], references: [id])
+
+  @@unique([idempotencyKey], map: "nexplay_roulette_spin_idempotency_key")
+  @@unique([userId, spinDate], map: "nexplay_roulette_spin_daily_limit")
+  @@index([userId])
+  @@index([spinDate])
+  @@index([walletId])
+}
+
+model NexPlayPrize {
+  id             String   @id @default(uuid()) @db.Uuid
+  label          Json     // { fr: string, ar: string }
+  type           NexPlayPrizeType
+  value          Int?
+  weight         Int      @default(10) // For weighted random selection
+  active         Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  rouletteSpins  NexPlayRouletteSpin[]
+
+  @@index([active])
+  @@index([weight])
+}
+
+model NexPlayCoupon {
+  id             String   @id @default(uuid()) @db.Uuid
+  code           String   @unique
+  label          Json     // { fr: string, ar: string }
+  description    Json?    // { fr: string, ar: string }
+  type           String   // 'percent', 'fixed', 'delivery'
+  value          Float
+  cost           Int      // Points required to redeem
+  minOrder       Float?
+  validUntil     DateTime?
+  maxRedemptions Int?
+  redemptionsCount Int     @default(0)
+  active         Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  redemptions    NexPlayCouponRedemption[]
+
+  @@index([active])
+  @@index([validUntil])
+}
+
+model NexPlayCouponRedemption {
+  id             String   @id @default(uuid()) @db.Uuid
+  userId         String   @db.Uuid
+  couponId       String   @db.Uuid
+  walletId       String   @db.Uuid
+  idempotencyKey  String?
+  redeemedAt     DateTime @default(now())
+  coupon         NexPlayCoupon @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  wallet         NexPlayWallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+
+  @@unique([idempotencyKey], map: "nexplay_coupon_redemption_idempotency_key")
+  @@index([userId])
+  @@index([couponId])
+  @@index([walletId])
+  @@index([redeemedAt])
+}
+
+model NexPlayMission {
+  id             String   @id @default(uuid()) @db.Uuid
+  type           String   // 'purchase', 'review', 'profile', etc.
+  label          Json     // { fr: string, ar: string }
+  reward         Int
+  goal           Int
+  active         Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([type])
+  @@index([active])
+}
+
 enum AuditEventType {
   CHECKOUT_START
   CHECKOUT_STEP_ADDRESS
@@ -1509,4 +1682,19 @@ enum MomentOfferStatus {
   PUBLISHED
   EXPIRED
   DISABLED
+}
+
+enum NexPlayTransactionType {
+  EARN
+  REDEEM
+  SPEND
+  ADJUSTMENT
+}
+
+enum NexPlayPrizeType {
+  POINTS
+  COUPON_PERCENT
+  COUPON_FIXED
+  DELIVERY
+  MISS
 }
