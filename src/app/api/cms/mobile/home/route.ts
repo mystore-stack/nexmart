@@ -4,6 +4,9 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { normalizeHeroBanner } from '@/lib/cms/schemas/mobile-hero';
+import { projectMobileProductShelf } from '@/lib/cms/mobile-product-shelf';
+import { resolveMobileSectionType } from '@/lib/cms/mobile-section-types';
+import { mobileSectionConfigSchema, validateMobilePopupConfig } from '@/lib/cms/schemas/mobile-app-section';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -37,6 +40,7 @@ interface PrismaMobileAppSection {
   startAt: Date | null;
   endAt: Date | null;
   type: string;
+  updatedAt: Date;
 }
 
 interface PrismaHeroSlide {
@@ -83,32 +87,55 @@ interface HeroItem {
   title: BilingualText;
   subtitle: BilingualText;
   cta: BilingualText;
+  ctaSecondary?: BilingualText;
   image: string | null;
-  gradient: string[];
   target: HeroNavigationTarget;
   // Advanced controls (new)
   mode?: 'image-only' | 'editable-overlay';
   imageZoom?: number;
   imageRotation?: number;
   imagePosition?: { x: number; y: number };
+  imageFit?: 'cover' | 'contain' | 'fill' | 'natural';
+  imageFocalPoint?: { x: number; y: number };
   badgeVisible?: boolean;
   badgeFontSize?: number;
   badgeColor?: string;
   badgeBackgroundColor?: string;
+  badgePosition?: { x: number; y: number };
+  badgeAlignment?: 'left' | 'center' | 'right';
   titleVisible?: boolean;
   titleFontSize?: number;
   titleFontWeight?: string;
   titleColor?: string;
   titlePosition?: { x: number; y: number };
+  titleAlignment?: 'left' | 'center' | 'right';
+  titleMaxWidth?: number;
+  titleLineHeight?: number;
   subtitleVisible?: boolean;
   subtitleFontSize?: number;
+  subtitleFontWeight?: string;
   subtitleColor?: string;
+  subtitlePosition?: { x: number; y: number };
+  subtitleAlignment?: 'left' | 'center' | 'right';
+  subtitleMaxWidth?: number;
+  subtitleLineHeight?: number;
   ctaVisible?: boolean;
   ctaBackgroundColor?: string;
   ctaTextColor?: string;
   ctaBorderRadius?: number;
   ctaWidth?: number;
   ctaHeight?: number;
+  ctaPosition?: { x: number; y: number };
+  ctaAlignment?: 'left' | 'center' | 'right';
+  ctaSecondaryVisible?: boolean;
+  ctaSecondaryBackgroundColor?: string;
+  ctaSecondaryTextColor?: string;
+  ctaSecondaryBorderRadius?: number;
+  ctaSecondaryWidth?: number;
+  ctaSecondaryHeight?: number;
+  overlayEnabled?: boolean;
+  overlayOpacity?: number;
+  overlayColor?: string;
 }
 
 function parseHeroTarget(rawTarget?: any, rawLink?: string | null): HeroNavigationTarget {
@@ -137,22 +164,12 @@ function parseHeroTarget(rawTarget?: any, rawLink?: string | null): HeroNavigati
   return { type: 'promo' };
 }
 
-function normalizeGradient(gradient: any): string[] {
-  if (Array.isArray(gradient) && gradient.length >= 2 && gradient.every(c => typeof c === 'string')) {
-    return gradient;
-  }
-  if (typeof gradient === 'string' && gradient.startsWith('#')) {
-    return [gradient, '#042F2E'];
-  }
-  return ['#0F766E', '#042F2E'];
-}
-
 function mapHeroItems(configOrSection: any, fallbackSlides: PrismaHeroSlide[]): HeroItem[] {
   const configBanners = Array.isArray(configOrSection?.banners)
     ? configOrSection.banners
     : Array.isArray(configOrSection?.config?.banners)
-    ? configOrSection.config.banners
-    : null;
+      ? configOrSection.config.banners
+      : null;
 
   if (configBanners && configBanners.length > 0) {
     return configBanners.map((b: any, idx: number) => {
@@ -167,6 +184,8 @@ function mapHeroItems(configOrSection: any, fallbackSlides: PrismaHeroSlide[]): 
       const subtitleAr = normalized.subtitleAr || subtitleFr;
       const ctaFr = normalized.ctaFr || '';
       const ctaAr = normalized.ctaAr || ctaFr;
+      const ctaSecondaryFr = normalized.ctaSecondaryFr || '';
+      const ctaSecondaryAr = normalized.ctaSecondaryAr || ctaSecondaryFr;
 
       return {
         id: normalized.id || `banner-${idx + 1}`,
@@ -174,32 +193,55 @@ function mapHeroItems(configOrSection: any, fallbackSlides: PrismaHeroSlide[]): 
         title: { fr: titleFr, ar: titleAr },
         subtitle: { fr: subtitleFr, ar: subtitleAr },
         cta: { fr: ctaFr, ar: ctaAr },
+        ctaSecondary: { fr: ctaSecondaryFr, ar: ctaSecondaryAr },
         image: normalized.image || null,
-        gradient: normalizeGradient(normalized.gradient),
         target: parseHeroTarget(normalized.target, normalized.link || normalized.href),
         // Pass through new controls for mobile app to use
         mode: normalized.mode,
         imageZoom: normalized.imageZoom,
         imageRotation: normalized.imageRotation,
         imagePosition: normalized.imagePosition,
+        imageFit: normalized.imageFit,
+        imageFocalPoint: normalized.imageFocalPoint,
         badgeVisible: normalized.badgeVisible,
         badgeFontSize: normalized.badgeFontSize,
         badgeColor: normalized.badgeColor,
         badgeBackgroundColor: normalized.badgeBackgroundColor,
+        badgePosition: normalized.badgePosition,
+        badgeAlignment: normalized.badgeAlignment,
         titleVisible: normalized.titleVisible,
         titleFontSize: normalized.titleFontSize,
         titleFontWeight: normalized.titleFontWeight,
         titleColor: normalized.titleColor,
         titlePosition: normalized.titlePosition,
+        titleAlignment: normalized.titleAlignment,
+        titleMaxWidth: normalized.titleMaxWidth,
+        titleLineHeight: normalized.titleLineHeight,
         subtitleVisible: normalized.subtitleVisible,
         subtitleFontSize: normalized.subtitleFontSize,
+        subtitleFontWeight: normalized.subtitleFontWeight,
         subtitleColor: normalized.subtitleColor,
+        subtitlePosition: normalized.subtitlePosition,
+        subtitleAlignment: normalized.subtitleAlignment,
+        subtitleMaxWidth: normalized.subtitleMaxWidth,
+        subtitleLineHeight: normalized.subtitleLineHeight,
         ctaVisible: normalized.ctaVisible,
         ctaBackgroundColor: normalized.ctaBackgroundColor,
         ctaTextColor: normalized.ctaTextColor,
         ctaBorderRadius: normalized.ctaBorderRadius,
         ctaWidth: normalized.ctaWidth,
         ctaHeight: normalized.ctaHeight,
+        ctaPosition: normalized.ctaPosition,
+        ctaAlignment: normalized.ctaAlignment,
+        ctaSecondaryVisible: normalized.ctaSecondaryVisible,
+        ctaSecondaryBackgroundColor: normalized.ctaSecondaryBackgroundColor,
+        ctaSecondaryTextColor: normalized.ctaSecondaryTextColor,
+        ctaSecondaryBorderRadius: normalized.ctaSecondaryBorderRadius,
+        ctaSecondaryWidth: normalized.ctaSecondaryWidth,
+        ctaSecondaryHeight: normalized.ctaSecondaryHeight,
+        overlayEnabled: normalized.overlayEnabled,
+        overlayOpacity: normalized.overlayOpacity,
+        overlayColor: normalized.overlayColor,
       };
     });
   }
@@ -215,7 +257,6 @@ function mapHeroItems(configOrSection: any, fallbackSlides: PrismaHeroSlide[]): 
         subtitle: { fr: slide.subtitle || '', ar: slide.subtitle || '' },
         cta: { fr: slide.cta || '', ar: slide.cta || '' },
         image: slide.image || null,
-        gradient: slide.accentColor ? [slide.accentColor, '#042F2E'] : ['#0F766E', '#042F2E'],
         target: parseHeroTarget(null, slide.href),
       };
     });
@@ -224,14 +265,18 @@ function mapHeroItems(configOrSection: any, fallbackSlides: PrismaHeroSlide[]): 
   return [];
 }
 
-function mapSectionToExpo(
+export function mapSectionToExpo(
   sec: PrismaMobileAppSection,
   heroSlides: PrismaHeroSlide[],
   brands: PrismaBrand[]
-): ExpoSection {
+): ExpoSection | null {
   const sectionKey = sec.sectionKey;
   const layoutType = sec.layoutType || 'grid';
   const customType = sec.type;
+  const sectionType = resolveMobileSectionType(sectionKey, customType);
+  if (!sectionType) return null;
+  const parsedConfig = mobileSectionConfigSchema.safeParse(sec.config);
+  const config = (parsedConfig.success ? parsedConfig.data || null : null) as Record<string, any> | null;
 
   const title: BilingualText = {
     fr: sec.titleFr || sec.sectionKey,
@@ -243,8 +288,8 @@ function mapSectionToExpo(
   };
 
   // 1. Hero Carousel
-  if (sectionKey === 'heroCarousel' || customType === 'hero' || layoutType === 'hero') {
-    const items = mapHeroItems(sec.config, heroSlides);
+  if (sectionType === 'hero') {
+    const items = mapHeroItems(config, heroSlides);
     return {
       id: 'hero',
       type: 'hero',
@@ -253,13 +298,13 @@ function mapSectionToExpo(
       title,
       subtitle,
       layoutType: sec.layoutType || 'carousel',
-      config: sec.config || null,
+      config,
       items,
     };
   }
 
   // 2. Categories
-  if (sectionKey === 'categories' || customType === 'categories' || layoutType === 'pills') {
+  if (sectionType === 'categories') {
     return {
       id: 'categories',
       type: 'categories',
@@ -268,18 +313,13 @@ function mapSectionToExpo(
       title,
       subtitle,
       categoryIds: sec.categoryIds || [],
-      config: sec.config || null,
+      config,
       layoutType: sec.layoutType || 'pills',
     };
   }
 
   // 3. Brands
-  if (
-    sectionKey === 'marquesVedettes' ||
-    sectionKey === 'brands' ||
-    customType === 'brands' ||
-    layoutType === 'brands'
-  ) {
+  if (sectionType === 'brands') {
     const brandMap = new Map(brands.map((b) => [b.id, b]));
     let selectedBrands: PrismaBrand[] = [];
     if (sec.brandIds && sec.brandIds.length > 0) {
@@ -287,7 +327,13 @@ function mapSectionToExpo(
         .map((id) => brandMap.get(id))
         .filter((b): b is PrismaBrand => Boolean(b));
     }
-    const finalBrands = selectedBrands.length > 0 ? selectedBrands : brands;
+    const manualBrandSelection = config?.brandSelectionMode === 'manual';
+    const finalBrands = manualBrandSelection
+      ? selectedBrands
+      : selectedBrands.length > 0
+        ? selectedBrands
+        : brands;
+    const maxVisible = Math.max(1, Math.floor(Number(config?.maxVisible) || 10));
 
     return {
       id: 'brands',
@@ -297,34 +343,47 @@ function mapSectionToExpo(
       title,
       subtitle,
       layoutType: sec.layoutType || 'brands',
-      config: sec.config || null,
-      items: finalBrands.map((b: PrismaBrand) => ({
+      config,
+      items: finalBrands.slice(0, maxVisible).map((b: PrismaBrand) => ({
         id: b.id,
         name: b.name,
         slug: b.slug,
-        logo: b.logo || null,
+        logo: config?.brandLogos?.[b.id] || b.logo || null,
       })),
     };
   }
 
-  // 4. Offers
-  if (sectionKey === 'offresDuMoment' || sectionKey === 'offers') {
+  // 4. Offers (Offres du Moment - Image-Only Advertising)
+  if (sectionType === 'offers') {
+    const advertisements = Array.isArray(config?.advertisements)
+      ? config.advertisements
+        .filter((ad: any) => ad && typeof ad === 'object' && typeof ad.imageUrl === 'string' && ad.imageUrl.trim() && ad.active !== false)
+        .map((ad: any) => ({
+          id: ad.id,
+          imageUrl: ad.imageUrl,
+          title: ad.title || '',
+          destinationUrl: ad.destinationUrl || null,
+          openExternally: ad.openExternally || false,
+        }))
+      : [];
+
     return {
       id: 'offers',
-      type: 'products',
+      type: 'offers',
       active: sec.active,
       order: sec.order,
       title,
       subtitle,
       layoutType: sec.layoutType || 'carousel',
-      config: sec.config || null,
-      query: { promo: 1, sort: 'discount', limit: 8 },
-      productIds: sec.productIds || [],
+      config,
+      advertisements,
     };
   }
 
   // 5. Best Sellers
-  if (sectionKey === 'meilleuresVentes' || sectionKey === 'bestsellers') {
+  const normalizedKey = sectionKey.toLowerCase().replace(/[^a-z0-9]/g, '');
+  if (sectionType === 'products' && ['meilleuresventes', 'bestsellers'].includes(normalizedKey)) {
+    const shelf = projectMobileProductShelf('bestselling', config, sec.productIds);
     return {
       id: 'bestsellers',
       type: 'products',
@@ -333,14 +392,15 @@ function mapSectionToExpo(
       title,
       subtitle,
       layoutType: sec.layoutType || 'grid',
-      config: sec.config || null,
-      query: { sort: 'bestselling', limit: 8 },
-      productIds: sec.productIds || [],
+      config,
+      query: shelf.query,
+      productIds: shelf.productIds,
     };
   }
 
   // 6. New Arrivals
-  if (sectionKey === 'nouveautes' || sectionKey === 'newArrivals') {
+  if (sectionType === 'products' && ['nouveautes', 'newarrivals'].includes(normalizedKey)) {
+    const shelf = projectMobileProductShelf('newest', config, sec.productIds);
     return {
       id: 'nouveautes',
       type: 'products',
@@ -349,17 +409,17 @@ function mapSectionToExpo(
       title,
       subtitle,
       layoutType: sec.layoutType || 'grid',
-      config: sec.config || null,
-      query: { sort: 'newest', limit: 8 },
-      productIds: sec.productIds || [],
+      config,
+      query: shelf.query,
+      productIds: shelf.productIds,
     };
   }
 
   // 7. Flash Sale
-  if (sectionKey === 'flash' || customType === 'flash' || sectionKey.toLowerCase() === 'flash') {
+  if (sectionType === 'flash') {
     const endsAt = sec.endAt
       ? new Date(sec.endAt).toISOString()
-      : (sec.config?.endsAt || new Date(Date.now() + 3 * 3600 * 1000).toISOString());
+      : (config?.endsAt || null);
 
     return {
       id: 'flash',
@@ -369,14 +429,14 @@ function mapSectionToExpo(
       title,
       subtitle,
       layoutType: sec.layoutType || 'banner',
-      config: sec.config || null,
+      config,
       endsAt,
       productIds: sec.productIds || [],
     };
   }
 
   // 8. Personal / Gift
-  if (sectionKey === 'personal' || customType === 'personal') {
+  if (sectionType === 'personal') {
     return {
       id: 'personal',
       type: 'personal',
@@ -387,7 +447,7 @@ function mapSectionToExpo(
     };
   }
 
-  if (sectionKey === 'gift' || customType === 'gift') {
+  if (sectionType === 'gift') {
     return {
       id: 'gift',
       type: 'gift',
@@ -395,16 +455,13 @@ function mapSectionToExpo(
       order: sec.order,
       title,
       subtitle,
+      config,
     };
   }
 
   // 9. Promo Banner / Discover
-  if (
-    sectionKey === 'promoBanner' ||
-    sectionKey === 'discover' ||
-    customType === 'discover' ||
-    layoutType === 'banner'
-  ) {
+  if (sectionType === 'discover') {
+    const resolvedBanner = sec.bannerImage || config?.image || config?.canvaComposition?.backgroundImage || null;
     return {
       id: 'discover',
       type: 'discover',
@@ -412,12 +469,79 @@ function mapSectionToExpo(
       order: sec.order,
       title,
       subtitle,
-      bannerImage: sec.bannerImage || null,
-      config: sec.config || null,
+      bannerImage: resolvedBanner,
+      config,
     };
   }
 
-  // 10. General product section
+  // 9b. Custom Banner
+  if (sectionType === 'custom-banner') {
+    const resolvedBanner = sec.bannerImage || config?.image || config?.bannerImage || null;
+    return {
+      id: sec.id || sec.sectionKey,
+      type: 'custom-banner',
+      active: sec.active,
+      order: sec.order,
+      title,
+      subtitle,
+      layoutType: sec.layoutType || 'banner',
+      bannerImage: resolvedBanner,
+      config,
+      ctaLabel: config?.ctaLabel || 'Découvrir',
+      ctaAction: config?.ctaAction || 'SHOP',
+      backgroundColor: config?.backgroundColor || '#1B4332',
+      textColor: config?.textColor || '#FFFFFF',
+      accentColor: config?.accentColor || '#D4AF37',
+      icon: config?.icon || 'sparkles',
+    };
+  }
+
+  // 10. NexPlay (Loyalty & Gamification)
+  if (sectionType === 'nexplay') {
+    return {
+      id: 'nexplay',
+      type: 'nexplay',
+      active: sec.active,
+      order: sec.order,
+      title,
+      subtitle,
+      config,
+    };
+  }
+
+  if (sectionType === 'announcement-popup') {
+    const validation = validateMobilePopupConfig(config, customType, sectionKey);
+    return {
+      id: sec.id,
+      type: 'announcement-popup',
+      active: sec.active,
+      order: sec.order,
+      title,
+      subtitle,
+      startAt: sec.startAt?.toISOString() || null,
+      endAt: sec.endAt?.toISOString() || null,
+      config: validation.success ? config : null,
+    };
+  }
+
+  if (['welcome-offer', 'gift-quest', 'smart-journey', 'grouped-offers', 'coupons'].includes(sectionType)) {
+    const validation = ['welcome-offer', 'gift-quest'].includes(sectionType)
+      ? validateMobilePopupConfig(config, customType, sectionKey)
+      : { success: true };
+    return {
+      id: sec.id,
+      type: sectionType,
+      active: sec.active,
+      order: sec.order,
+      title,
+      subtitle,
+      config: validation.success ? config : null,
+      productIds: sec.productIds || [],
+    };
+  }
+
+  if (sectionType !== 'products') return null;
+  const shelf = projectMobileProductShelf('popular', config, sec.productIds);
   return {
     id: sec.sectionKey,
     type: 'products',
@@ -426,8 +550,9 @@ function mapSectionToExpo(
     title,
     subtitle,
     layoutType: sec.layoutType || 'grid',
-    query: { sort: 'popular', limit: 8 },
-    productIds: sec.productIds || [],
+    config,
+    query: shelf.query,
+    productIds: shelf.productIds,
   };
 }
 
@@ -436,10 +561,10 @@ export async function GET() {
     const now = new Date();
 
     // Fetch active data in parallel
-    const [mobileAppSections, heroSlides, brands] = await Promise.all([
+    const [mobileAppSections, heroSlides, brands, globalSettingsRecord] = await Promise.all([
       prisma.mobileAppSection.findMany({
         where: {
-          active: true,
+          sectionKey: { not: 'global_settings' },
           AND: [
             { OR: [{ startAt: null }, { startAt: { lte: now } }] },
             { OR: [{ endAt: null }, { endAt: { gte: now } }] },
@@ -467,6 +592,9 @@ export async function GET() {
           logo: true,
         },
       }),
+      prisma.mobileAppSection.findUnique({
+        where: { sectionKey: 'global_settings' },
+      }),
     ]);
 
     let sections: ExpoSection[] = [];
@@ -474,19 +602,27 @@ export async function GET() {
     // Only use CMS-configured sections - no fallback to hardcoded sections
     // CMS is the source of truth for all homepage sections
     if (mobileAppSections.length > 0) {
-      sections = mobileAppSections.map((sec: PrismaMobileAppSection) =>
-        mapSectionToExpo(sec, heroSlides, brands)
-      );
+      sections = mobileAppSections
+        .map((sec: PrismaMobileAppSection) => mapSectionToExpo(sec, heroSlides, brands))
+        .filter((section): section is ExpoSection => section !== null);
     }
-    // If no CMS sections configured, return empty array - app will handle gracefully
 
     // Sort by configured order
     sections.sort((a, b) => a.order - b.order);
+
+    // Get latest timestamp for version tracking
+    const lastUpdated = mobileAppSections.length > 0
+      ? new Date(Math.max(...mobileAppSections.map((s) => s.updatedAt.getTime()))).toISOString()
+      : new Date().toISOString();
+
+    const settings = globalSettingsRecord?.config || null;
 
     return NextResponse.json(
       {
         success: true,
         sections,
+        settings,
+        version: lastUpdated,
       },
       {
         headers: {
