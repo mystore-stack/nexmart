@@ -6,12 +6,13 @@ import { getOrganizationIdForUser } from "@/lib/tenant";
 import { getSession } from "@/lib/auth-api";
 import { CACHE_TTL, getCache, setCache } from "@/lib/redis";
 import { z } from "zod";
+import { toAppProduct, toAppProducts } from "@/lib/product-adapter";
 
 export const dynamic = "force-dynamic";
 
 const productQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
-  limit: z.coerce.number().int().min(1).max(48).default(24),
+  limit: z.coerce.number().int().min(1).max(100).default(24),
   category: z.string().trim().optional(),
   tag: z.string().trim().optional(),
   sort: z
@@ -121,16 +122,20 @@ export async function GET(req: NextRequest) {
       prisma.product.count({ where }),
     ]);
 
-    // Get related data in parallel
+    // Get related data in parallel (including reviews for rating calculation)
     const productIds = products.map(p => p.id);
     const productCategoryIds = products.map(p => p.categoryId).filter(Boolean);
 
-    const [variants, categories] = await Promise.all([
+    const [variants, categories, reviews] = await Promise.all([
       prisma.productVariant.findMany({
         where: { productId: { in: productIds } }
       }),
       prisma.category.findMany({
         where: { id: { in: productCategoryIds } }
+      }),
+      prisma.review.findMany({
+        where: { productId: { in: productIds }, verifiedPurchase: true },
+        select: { productId: true, rating: true, verifiedPurchase: true }
       })
     ]);
 
@@ -145,6 +150,15 @@ export async function GET(req: NextRequest) {
 
     const categoryMap = new Map(categories.map(c => [c.id, c]));
 
+    // Group reviews by product
+    const reviewsMap = new Map<string, any[]>();
+    reviews.forEach(r => {
+      if (!reviewsMap.has(r.productId)) {
+        reviewsMap.set(r.productId, []);
+      }
+      reviewsMap.get(r.productId)!.push(r);
+    });
+
     // Add category and variant data to products
     const productsWithCategories = products.map(product => ({
       ...product,
@@ -152,19 +166,18 @@ export async function GET(req: NextRequest) {
       variants: variantsByProduct.get(product.id) || []
     }));
 
-
+    // Normalize to mobile app format with real ratings
+    const normalizedProducts = toAppProducts(productsWithCategories, reviewsMap, 'fr');
 
     const payload = {
-      products: productsWithCategories,
-      pagination: {
-        page,
-        limit,
-        total,
-        pages: Math.ceil(total / limit),
-        totalPages: Math.ceil(total / limit),
-        hasNext: page * limit < total,
-        hasPrev: page > 1,
-      },
+      items: normalizedProducts,
+      total,
+      page,
+      limit,
+      pages: Math.ceil(total / limit),
+      totalPages: Math.ceil(total / limit),
+      hasNext: page * limit < total,
+      hasPrev: page > 1,
     };
     // await setCache(cacheKey, payload, CACHE_TTL.SHORT);
     return NextResponse.json({ success: true, ...payload });

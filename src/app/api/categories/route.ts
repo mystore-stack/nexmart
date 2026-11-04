@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getDefaultOrganizationId } from "@/lib/tenant";
 import { getCache, setCache, CACHE_KEYS, CACHE_TTL } from "@/lib/redis";
 import { ok, handleApiError } from "@/lib/api";
+import { toAppCategory } from "@/lib/product-adapter";
 
 export const dynamic = "force-dynamic";
 
@@ -43,18 +44,10 @@ export async function GET() {
       const children = childCategories
         .filter(child => child.parentId === parent.id)
         .sort((a, b) => a.order - b.order)
-        .map(child => ({
-          ...child,
-          _count: {
-            products: countMap.get(child.id) || 0
-          }
-        }));
+        .map(child => toAppCategory(child, countMap.get(child.id) || 0));
 
       return {
-        ...parent,
-        _count: {
-          products: countMap.get(parent.id) || 0
-        },
+        ...toAppCategory(parent, countMap.get(parent.id) || 0),
         children
       };
     });

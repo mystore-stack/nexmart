@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getDefaultOrganizationId } from "@/lib/tenant";
 import { CACHE_KEYS, CACHE_TTL, getCache, setCache } from "@/lib/redis";
+import { toAppProduct } from "@/lib/product-adapter";
 
 export async function GET(
   _req: NextRequest,
@@ -53,8 +54,14 @@ export async function GET(
       return NextResponse.json({ success: false, error: "Produit introuvable" }, { status: 404 });
     }
 
+    // Normalize to mobile app format with real ratings
+    const normalizedProduct = toAppProduct(product, product.reviews || [], 'fr');
+
+    // Preserve additional fields (reviews, variants) that mobile app might need
     const responseProduct = {
-      ...product,
+      ...normalizedProduct,
+      variants: product.variants,
+      reviews: product.reviews,
     };
 
     await setCache(cacheKey, responseProduct, CACHE_TTL.MEDIUM);
