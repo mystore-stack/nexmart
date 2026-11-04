@@ -67,7 +67,7 @@ export async function GET(req: NextRequest) {
     // Handle category filter - get categoryId from slug
     let categoryId = null;
     if (category) {
-      const categoryData = await prisma.category.findFirst({
+      const categoryData = await (prisma as any).category.findFirst({
         where: { organizationId, slug: category },
         select: { id: true }
       });
@@ -113,27 +113,27 @@ export async function GET(req: NextRequest) {
     }
 
     const [products, total] = await Promise.all([
-      prisma.product.findMany({
+      (prisma as any).product.findMany({
         where,
         orderBy,
         skip: (page - 1) * limit,
         take: limit,
       }),
-      prisma.product.count({ where }),
+      (prisma as any).product.count({ where }),
     ]);
 
     // Get related data in parallel (including reviews for rating calculation)
-    const productIds = products.map(p => p.id);
-    const productCategoryIds = products.map(p => p.categoryId).filter(Boolean);
+    const productIds = products.map((p: any) => p.id);
+    const productCategoryIds = products.map((p: any) => p.categoryId).filter(Boolean);
 
     const [variants, categories, reviews] = await Promise.all([
-      prisma.productVariant.findMany({
+      (prisma as any).productVariant.findMany({
         where: { productId: { in: productIds } }
       }),
-      prisma.category.findMany({
+      (prisma as any).category.findMany({
         where: { id: { in: productCategoryIds } }
       }),
-      prisma.review.findMany({
+      (prisma as any).review.findMany({
         where: { productId: { in: productIds }, verifiedPurchase: true },
         select: { productId: true, rating: true, verifiedPurchase: true }
       })
@@ -141,18 +141,18 @@ export async function GET(req: NextRequest) {
 
     // Create maps for quick lookup
     const variantsByProduct = new Map();
-    variants.forEach(v => {
+    variants.forEach((v: any) => {
       if (!variantsByProduct.has(v.productId)) {
         variantsByProduct.set(v.productId, []);
       }
-      variantsByProduct.get(v.productId).push(v);
+      variantsByProduct.get(v.productId)!.push(v);
     });
 
-    const categoryMap = new Map(categories.map(c => [c.id, c]));
+    const categoryMap = new Map(categories.map((c: any) => [c.id, c]));
 
     // Group reviews by product
     const reviewsMap = new Map<string, any[]>();
-    reviews.forEach(r => {
+    reviews.forEach((r: any) => {
       if (!reviewsMap.has(r.productId)) {
         reviewsMap.set(r.productId, []);
       }
@@ -160,7 +160,7 @@ export async function GET(req: NextRequest) {
     });
 
     // Add category and variant data to products
-    const productsWithCategories = products.map(product => ({
+    const productsWithCategories = products.map((product: any) => ({
       ...product,
       category: product.categoryId ? categoryMap.get(product.categoryId) : null,
       variants: variantsByProduct.get(product.id) || []
