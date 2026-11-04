@@ -33,7 +33,7 @@ export async function GET(
       lookup.push({ id: slug });
     }
 
-    const product = await prisma.product.findFirst({
+    const product = await (prisma as any).product.findFirst({
       where: { organizationId, published: true, OR: lookup },
       include: {
         category: true,

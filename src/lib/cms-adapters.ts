@@ -5,6 +5,15 @@ import { toAppProduct as toAppProductCore, toAppProducts, AppProduct as CoreAppP
 // Re-export for backward compatibility
 export type AppProduct = CoreAppProduct;
 
+export interface AppReview {
+  id: string;
+  user: string;
+  rating: number;
+  text: string;
+  at: number;
+  product: AppProduct;
+}
+
 // Re-export the standardized toAppProduct function
 export { toAppProduct as toAppProductCore, toAppProducts };
 
@@ -22,7 +31,7 @@ export function toAppProduct(product: any, reviews: any[] = []): AppProduct {
 export async function getProductsByIds(ids: string[]): Promise<AppProduct[]> {
   if (!ids || ids.length === 0) return [];
 
-  const products = await prisma.product.findMany({
+  const products = await (prisma as any).product.findMany({
     where: {
       id: { in: ids },
       published: true,
@@ -39,8 +48,8 @@ export async function getProductsByIds(ids: string[]): Promise<AppProduct[]> {
   });
 
   // Fetch reviews for all products in parallel
-  const productIds = products.map(p => p.id);
-  const reviews = await prisma.review.findMany({
+  const productIds = products.map((p: any) => p.id);
+  const reviews = await (prisma as any).review.findMany({
     where: {
       productId: { in: productIds },
       verifiedPurchase: true,
@@ -54,7 +63,7 @@ export async function getProductsByIds(ids: string[]): Promise<AppProduct[]> {
 
   // Group reviews by product
   const reviewsMap = new Map<string, any[]>();
-  reviews.forEach(r => {
+  reviews.forEach((r: any) => {
     if (!reviewsMap.has(r.productId)) {
       reviewsMap.set(r.productId, []);
     }
@@ -68,7 +77,7 @@ export async function getProductsByIds(ids: string[]): Promise<AppProduct[]> {
  * Fetch verified reviews with rating >= 4
  */
 export async function getVerifiedReviews(limit: number = 6): Promise<AppReview[]> {
-  const reviews = await prisma.review.findMany({
+  const reviews = await (prisma as any).review.findMany({
     where: {
       verifiedPurchase: true,
       rating: { gte: 4 },
@@ -96,7 +105,7 @@ export async function getVerifiedReviews(limit: number = 6): Promise<AppReview[]
     take: limit,
   });
 
-  return reviews.map((review) => ({
+  return reviews.map((review: any) => ({
     id: review.id,
     user: review.user.name || 'Anonymous',
     rating: review.rating,
@@ -112,7 +121,7 @@ export async function getVerifiedReviews(limit: number = 6): Promise<AppReview[]
 export async function countUserOrders(userId: string): Promise<number> {
   if (!userId) return 0;
 
-  return prisma.order.count({
+  return (prisma as any).order.count({
     where: { userId },
   });
 }

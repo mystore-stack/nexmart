@@ -15,39 +15,39 @@ export async function GET() {
     const organizationId = await getDefaultOrganizationId();
     
     // Get all categories (both parent and child)
-    const allCategories = await prisma.category.findMany({
+    const allCategories = await (prisma as any).category.findMany({
       where: { organizationId },
       orderBy: { order: "asc" },
     });
 
     // Separate parent and child categories
-    const parentCategories = allCategories.filter(c => c.parentId === null);
-    const childCategories = allCategories.filter(c => c.parentId !== null);
+    const parentCategories = allCategories.filter((c: any) => c.parentId === null);
+    const childCategories = allCategories.filter((c: any) => c.parentId !== null);
 
     // Count products for all categories
-    const categoryIds = allCategories.map(c => c.id);
+    const categoryIds = allCategories.map((c: any) => c.id);
 
-    const productCounts = await prisma.product.groupBy({
+    const productCounts = await (prisma as any).product.groupBy({
       by: ['categoryId'],
-      where: { 
-        organizationId, 
+      where: {
+        organizationId,
         published: true,
         categoryId: { in: categoryIds }
       },
       _count: { categoryId: true }
     });
 
-    const countMap = new Map(productCounts.map(pc => [pc.categoryId, pc._count.categoryId]));
+    const countMap = new Map(productCounts.map((pc: any) => [pc.categoryId, pc._count.categoryId]));
 
     // Build category hierarchy with counts
-    const categories = parentCategories.map(parent => {
+    const categories = parentCategories.map((parent: any) => {
       const children = childCategories
-        .filter(child => child.parentId === parent.id)
-        .sort((a, b) => a.order - b.order)
-        .map(child => toAppCategory(child, countMap.get(child.id) || 0));
+        .filter((child: any) => child.parentId === parent.id)
+        .sort((a: any, b: any) => a.order - b.order)
+        .map((child: any) => toAppCategory(child, (countMap.get(child.id) as number) || 0));
 
       return {
-        ...toAppCategory(parent, countMap.get(parent.id) || 0),
+        ...toAppCategory(parent, (countMap.get(parent.id) as number) || 0),
         children
       };
     });
