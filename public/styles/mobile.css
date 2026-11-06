@@ -98,7 +98,9 @@ header.sticky:not(#nm-mobile-header) {
 }
 
 /* Adjust top padding so content starts cleanly below the 2-level MobileHeader */
-body {
+/* ONLY applied inside the Android app — html[data-app="true"] is set by MobileAppShell */
+html[data-app="true"] body,
+body[data-app="true"] {
   padding-top: calc(112px + env(safe-area-inset-top, 0px)) !important;
 }
 
