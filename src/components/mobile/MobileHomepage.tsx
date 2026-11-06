@@ -13,7 +13,7 @@ import {
   MobileEmptyState,
   NexPointsBadge,
 } from "@/components/mobile";
-import { ShoppingBag, Star, Zap, Package } from "lucide-react";
+import { ShoppingBag, Star, Zap, Package, Camera } from "lucide-react";
 
 /**
  * NexMart — Mobile Homepage
@@ -103,15 +103,33 @@ export function MobileHomepage() {
         )}
       </div>
 
-      {/* ── Search Bar ─────────────────────────────────────────────────── */}
-      <div style={{ padding: "0 16px 16px" }}>
-        <Link href="/search" style={{ textDecoration: "none" }}>
+      {/* ── Search Bar & Scanner ─────────────────────────────────────────── */}
+      <div style={{ padding: "0 16px 16px", display: "flex", gap: "8px", alignItems: "center" }}>
+        <Link href="/search" style={{ textDecoration: "none", flex: 1 }}>
           <div className="nm-search" style={{ pointerEvents: "none" }}>
             <svg className="nm-search__icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
             </svg>
             <span style={{ fontSize: "15px", color: "var(--nm-text-tertiary)" }}>Rechercher des produits...</span>
           </div>
+        </Link>
+        <Link
+          href="/scan"
+          style={{
+            width: "44px",
+            height: "44px",
+            borderRadius: "50%",
+            background: "var(--nm-surface-dim)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: "var(--nm-primary)",
+            textDecoration: "none",
+            flexShrink: 0,
+          }}
+          aria-label="NexScan Scanner"
+        >
+          <Camera size={20} strokeWidth={2} />
         </Link>
       </div>
 

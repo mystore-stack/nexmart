@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.nexmart.app",
+      "sha256_cert_fingerprints": [
+        "14:6D:E9:CD:7A:B3:26:FA:15:F3:D0:30:17:81:40:53:C9:F0:EF:F6:4F:CA:2A:F3:49:15:35:56:88:FF:5E:20"
+      ]
+    }
+  }
+]

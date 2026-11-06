@@ -12,6 +12,7 @@ import { useSession } from "next-auth/react";
 import type { Session } from "next-auth";
 import { formatDate } from "@/utils/format";
 import { NexPointsMiniWidget } from "@/components/mobile/NexPointsMiniWidget";
+import { BiometricSettingToggle } from "@/components/mobile/BiometricSettingToggle";
 import toast from "react-hot-toast";
 
 type Tab = "profile" | "security" | "addresses" | "notifications";
@@ -253,6 +254,7 @@ export default function AccountPage() {
 
               {tab === "security" && (
                 <div className="bg-card border border-border rounded-2xl p-6 space-y-6">
+                  <BiometricSettingToggle />
                   <h2 className="text-lg font-bold">Password & Security</h2>
 
                   <div className="space-y-4">
