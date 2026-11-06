@@ -25,12 +25,20 @@
     "setup": "npm install && npx prisma generate && npx prisma db push && npm run db:seed",
     "deploy": "vercel --prod",
     "deploy:preview": "vercel",
-    "deploy:auto": "node setup-env.js"
+    "deploy:auto": "node setup-env.js",
+    "cap:sync": "cap sync",
+    "cap:open": "cap open android"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
+    "@capacitor/android": "^8.6.0",
+    "@capacitor/cli": "^8.6.0",
+    "@capacitor/core": "^8.6.0",
+    "@capacitor/share": "^8.0.3",
+    "@capacitor/splash-screen": "^8.0.2",
+    "@capacitor/status-bar": "^8.0.4",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^8.0.0",
     "@dnd-kit/utilities": "^3.2.2",

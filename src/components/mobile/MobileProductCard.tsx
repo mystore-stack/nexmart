@@ -2,9 +2,10 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Heart } from "lucide-react";
+import { Heart, Share2 } from "lucide-react";
 import { useState } from "react";
 import { useWishlistStore } from "@/store";
+import { shareProduct } from "@/lib/nexshare";
 
 /**
  * NexMart — Mobile Product Card
@@ -90,6 +91,35 @@ export function MobileProductCard({ product, size = "md", className = "" }: Mobi
             </span>
           </div>
         )}
+
+        {/* Quick share button */}
+        <button
+          className="nm-product-card__share"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            shareProduct(product as any);
+          }}
+          aria-label="Partager"
+          style={{
+            position: "absolute",
+            top: "8px",
+            right: "48px",
+            width: "36px",
+            height: "36px",
+            borderRadius: "50%",
+            background: "rgba(255, 255, 255, 0.9)",
+            backdropFilter: "blur(4px)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            boxShadow: "0 2px 8px rgba(12, 31, 27, 0.12)",
+            border: "none",
+            cursor: "pointer",
+          }}
+        >
+          <Share2 size={15} color="#3D5A54" />
+        </button>
 
         {/* Wishlist button */}
         <button

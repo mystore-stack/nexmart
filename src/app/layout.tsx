@@ -1,4 +1,4 @@
-﻿// src/app/layout.tsx â€” NexMart Moroccan Luxury (local fonts fallback)
+// src/app/layout.tsx â€” NexMart Moroccan Luxury (local fonts fallback)
 import type { Metadata, Viewport } from "next";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { QueryProvider } from "@/components/providers/QueryProvider";
@@ -11,6 +11,7 @@ import { Footer } from "@/components/layout/Footer";
 import { SearchModal } from "@/components/layout/SearchModal";
 import { MarketingPopupsManager } from "@/components/popups/MarketingPopupsManager";
 import { MobileAppShell } from "@/components/mobile/MobileAppShell";
+import { CompareFloatingBar } from "@/components/compare/CompareFloatingBar";
 import { PwaProvider } from "@/components/pwa/PwaProvider";
 import { getSiteConfigBundle } from "@/lib/cms";
 import dynamicImport from "next/dynamic";
@@ -96,6 +97,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                 <SearchModal />
                 <MarketingPopupsManager />
                 <MobileAppShell />
+                <CompareFloatingBar />
                 {process.env.NEXT_PUBLIC_ENABLE_AI_CHAT !== "false" && <AIChatWidget />}
               </SiteConfigProvider>
             </AuthProvider>
