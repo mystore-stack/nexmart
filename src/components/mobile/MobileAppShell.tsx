@@ -69,8 +69,44 @@ export function MobileAppShell() {
     };
     window.addEventListener("popstate", handlePopState);
 
+    // Global link handler for Android WebView
+    const handleGlobalClick = (e: MouseEvent) => {
+      const anchor = (e.target as HTMLElement).closest("a");
+      if (!anchor) return;
+      const href = anchor.getAttribute("href");
+      if (!href) return;
+
+      // Handle WhatsApp
+      if (href.includes("wa.me/") || href.startsWith("whatsapp:")) {
+        e.preventDefault();
+        const phoneMatch = href.match(/wa\.me\/([0-9]+)/);
+        const textMatch = href.match(/text=([^&]+)/);
+        const phone = phoneMatch ? phoneMatch[1] : "";
+        const text = textMatch ? textMatch[1] : "";
+        window.location.href = `whatsapp://send?phone=${phone}&text=${text}`;
+        return;
+      }
+
+      // Handle tel: and mailto:
+      if (href.startsWith("tel:") || href.startsWith("mailto:")) {
+        e.preventDefault();
+        window.location.href = href;
+        return;
+      }
+
+      // Handle internal target="_blank" links so they stay inside the app
+      if (anchor.getAttribute("target") === "_blank") {
+        if (href.startsWith("/") || href.includes(window.location.hostname)) {
+          e.preventDefault();
+          window.location.href = href;
+        }
+      }
+    };
+    document.addEventListener("click", handleGlobalClick, { capture: true });
+
     return () => {
       window.removeEventListener("popstate", handlePopState);
+      document.removeEventListener("click", handleGlobalClick, { capture: true });
     };
   }, []);
 
