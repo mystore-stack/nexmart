@@ -84,12 +84,22 @@ nav[aria-label="footer"],
   display: none !important;
 }
 
-/* ─── HEADER — MOBILE COMPACT ─────────────────────────────────────────────── */
-/* Make the existing header more compact in app mode */
-header nav .desktop-nav,
-header .desktop-links,
-header [data-desktop-only] {
+/* ─── HEADER — ISOLATED MOBILE HEADER REPLACEMENT ────────────────────────── */
+/* In Android App mode, hide the desktop web Navbar and activate the dedicated MobileHeader */
+header:not(#nm-mobile-header),
+header.fixed:not(#nm-mobile-header),
+header.sticky:not(#nm-mobile-header) {
   display: none !important;
+}
+
+#nm-mobile-header {
+  display: block !important;
+  background-color: #FFFFFF;
+}
+
+/* Adjust top padding so content starts cleanly below the 2-level MobileHeader */
+body {
+  padding-top: calc(112px + env(safe-area-inset-top, 0px)) !important;
 }
 
 /* ─── BOTTOM NAVIGATION BAR ───────────────────────────────────────────────── */

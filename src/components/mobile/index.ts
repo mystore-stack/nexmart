@@ -22,3 +22,4 @@ export {
 } from "./MobileComponents";
 export { MobileHomepage } from "./MobileHomepage";
 export { NexPointsScreen } from "./NexPointsScreen";
+export { MobileHeader } from "./MobileHeader";

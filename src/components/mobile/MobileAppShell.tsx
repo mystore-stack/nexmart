@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { MobileBottomNav } from "./MobileBottomNav";
+import { MobileHeader } from "./MobileHeader";
 
 /**
  * NexMart — Mobile App Shell
@@ -112,5 +113,10 @@ export function MobileAppShell() {
 
   if (!isApp) return null;
 
-  return <MobileBottomNav locale={locale} />;
+  return (
+    <>
+      <MobileHeader />
+      <MobileBottomNav locale={locale} />
+    </>
+  );
 }
