@@ -12,6 +12,7 @@ import { SearchModal } from "@/components/layout/SearchModal";
 import { MarketingPopupsManager } from "@/components/popups/MarketingPopupsManager";
 import { MobileAppShell } from "@/components/mobile/MobileAppShell";
 import { CompareFloatingBar } from "@/components/compare/CompareFloatingBar";
+import { OfflineStatusBanner } from "@/components/mobile/OfflineStatusBanner";
 import { PwaProvider } from "@/components/pwa/PwaProvider";
 import { getSiteConfigBundle } from "@/lib/cms";
 import dynamicImport from "next/dynamic";
@@ -98,6 +99,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                 <MarketingPopupsManager />
                 <MobileAppShell />
                 <CompareFloatingBar />
+                <OfflineStatusBanner />
                 {process.env.NEXT_PUBLIC_ENABLE_AI_CHAT !== "false" && <AIChatWidget />}
               </SiteConfigProvider>
             </AuthProvider>
