@@ -1,4 +1,4 @@
-// src/app/layout.tsx — NexMart Moroccan Luxury (local fonts fallback)
+﻿// src/app/layout.tsx â€” NexMart Moroccan Luxury (local fonts fallback)
 import type { Metadata, Viewport } from "next";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { QueryProvider } from "@/components/providers/QueryProvider";
@@ -9,6 +9,8 @@ import { CartDrawer } from "@/components/cart/CartDrawer";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { SearchModal } from "@/components/layout/SearchModal";
+import { MarketingPopupsManager } from "@/components/popups/MarketingPopupsManager";
+import { MobileAppShell } from "@/components/mobile/MobileAppShell";
 import { PwaProvider } from "@/components/pwa/PwaProvider";
 import { getSiteConfigBundle } from "@/lib/cms";
 import dynamicImport from "next/dynamic";
@@ -21,11 +23,11 @@ const AIChatWidget = dynamicImport(
 export const metadata: Metadata = {
   applicationName: "NexMart",
   title: {
-    default: "NexMart Maroc — Marketplace Premium",
+    default: "NexMart Maroc â€” Marketplace Premium",
     template: "%s | NexMart Maroc",
   },
   description:
-    "NexMart est la marketplace premium du Maroc — shopping intelligent par IA, artisanat authentique, paiement sécurisé et livraison express.",
+    "NexMart est la marketplace premium du Maroc â€” shopping intelligent par IA, artisanat authentique, paiement sÃ©curisÃ© et livraison express.",
   keywords: ["marketplace maroc", "shopping premium maroc", "artisanat marocain", "ecommerce maroc", "nexmart"],
   authors: [{ name: "NexMart Maroc" }],
   creator: "NexMart",
@@ -34,7 +36,7 @@ export const metadata: Metadata = {
   manifest: "/manifest.webmanifest",
   openGraph: {
     type: "website", locale: "fr_MA", url: "https://nexmart.ma", siteName: "NexMart Maroc",
-    title: "NexMart Maroc — Marketplace Premium",
+    title: "NexMart Maroc â€” Marketplace Premium",
     description: "Shopping premium au Maroc avec recommandations IA et artisanat authentique.",
     images: [{ url: "/og-image.jpg", width: 1200, height: 630, alt: "NexMart Maroc" }],
   },
@@ -92,6 +94,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                 </div>
                 <CartDrawer />
                 <SearchModal />
+                <MarketingPopupsManager />
+                <MobileAppShell />
                 {process.env.NEXT_PUBLIC_ENABLE_AI_CHAT !== "false" && <AIChatWidget />}
               </SiteConfigProvider>
             </AuthProvider>

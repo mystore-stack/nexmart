@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 // src/app/account/page.tsx
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
@@ -11,6 +11,7 @@ import Link from "next/link";
 import { useSession } from "next-auth/react";
 import type { Session } from "next-auth";
 import { formatDate } from "@/utils/format";
+import { NexPointsMiniWidget } from "@/components/mobile/NexPointsMiniWidget";
 import toast from "react-hot-toast";
 
 type Tab = "profile" | "security" | "addresses" | "notifications";
@@ -114,6 +115,7 @@ export default function AccountPage() {
       </div>
 
       <div className="container-main py-8 max-w-5xl">
+          <NexPointsMiniWidget />
         <div className="grid lg:grid-cols-4 gap-8">
           {/* Sidebar */}
           <aside className="lg:col-span-1 space-y-4">
