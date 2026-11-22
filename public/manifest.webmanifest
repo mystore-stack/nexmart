@@ -1,0 +1,48 @@
+{
+  "name": "NexMart Maroc",
+  "short_name": "NexMart",
+  "description": "Marketplace Premium du Maroc - Shopping Intelligent",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#00B48A",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/app-icon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/app-icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "categories": ["shopping", "e-commerce", "marketplace"],
+  "shortcuts": [
+    {
+      "name": "Accueil",
+      "short_name": "Accueil",
+      "description": "Page d'accueil NexMart",
+      "url": "/",
+      "icons": [{ "src": "/app-icon.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Catégories",
+      "short_name": "Catégories",
+      "description": "Explorer nos catégories",
+      "url": "/categories",
+      "icons": [{ "src": "/app-icon.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Panier",
+      "short_name": "Panier",
+      "description": "Voir votre panier",
+      "url": "/cart",
+      "icons": [{ "src": "/app-icon.png", "sizes": "96x96" }]
+    }
+  ]
+}

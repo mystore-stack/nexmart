@@ -24,16 +24,18 @@ async function fetchCategories(organizationId: string) {
   try {
     console.log('[HOME-DATA] Fetching categories for organization:', organizationId);
     
+    // Fetch all categories with pageConfig
     const categories = await prisma.category.findMany({
       where: { organizationId, parentId: null },
-      orderBy: { name: "asc" },
-      take: 8,
+      orderBy: { order: "asc" },
       select: {
         id: true,
         name: true,
         slug: true,
         image: true,
         description: true,
+        pageConfig: true,
+        order: true,
       },
     });
 
@@ -44,11 +46,27 @@ async function fetchCategories(organizationId: string) {
         name: c.name,
         hasImage: !!c.image,
         image: c.image,
+        pageConfig: c.pageConfig,
       }))
     });
 
+    // Filter categories for homepage display:
+    // 1. showOnHomepage must be true in pageConfig
+    // 2. status must be "PUBLISHED" in pageConfig
+    const homepageCategories = categories.filter((category: any) => {
+      const cfg = category.pageConfig || {};
+      const showOnHomepage = cfg.showOnHomepage ?? true; // Default to true if not set
+      const status = cfg.status || "PUBLISHED";
+      return showOnHomepage && status === "PUBLISHED";
+    });
+
+    console.log('[HOMEPAGE CATEGORIES FILTERED]', {
+      original: categories.length,
+      filtered: homepageCategories.length
+    });
+
     // Count products for each category manually
-    const categoryIds = categories.map((c: any) => c.id);
+    const categoryIds = homepageCategories.map((c: any) => c.id);
 
     const productCounts = await prisma.product.groupBy({
       by: ['categoryId'],
@@ -62,17 +80,22 @@ async function fetchCategories(organizationId: string) {
 
     const countMap = new Map(productCounts.map((pc: any) => [pc.categoryId, pc._count.categoryId]));
 
-    // Add product counts to categories and ensure clean serialization
-    return categories.map((category: any) => ({
-      id: category.id,
-      name: category.name,
-      slug: category.slug,
-      image: category.image,
-      description: category.description,
-      _count: {
-        products: countMap.get(category.id) || 0
-      }
-    }));
+    // Add product counts and pageConfig fields to categories
+    return homepageCategories.map((category: any) => {
+      const cfg = category.pageConfig || {};
+      return {
+        id: category.id,
+        name: category.name,
+        slug: category.slug,
+        image: cfg.bannerImage || category.image, // Use bannerImage for homepage if available
+        description: category.description,
+        icon: cfg.icon || null,
+        displayOrder: category.order,
+        _count: {
+          products: countMap.get(category.id) || 0
+        }
+      };
+    });
   } catch (error) {
     console.error('Error fetching categories:', error);
     return [];

@@ -2,7 +2,17 @@ import { prisma } from "@/lib/prisma";
 import { getDefaultOrganizationId } from "@/lib/tenant";
 import { Category } from "@prisma/client";
 
-type CategoryWithCount = Category & {
+type CategoryWithCount = {
+  id: string;
+  organizationId: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  image: string | null;
+  parentId: string | null;
+  createdAt: Date;
+  pageConfig: any;
+  order: number;
   _count: {
     products: number;
   };
@@ -12,15 +22,35 @@ type CategoryWithCount = Category & {
 export async function getCatalogCategories(): Promise<CategoryWithCount[]> {
   const organizationId = await getDefaultOrganizationId();
   
-  // Get all categories (both parent and child)
+  // Get all categories (both parent and child) with pageConfig
   const allCategories = await prisma.category.findMany({
     where: { organizationId },
     orderBy: { name: "asc" },
+    select: {
+      id: true,
+      organizationId: true,
+      name: true,
+      slug: true,
+      description: true,
+      image: true,
+      parentId: true,
+      createdAt: true,
+      pageConfig: true,
+      order: true,
+    },
+  });
+
+  // Filter categories: only show those with status PUBLISHED
+  // Note: showOnHomepage filter is ONLY for homepage, not for public categories page
+  const publishedCategories = allCategories.filter((cat: any) => {
+    const cfg = cat.pageConfig || {};
+    const status = cfg.status || "PUBLISHED";
+    return status === "PUBLISHED";
   });
 
   // Separate parent and child categories
-  const parentCategories = allCategories.filter(c => c.parentId === null);
-  const childCategories = allCategories.filter(c => c.parentId !== null);
+  const parentCategories = publishedCategories.filter(c => c.parentId === null);
+  const childCategories = publishedCategories.filter(c => c.parentId !== null);
 
   // Count products for all categories
   const categoryIds = allCategories.map(c => c.id);
@@ -42,15 +72,23 @@ export async function getCatalogCategories(): Promise<CategoryWithCount[]> {
   return parentCategories.map(parent => {
     const children = childCategories
       .filter(child => child.parentId === parent.id)
-      .map(child => ({
-        ...child,
-        _count: {
-          products: countMap.get(child.id) || 0
-        }
-      }));
+      .map(child => {
+        const childCfg = child.pageConfig || {};
+        return {
+          ...child,
+          icon: childCfg.icon || null,
+          bannerImage: childCfg.bannerImage || null,
+          _count: {
+            products: countMap.get(child.id) || 0
+          }
+        };
+      });
 
+    const cfg = parent.pageConfig || {};
     return {
       ...parent,
+      icon: cfg.icon || null,
+      bannerImage: cfg.bannerImage || null,
       _count: {
         products: countMap.get(parent.id) || 0
       },
