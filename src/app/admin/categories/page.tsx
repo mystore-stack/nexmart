@@ -82,7 +82,7 @@ export default function MasterCategoriesPage() {
   const [categories, setCategories] = useState<CategoryNode[]>([]);
   const [loadingShop, setLoadingShop] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("ALL");
+  const [statusFilter, setStatusFilter] = useState<string>("PUBLISHED");
   const [expandedNodes, setExpandedNodes] = useState<Record<string, boolean>>({});
 
   // Seller Requests State
