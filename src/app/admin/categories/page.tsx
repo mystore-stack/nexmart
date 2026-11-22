@@ -82,7 +82,7 @@ export default function MasterCategoriesPage() {
   const [categories, setCategories] = useState<CategoryNode[]>([]);
   const [loadingShop, setLoadingShop] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("PUBLISHED");
+  const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [expandedNodes, setExpandedNodes] = useState<Record<string, boolean>>({});
 
   // Seller Requests State
@@ -204,6 +204,11 @@ export default function MasterCategoriesPage() {
 
   // Filter & Build Category Tree
   const categoryTree = useMemo(() => {
+    // Guard against non-array categories
+    if (!Array.isArray(categories)) {
+      return [];
+    }
+
     let filtered = categories;
 
     if (searchQuery.trim()) {
